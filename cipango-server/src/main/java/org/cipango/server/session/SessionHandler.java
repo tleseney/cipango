@@ -20,7 +20,7 @@ public class SessionHandler extends AbstractSipHandler
 			
 			if (request.isInitial())
 			{
-				
+				_sessionManager.
 			}
 		}
 		// TODO Auto-generated method stub

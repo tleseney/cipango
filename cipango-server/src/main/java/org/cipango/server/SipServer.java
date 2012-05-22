@@ -7,7 +7,6 @@ import javax.servlet.ServletException;
 import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
 
-import org.cipango.server.labs.transaction.TransactionManager;
 import org.cipango.server.nio.UdpConnector;
 import org.cipango.server.processor.SessionProcessor;
 import org.cipango.server.processor.SipSessionProcessor;
@@ -15,6 +14,7 @@ import org.cipango.server.processor.TransactionProcessor;
 import org.cipango.server.processor.TransportProcessor;
 import org.cipango.server.session.CallSessionManager;
 import org.cipango.server.transaction.ServerTransaction;
+import org.cipango.server.transaction.TransactionManager;
 import org.cipango.sip.SipGenerator;
 import org.eclipse.jetty.io.Buffers;
 import org.eclipse.jetty.io.PooledBuffers;

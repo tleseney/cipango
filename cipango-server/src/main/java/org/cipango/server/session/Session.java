@@ -39,7 +39,7 @@ public class Session implements SipSessionIf
 	
 	protected SipServer getServer()
 	{
-		return _applicationSession.getCallSession().getServer();
+		return null; //_applicationSession.getCallSession().getServer();
 	}
 	
 	@Override

@@ -15,7 +15,6 @@ import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipSession;
 
-import org.cipango.server.session.CallSession;
 import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.SipFields;
 import org.cipango.sip.SipHeader;
@@ -30,7 +29,6 @@ public abstract class SipMessage implements SipServletMessage
 	
 	private boolean _committed = false;
 	
-	private CallSession _callSession;
 	private Transaction _transaction;
 	
 	protected boolean isSystemHeader(SipHeader header)
@@ -61,16 +59,6 @@ public abstract class SipMessage implements SipServletMessage
 	public SipConnection getConnection()
 	{
 		return _connection;
-	}
-	
-	public void setCallSession(CallSession session)
-	{
-		_callSession = session;
-	}
-	
-	public CallSession getCallSession()
-	{
-		return _callSession;
 	}
 	
 	public void setTransaction(Transaction transaction)

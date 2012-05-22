@@ -17,7 +17,6 @@ public class ApplicationSession implements SipApplicationSession
 {
 	private String _id;
 	
-	private CallSession _callSession;
 	private List<Session> _sessions = new ArrayList<Session>(1);
 	
 	private long _created = System.currentTimeMillis();
@@ -32,16 +31,6 @@ public class ApplicationSession implements SipApplicationSession
 		Session session = new Session(this);
 		_sessions.add(session);
 		return session;
-	}
-	
-	public CallSession getCallSession()
-	{
-		return _callSession;
-	}
-	
-	public void setCallSession(CallSession callSession)
-	{
-		_callSession = callSession;
 	}
 	
 	/**
@@ -81,7 +70,7 @@ public class ApplicationSession implements SipApplicationSession
 	{
 		if (_expiryTimer != null)
 		{
-			_callSession.cancel(_expiryTimer);
+			//_callSession.cancel(_expiryTimer);
 			_expiryTimer = null;
 		}
 		
@@ -89,7 +78,7 @@ public class ApplicationSession implements SipApplicationSession
 		
 		if (_expiryDelay > 0)
 		{
-			_expiryTimer = _callSession.schedule(new ExpiryTimeout(), _expiryDelay * 60000l);
+			//_expiryTimer = _callSession.schedule(new ExpiryTimeout(), _expiryDelay * 60000l);
 			return _expiryDelay;
 		}
 		return Integer.MAX_VALUE;
@@ -104,10 +93,10 @@ public class ApplicationSession implements SipApplicationSession
 		{
 			if (_expiryTimer != null)
 			{
-				_callSession.cancel(_expiryTimer);
+				//_callSession.cancel(_expiryTimer);
 				_expiryTimer = null;
 			}
-			_callSession.removeApplicationSession(this);
+			//_callSession.removeApplicationSession(this);
 		}
 		finally
 		{

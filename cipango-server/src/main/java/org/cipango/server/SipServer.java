@@ -8,11 +8,8 @@ import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
 
 import org.cipango.server.nio.UdpConnector;
-import org.cipango.server.processor.SessionProcessor;
-import org.cipango.server.processor.SipSessionProcessor;
-import org.cipango.server.processor.TransactionProcessor;
+
 import org.cipango.server.processor.TransportProcessor;
-import org.cipango.server.session.CallSessionManager;
 import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.server.transaction.TransactionManager;
 import org.cipango.sip.SipGenerator;
@@ -39,9 +36,7 @@ public class SipServer extends AbstractLifeCycle
 	
 	private SipHandler _handler;
 	private SipProcessor _processor;
-	
-	private CallSessionManager _sessionManager;
-	
+		
 	private Buffers _buffers = new PooledBuffers(Buffers.Type.INDIRECT, 0, Buffers.Type.INDIRECT, 65535, Buffers.Type.INDIRECT, 10);
 	static 
 	{
@@ -77,10 +72,6 @@ public class SipServer extends AbstractLifeCycle
 		
 		if (_threadPool instanceof LifeCycle)
 			((LifeCycle) _threadPool).start();
-		
-		_sessionManager = new CallSessionManager();
-		_sessionManager.setServer(this);
-		_sessionManager.start();
 		
 		//_processor = new TransportProcessor(new SessionProcessor(new TransactionProcessor(new SipSessionProcessor())));
 		_processor = new TransportProcessor(new TransactionManager());
@@ -155,11 +146,6 @@ public class SipServer extends AbstractLifeCycle
 	public ThreadPool getThreadPool()
 	{
 		return _threadPool;
-	}
-	
-	public CallSessionManager getSessionManager()
-	{
-		return _sessionManager;
 	}
 	
 	public void process(final SipMessage message)

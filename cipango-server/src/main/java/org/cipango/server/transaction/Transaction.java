@@ -20,7 +20,6 @@ import java.util.Map;
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipServer;
-import org.cipango.server.session.CallSession;
 import org.cipango.server.transaction.TransactionManager.TimerTask;
 //import org.cipango.util.TimerTask;
 import org.eclipse.jetty.util.log.Log;
@@ -115,11 +114,6 @@ public abstract class Transaction
 	public void setTransactionManager(TransactionManager manager)
 	{
 		_transactionManager = manager;
-	}
-	
-	protected CallSession getCallSession()
-	{
-		return _request.getCallSession();
 	}
 	
 	protected void startTimer(Timer timer, long delay)

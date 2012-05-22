@@ -7,6 +7,7 @@ import javax.servlet.ServletException;
 import org.cipango.server.SessionManagerTest;
 import org.cipango.server.SipMessage;
 import org.cipango.server.handler.AbstractSipHandler;
+import org.cipango.server.session.SessionHandler;
 import org.cipango.server.session.SessionManager;
 
 public class SipAppContext extends AbstractSipHandler 

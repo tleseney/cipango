@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!DOCTYPE Configure PUBLIC "-//Jetty//Configure//EN" "http://www.eclipse.org/jetty/configure.dtd">
+
+<Configure id="Server" class="org.eclipse.jetty.server.Server">
+
+    <Call name="addBean">
+      <Arg>
+          <New id="SipServer" class="org.cipango.server.SipServer">
+            <Call name="addConnector">
+              <Arg>
+                <New class="org.cipango.server.bio.UdpConnector">
+                </New>
+              </Arg>
+            </Call>
+          </New>
+      </Arg>
+    </Call>
+</Configure>

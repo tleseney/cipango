@@ -13,7 +13,10 @@
 // ========================================================================
 package org.cipango.util;
 
+import java.util.Random;
+
 import org.cipango.util.StringUtil;
+import org.eclipse.jetty.util.TypeUtil;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -34,5 +37,19 @@ public class StringUtilTest
 	{
 		assertEquals("token", StringUtil.quoteIfNeeded("token", StringUtil.toBitSet(StringUtil.TOKEN)));
 		assertEquals("\"hello world\"", StringUtil.quoteIfNeeded("hello world", StringUtil.toBitSet(StringUtil.TOKEN)));		
+	}
+	
+	public static final byte[] intToByteArray(int value) { return new byte[]{ (byte)(value >>> 24), (byte)(value >> 16 & 0xff), (byte)(value >> 8 & 0xff), (byte)(value & 0xff) }; }
+
+	@Test
+	public void testBase62()
+	{
+		System.out.println(Long.toString(new Random().nextInt(), 36));
+		System.out.println(StringUtil.toBase62String2(new Random().nextInt()));
+		System.out.println(TypeUtil.toHexString(intToByteArray(new Random().nextInt())));
+		System.out.println(StringUtil.toBase62String2(System.currentTimeMillis() / 1000));
+		
+		
+
 	}
 }

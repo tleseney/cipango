@@ -12,6 +12,8 @@ import javax.servlet.sip.Rel100Exception;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
+import org.cipango.server.transaction.ServerTransaction;
+import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.SipFields;
 import org.cipango.sip.SipHeader;
 
@@ -40,6 +42,11 @@ public class SipResponse extends SipMessage implements SipServletResponse
 			_fields.copy(requestFields, SipHeader.RECORD_ROUTE);
 	}
 	
+	public Transaction getTransaction()
+	{
+		return _request.getTransaction();
+	}
+	
 	/**
 	 * @see SipServletResponse#send()
 	 */
@@ -53,6 +60,9 @@ public class SipResponse extends SipMessage implements SipServletResponse
 		if (isCommitted())
 			throw new IllegalStateException("response is committed");
 		
+		((ServerTransaction) getTransaction()).send(this);
+		
+		setCommitted(true);
 		// TODO scope
 		
 	}
@@ -172,6 +182,14 @@ public class SipResponse extends SipMessage implements SipServletResponse
 		return _status;
 	}
 
+	/**
+	 * @see SipServletMessage#getMethod
+	 */
+	public String getMethod()
+	{
+		return getRequest().getMethod();
+	}
+	
 	@Override
 	public PrintWriter getWriter() throws IOException {
 		// TODO Auto-generated method stub

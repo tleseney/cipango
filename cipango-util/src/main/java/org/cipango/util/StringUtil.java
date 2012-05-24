@@ -108,4 +108,91 @@ public class StringUtil extends org.eclipse.jetty.util.StringUtil
 			bs.set(s.charAt(i));
 		return bs;
 	}
+	
+	private static final char[] BASE62 = 
+			"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
+		
+	public static String toBase62String(int i) 
+	{
+        char buf[] = new char[33];
+        boolean negative = (i < 0);
+        int charPos = 32;
+
+        if (!negative) {
+            i = -i;
+        }
+
+        while (i <= -62) {
+            buf[charPos--] = BASE62[-(i % 62)];
+            i = i / 62;
+        }
+        buf[charPos] = BASE62[-i];
+
+        if (negative) {
+            buf[--charPos] = '-';
+        }
+
+        return new String(buf, charPos, (33 - charPos));
+    }
+
+	public static String toBase62String2(int i) 
+	{
+		if (i == Integer.MIN_VALUE)
+			return "-2lkCB2";
+		
+        char buf[] = new char[33];
+        boolean negative = i < 0;
+        int pos = 32;
+
+        if (negative) 
+        	i = -i;
+        
+        while (i >= 62) {
+            buf[pos--] = BASE62[(i % 62)];
+            i = i / 62;
+        }
+        buf[pos] = BASE62[i];
+
+        if (negative) 
+            buf[--pos] = '-';
+
+        return new String(buf, pos, (33 - pos));
+    }
+	
+	public static String toBase62String2(long i) 
+	{
+		if (i == Integer.MIN_VALUE)
+			return "-2lkCB2";
+		
+        char buf[] = new char[33];
+        boolean negative = i < 0;
+        int pos = 32;
+
+        if (negative) 
+        	i = -i;
+        
+        while (i >= 62) {
+            buf[pos--] = BASE62[(int)(i % 62)];
+            i = i / 62;
+        }
+        buf[pos] = BASE62[(int)i];
+
+        if (negative) 
+            buf[--pos] = '-';
+
+        return new String(buf, pos, (33 - pos));
+    }
+	
+	public static int hashCode(String s) {
+		int hash = 5381;
+
+
+			char[] a = s.toCharArray();
+			int i = 0;
+			for (; i<a.length; i++) {
+				hash = ((hash << 5) + hash) + a[i]; /* hash * 33 + c */
+			}
+		
+		return hash & 0x7fffffff;
+	}
 }

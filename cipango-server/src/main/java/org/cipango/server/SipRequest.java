@@ -19,6 +19,7 @@ import javax.servlet.sip.Parameterable;
 import javax.servlet.sip.Proxy;
 import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.SipApplicationSession;
+import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipSession;
@@ -28,6 +29,7 @@ import javax.servlet.sip.URI;
 import javax.servlet.sip.ar.SipApplicationRoutingDirective;
 import javax.servlet.sip.ar.SipApplicationRoutingRegion;
 
+import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
@@ -41,6 +43,8 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	private SipMethod _sipMethod;
 	private String _method;
 	
+	private Transaction _transaction;
+	
 	public boolean isRequest()
 	{
 		return true;
@@ -50,6 +54,25 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	{
 		_sipMethod = sipMethod;
 		_method = method;
+	}
+	
+	/**
+	 * @see SipServletMessage#getMethod()
+	 */
+	public String getMethod()
+	{
+		return _method;
+	}
+	
+	
+	public void setTransaction(Transaction transaction)
+	{
+		_transaction = transaction;
+	}
+	
+	public Transaction getTransaction()
+	{
+		return _transaction;
 	}
 	
 	protected boolean canSetContact()

@@ -30,7 +30,7 @@ public class SipContextHandlerCollection extends AbstractSipHandler
 			}
 			else
 			{
-				String appId = request.getParameter("app-id");
+				String appId = request.getParameter("appid");
 				if (appId != null)
 				{
 					getContext(appId).handle(message);

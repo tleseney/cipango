@@ -10,6 +10,7 @@ import javax.servlet.ServletException;
 import javax.servlet.sip.Address;
 import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipServletRequest;
+import javax.servlet.sip.SipSession;
 import javax.servlet.sip.URI;
 import javax.servlet.sip.ar.SipApplicationRoutingRegion;
 
@@ -20,21 +21,35 @@ import org.eclipse.jetty.util.log.Logger;
 
 public class Session implements SipSessionIf
 {
+	enum Role { UNDEFINED, UAC, UAS, PROXY }
+	
 	private static final Logger LOG = Log.getLogger(Session.class);
 	
-	private String _id;
-	private ApplicationSession _applicationSession;
+	private final String _id;
+	private final ApplicationSession _applicationSession;
 
-	public Session(ApplicationSession applicationSession)
+	protected State _state = State.INITIAL;
+	protected Role _role = Role.UNDEFINED;
+	
+	protected String _callId;
+	protected Address _localParty;
+	protected Address _remoteParty;
+	
+	public Session(ApplicationSession applicationSession, String id, SipRequest request)
 	{
 		_applicationSession = applicationSession;
+		_id = id;
+		
+		_callId = request.getCallId();
+		_localParty = request.getFrom();
+		_remoteParty = request.getTo();
 	}
 	
 	public void handleRequest(SipRequest request) throws ServletException, IOException
 	{
 		LOG.info("handling request");
 		
-		getServer().handle(request);
+		
 	}
 	
 	protected SipServer getServer()
@@ -48,10 +63,12 @@ public class Session implements SipSessionIf
 		return null;
 	}
 
-	@Override
-	public SipApplicationSession getApplicationSession() {
-		// TODO Auto-generated method stub
-		return null;
+	/**
+	 * @see SipSession#getApplicationSession()
+	 */
+	public SipApplicationSession getApplicationSession() 
+	{
+		return _applicationSession;
 	}
 
 	@Override
@@ -78,10 +95,12 @@ public class Session implements SipSessionIf
 		return 0;
 	}
 
-	@Override
-	public String getId() {
-		// TODO Auto-generated method stub
-		return null;
+	/**
+	 * @see SipSession#getId()
+	 */
+	public String getId() 
+	{
+		return _id;
 	}
 
 	@Override
@@ -120,10 +139,12 @@ public class Session implements SipSessionIf
 		return null;
 	}
 
-	@Override
-	public State getState() {
-		// TODO Auto-generated method stub
-		return null;
+	/**
+	 * @see SipSession#getState()
+	 */
+	public State getState() 
+	{
+		return _state;
 	}
 
 	@Override
@@ -186,4 +207,9 @@ public class Session implements SipSessionIf
 		
 	}
 
+	@Override 
+	public String toString()
+	{
+		return String.format("%s{l(%s)<->r(%s),%s,%s}", getId(), _localParty, _remoteParty, _state, _role);
+	}
 }

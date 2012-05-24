@@ -189,6 +189,7 @@ public class UdpConnector extends AbstractSipConnector
 			SipRequest request = new SipRequest();
 			
 			SipMethod m = SipMethod.CACHE.get(method);
+			request.setMethod(m, method);
 			
 			_message = request;
 			return false;

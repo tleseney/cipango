@@ -10,6 +10,7 @@ import javax.servlet.sip.URI;
 import org.cipango.server.nio.UdpConnector;
 
 import org.cipango.server.processor.TransportProcessor;
+import org.cipango.server.sipapp.SipContextHandlerCollection;
 import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.server.transaction.TransactionManager;
 import org.cipango.sip.SipGenerator;
@@ -78,6 +79,8 @@ public class SipServer extends AbstractLifeCycle
 		
 		_processor.setServer(this);
 		_processor.start();
+		
+		_handler.start();
 		
 		MultiException mex = new MultiException();
 		
@@ -148,6 +151,11 @@ public class SipServer extends AbstractLifeCycle
 		return _threadPool;
 	}
 	
+	public void setHandler(SipHandler handler)
+	{
+		_handler = handler;
+	}
+	
 	public void process(final SipMessage message)
 	{
 		_threadPool.dispatch(new Runnable() 
@@ -169,8 +177,17 @@ public class SipServer extends AbstractLifeCycle
 	
 	public void handle(SipMessage message) throws IOException, ServletException
 	{
-		//_handler.handle(message);
+		try 
+		{
+			_handler.handle(message);
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+			//_handler.handle(message);
 		
+		/*
 		if (message.isRequest())
 		{	
 			SipRequest request = (SipRequest) message;
@@ -197,9 +214,9 @@ public class SipServer extends AbstractLifeCycle
 			}
 			
 			_buffers.returnBuffer(out);
-			*/
+			
 			//System.out.println(BufferUtil.toString(out));
-		}
+		} */
 	}
 	
 	public boolean isLocalURI(URI uri)

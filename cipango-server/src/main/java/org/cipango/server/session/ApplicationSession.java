@@ -11,6 +11,7 @@ import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipSession;
 import javax.servlet.sip.URI;
 
+import org.cipango.server.SipRequest;
 import org.cipango.util.TimerTask;
 
 public class ApplicationSession implements SipApplicationSession
@@ -26,11 +27,21 @@ public class ApplicationSession implements SipApplicationSession
 	private boolean _valid = true;
 	private TimerTask _expiryTimer;
 	
-	public Session createSession()
+	public ApplicationSession(String id)
 	{
-		Session session = new Session(this);
+		_id = id;
+	}
+	
+	public Session createSession(SipRequest initial)
+	{
+		Session session = new Session(this, "sipsessionid", initial);
 		_sessions.add(session);
 		return session;
+	}
+	
+	public Session getSession(SipRequest request)
+	{
+		return _sessions.get(0);
 	}
 	
 	/**
@@ -156,9 +167,9 @@ public class ApplicationSession implements SipApplicationSession
 
 
 	@Override
-	public String getId() {
-		// TODO Auto-generated method stub
-		return null;
+	public String getId() 
+	{
+		return _id;
 	}
 
 	@Override

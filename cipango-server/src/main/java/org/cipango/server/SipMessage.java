@@ -15,6 +15,7 @@ import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipSession;
 
+import org.cipango.server.session.Session;
 import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.SipFields;
 import org.cipango.sip.SipHeader;
@@ -29,7 +30,7 @@ public abstract class SipMessage implements SipServletMessage
 	
 	private boolean _committed = false;
 	
-	private Transaction _transaction;
+	protected Session _session;
 	
 	protected boolean isSystemHeader(SipHeader header)
 	{
@@ -61,18 +62,15 @@ public abstract class SipMessage implements SipServletMessage
 		return _connection;
 	}
 	
-	public void setTransaction(Transaction transaction)
+	public void setSession(Session session)
 	{
-		_transaction = transaction;
-	}
-	
-	public Transaction getTransaction()
-	{
-		return _transaction;
+		_session = session;
 	}
 	
 	public abstract boolean isRequest();
+
 	protected abstract boolean canSetContact();
+	public abstract Transaction getTransaction(); 
 	
 	public Via getTopVia()
 	{
@@ -274,11 +272,6 @@ public abstract class SipMessage implements SipServletMessage
 		return 0;
 	}
 
-	@Override
-	public String getMethod() {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 	@Override
 	public Parameterable getParameterableHeader(String arg0)
@@ -328,16 +321,20 @@ public abstract class SipMessage implements SipServletMessage
 		return null;
 	}
 
-	@Override
-	public SipSession getSession() {
-		// TODO Auto-generated method stub
-		return null;
+	/**
+	 * @see SipServletMessage#getSession()
+	 */
+	public SipSession getSession() 
+	{
+		return _session;
 	}
 
-	@Override
-	public SipSession getSession(boolean arg0) {
-		// TODO Auto-generated method stub
-		return null;
+	/**
+	 * 
+	 */
+	public SipSession getSession(boolean create) 
+	{
+		return getSession();
 	}
 
 	@Override

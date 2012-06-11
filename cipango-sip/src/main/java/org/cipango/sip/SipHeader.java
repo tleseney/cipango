@@ -1,5 +1,8 @@
 package org.cipango.sip;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.cipango.util.StringUtil;
 import org.eclipse.jetty.util.StringMap;
 
@@ -142,6 +145,12 @@ public enum SipHeader
 		return _bytesColonSpace;
 	}
 	
+	public String asString()
+	{
+		return _string;
+	}
+	
+	@Override
 	public String toString()
 	{
 		return _string;
@@ -149,4 +158,67 @@ public enum SipHeader
 	
 	public enum Type { STRING, PARAMETERABLE, ADDRESS, VIA }
 	
+	private final static SipHeader[] __hashed = new SipHeader[4096];
+	private final static int __maxHashed;
+	
+	static
+	{
+		int max = 0;
+		Map<Integer, SipHeader> hashes = new HashMap<Integer, SipHeader>();
+		
+		for (SipHeader header : SipHeader.values())
+		{
+			String s = header.asString();
+			max = Math.max(max, s.length());
+			int h = 0;
+			for (char c : s.toCharArray())
+				h = 31*h + ((c >= 'a') ? (c - 'a' + 'A') : c);
+			int hash = h % __hashed.length;
+			if (hash < 0)
+				hash = -hash;
+			if (hashes.containsKey(hash))
+			{
+				System.err.println("duplicate hash " + header + " " + hashes.get(hash));
+				System.exit(1);
+			}
+			hashes.put(hash, header);
+			__hashed[hash] = header;
+		}
+		__maxHashed = max;
+	}
+	
+	public static SipHeader lookAheadGet(byte[] bytes, int position, int limit)
+	{
+		int h=0;
+        byte b=0;
+        limit=Math.min(position+__maxHashed,limit);
+        for (int i=position;i<limit;i++)
+        {
+            b=bytes[i];
+            if (b==':'||b==' ')
+                break;
+            h= 31*h+ ((b>='a')?(b-'a'+'A'):b);
+        }
+        if (b!=':'&&b!=' ')
+            return null;
+
+        int hash=h%__hashed.length;
+        if (hash<0)hash=-hash;
+        
+        SipHeader header=__hashed[hash];
+        
+        if (header!=null)
+        {
+            String s=header.asString();
+            for (int i=s.length();i-->0;)
+            {
+                b=bytes[position+i];
+                char c=s.charAt(i);
+                if (c!=b && Character.toUpperCase(c)!=(b>='a'?(b-'a'+'A'):b))
+                    return null;
+            }
+        }
+        
+        return header;
+	}
 }

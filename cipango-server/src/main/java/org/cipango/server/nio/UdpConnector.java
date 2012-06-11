@@ -20,12 +20,14 @@ import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipParser;
 import org.cipango.sip.Via;
-import org.eclipse.jetty.io.Buffers;
-import org.eclipse.jetty.io.PooledBuffers;
+
+import org.eclipse.jetty.io.ByteBufferPool;
+import org.eclipse.jetty.io.StandardByteBufferPool;
 import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
+
 
 public class UdpConnector extends AbstractSipConnector
 {
@@ -37,7 +39,7 @@ public class UdpConnector extends AbstractSipConnector
 	private InetAddress _localAddr;
 	
 	private ByteBuffer[] _inBuffers;
-	private Buffers _outBuffers;
+	private ByteBufferPool _outBuffers;
 	
 	public Transport getTransport()
 	{
@@ -51,8 +53,7 @@ public class UdpConnector extends AbstractSipConnector
 		for (int i = _inBuffers.length; i-->0;)
 			_inBuffers[i] = BufferUtil.allocateDirect(MAX_UDP_SIZE);
 		
-		_outBuffers = new PooledBuffers(Buffers.Type.INDIRECT, 0, Buffers.Type.INDIRECT, 1500, Buffers.Type.INDIRECT, 100);			
-		
+		_outBuffers = new StandardByteBufferPool();
 		super.doStart();
 	}
 	
@@ -139,7 +140,7 @@ public class UdpConnector extends AbstractSipConnector
 		public void send(SipMessage message)
 		{
 			SipResponse response = (SipResponse) message;
-			ByteBuffer buffer = _outBuffers.getBuffer();
+			ByteBuffer buffer = _outBuffers.acquire(1500, false);
 			
 			buffer.clear();
 			
@@ -155,7 +156,7 @@ public class UdpConnector extends AbstractSipConnector
 				e.printStackTrace();
 			}
 			
-			_outBuffers.returnBuffer(buffer); 
+			_outBuffers.release(buffer); 
 		}
 		
 		public void write(ByteBuffer buffer) throws IOException
@@ -180,7 +181,7 @@ public class UdpConnector extends AbstractSipConnector
 		}
 	}
 	
-	class MessageBuilder implements SipParser.EventHandler
+	class MessageBuilder implements SipParser.SipMessageHandler
 	{
 		private SipMessage _message;
 		

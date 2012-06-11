@@ -343,10 +343,14 @@ public abstract class SipMessage implements SipServletMessage
 		return (Address) _fields.get(SipHeader.TO);
 	}
 
-	@Override
-	public String getTransport() {
-		// TODO Auto-generated method stub
-		return null;
+	/**
+	 * @see SipServletMessage#getTransport()
+	 */
+	public String getTransport() 
+	{
+		if (_connection == null)
+			return null;
+		return _connection.getTransport().getName();
 	}
 
 	@Override

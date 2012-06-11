@@ -18,7 +18,7 @@ public class DefaultServlet extends SipServlet
 	@Override
 	protected void doOptions(SipServletRequest request) throws ServletException, IOException
 	{
-		System.out.println(request.getSession().getState());
+		System.out.println(request.getTransport() + "/" + request.getRemoteAddr() + ":" + request.getRemotePort());
 		SipServletResponse response = request.createResponse(200);
 		response.addHeader("Server", getServletConfig().getServletName());
 		response.send();

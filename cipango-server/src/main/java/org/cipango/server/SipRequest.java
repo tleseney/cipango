@@ -2,11 +2,7 @@ package org.cipango.server;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.security.Principal;
 import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
 
@@ -15,14 +11,10 @@ import javax.servlet.ServletInputStream;
 import javax.servlet.sip.Address;
 import javax.servlet.sip.AuthInfo;
 import javax.servlet.sip.B2buaHelper;
-import javax.servlet.sip.Parameterable;
 import javax.servlet.sip.Proxy;
-import javax.servlet.sip.ServletParseException;
-import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
-import javax.servlet.sip.SipSession;
 import javax.servlet.sip.SipURI;
 import javax.servlet.sip.TooManyHopsException;
 import javax.servlet.sip.URI;
@@ -184,16 +176,24 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		// TODO Auto-generated method stub
 		return null;
 	}
-	@Override
-	public int getServerPort() {
-		// TODO Auto-generated method stub
-		return 0;
+	
+	
+	/**
+	 * @see SipServletRequest#getServerPort()
+	 */
+	public int getServerPort() 
+	{
+		return getLocalPort();
 	}
-	@Override
-	public String getRemoteHost() {
-		// TODO Auto-generated method stub
-		return null;
+	
+	/**
+	 * @see SipServletRequest#getRemoteHost()
+	 */
+	public String getRemoteHost() 
+	{
+		return getRemoteAddr();
 	}
+	
 	@Override
 	public Locale getLocale() {
 		// TODO Auto-generated method stub

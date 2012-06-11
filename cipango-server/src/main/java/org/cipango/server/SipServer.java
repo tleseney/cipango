@@ -14,8 +14,7 @@ import org.cipango.server.sipapp.SipContextHandlerCollection;
 import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.server.transaction.TransactionManager;
 import org.cipango.sip.SipGenerator;
-import org.eclipse.jetty.io.Buffers;
-import org.eclipse.jetty.io.PooledBuffers;
+
 import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.LazyList;
 import org.eclipse.jetty.util.MultiException;
@@ -25,6 +24,8 @@ import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.util.thread.ThreadPool;
+
+import com.sun.corba.se.pept.transport.ByteBufferPool;
 
 public class SipServer extends AbstractLifeCycle
 {
@@ -38,7 +39,6 @@ public class SipServer extends AbstractLifeCycle
 	private SipHandler _handler;
 	private SipProcessor _processor;
 		
-	private Buffers _buffers = new PooledBuffers(Buffers.Type.INDIRECT, 0, Buffers.Type.INDIRECT, 65535, Buffers.Type.INDIRECT, 10);
 	static 
 	{
 		if (SipServer.class.getPackage() != null && SipServer.class.getPackage().getImplementationVersion() != null)

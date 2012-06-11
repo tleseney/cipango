@@ -62,7 +62,7 @@ public class SipGenerator
 	
 	static
 	{
-		int versionLength = SipVersion.SIP_2_0.toString().length();
+		int versionLength = SipVersionTest.SIP_2_0.toString().length();
 		
 		for (int i = 0; i < __responses.length; i++)
 		{
@@ -71,7 +71,7 @@ public class SipGenerator
 				continue;
 			String reason = status.getReason();
 			byte[] line = new byte[versionLength+5+reason.length()+2];
-			SipVersion.SIP_2_0.toBuffer().get(line, 0, versionLength);
+			SipVersionTest.SIP_2_0.toBuffer().get(line, 0, versionLength);
 			line[versionLength+0] = ' ';
 			line[versionLength+1] = (byte) ('0' + i/100);
 			line[versionLength+2] = (byte) ('0' + (i%100) /10);

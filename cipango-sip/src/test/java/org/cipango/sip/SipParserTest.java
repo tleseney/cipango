@@ -261,6 +261,60 @@ public class SipParserTest
 		assertEquals("contentEndsHere", _content);
 	}
 	
+	@Test
+	public void testNoURI()
+	{
+		Handler handler = new Handler();
+		SipParser parser = new SipParser(handler);
+		
+		ByteBuffer buffer= BufferUtil.toBuffer(
+				"MESSAGE\r\n" +
+                "Content-Length: 0\r\n" +
+				"\r\n");
+		
+		parser.parseNext(buffer);
+		assertNull(_methodOrVersion);
+		assertEquals("No URI", _bad);
+		assertFalse(buffer.hasRemaining());
+		assertTrue(parser.isState(State.END));
+	}
+	
+	public void testMulti()
+	{
+		Handler handler = new Handler();
+		SipParser parser = new SipParser(handler);
+		
+		ByteBuffer buffer= BufferUtil.toBuffer(
+				"MESSAGE sip:bob@biloxi.com SIP/2.0\r\n" +
+                "Content-Length: 8\r\n" +
+				"\r\n" + 
+                "content1" +
+                "INVITE sip:bob@biloxi.com SIP/2.0\r\n" +
+                "Content-Length: 8\r\n" +
+				"\r\n" + 
+                "content2" +
+                "\r\nREGISTER sip:bob@biloxi.com SIP/2.0\r\n" +
+                "Content-Length: 8\r\n" +
+				"\r\n" + 
+                "content3");
+		
+		parser.parseNext(buffer);
+		assertEquals("MESSAGE", _methodOrVersion);
+		assertEquals("content1", _content);
+		
+		parser.reset();
+		init();
+		
+		assertEquals("INVITE", _methodOrVersion);
+		assertEquals("content2", _content);
+		
+		parser.reset();
+		init();
+		
+		assertEquals("REGISTER", _methodOrVersion);
+		assertEquals("content3", _content);
+	}
+	
 	@Before
 	public void init()
 	{
@@ -282,6 +336,8 @@ public class SipParserTest
 	
 	private String _content;
 	
+	private String _bad;
+	
 	private class Handler implements SipParser.SipMessageHandler
 	{
 		private boolean request;
@@ -295,6 +351,7 @@ public class SipParserTest
 			_methodOrVersion = method;
 			_uriOrStatus = uri;
 			_versionOrReason = version == null ? null : version.asString();
+			_bad = null;
 			
 			return false;
 		}
@@ -322,9 +379,9 @@ public class SipParserTest
 		}
 
 		@Override
-		public void badMessage(int status, String reason) {
-			// TODO Auto-generated method stub
-			
+		public void badMessage(int status, String reason) 
+		{
+			_bad = reason;
 		}
 		
 	}

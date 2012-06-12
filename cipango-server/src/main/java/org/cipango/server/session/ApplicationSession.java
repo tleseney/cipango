@@ -27,9 +27,16 @@ public class ApplicationSession implements SipApplicationSession
 	private boolean _valid = true;
 	private TimerTask _expiryTimer;
 	
+	private SessionManager _sessionManager;
+	
 	public ApplicationSession(String id)
 	{
 		_id = id;
+	}
+	
+	public SessionManager getSessionManager()
+	{
+		return _sessionManager;
 	}
 	
 	public Session createSession(SipRequest initial)

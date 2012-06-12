@@ -561,5 +561,4 @@ public class SipParser
 		
 		void badMessage(int status, String reason);
 	}
-	
 }

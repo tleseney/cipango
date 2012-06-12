@@ -171,18 +171,17 @@ public class Via extends Parameters implements Parameterable
 		parseParameters(scanner);
 	}
 					
-
-
 	@Override
-	public String getValue() {
+	public String getValue() 
+	{
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public void setValue(String arg0) {
+	public void setValue(String value) 
+	{
 		// TODO Auto-generated method stub
-		
 	}
 	
 	public String toString()

@@ -183,7 +183,8 @@ public class StringUtil extends org.eclipse.jetty.util.StringUtil
         return new String(buf, pos, (33 - pos));
     }
 	
-	public static int hashCode(String s) {
+	public static int hashCode(String s) 
+	{
 		int hash = 5381;
 
 

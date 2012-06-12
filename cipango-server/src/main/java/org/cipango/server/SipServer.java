@@ -25,7 +25,6 @@ import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.util.thread.ThreadPool;
 
-import com.sun.corba.se.pept.transport.ByteBufferPool;
 
 public class SipServer extends AbstractLifeCycle
 {

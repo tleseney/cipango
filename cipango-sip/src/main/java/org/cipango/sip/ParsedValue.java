@@ -6,6 +6,4 @@ public class ParsedValue
 	{
 		NOT_PARSED, VALID, INVALID, DIRTY;
 	}
-	
-	
 }

@@ -3,7 +3,12 @@ package org.cipango.server.session;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -11,6 +16,8 @@ import javax.servlet.sip.Address;
 import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipSession;
+import javax.servlet.sip.SipSessionBindingEvent;
+import javax.servlet.sip.SipSessionBindingListener;
 import javax.servlet.sip.URI;
 import javax.servlet.sip.ar.SipApplicationRoutingRegion;
 
@@ -35,14 +42,22 @@ public class Session implements SipSessionIf
 	protected Address _localParty;
 	protected Address _remoteParty;
 	
+	protected Map<String, Object> _attributes;
+	
+	private boolean _valid = true;
+	private final long _created;
+	private long _lastAccessed;
+	
 	public Session(ApplicationSession applicationSession, String id, SipRequest request)
 	{
+		_created = System.currentTimeMillis();
+		
 		_applicationSession = applicationSession;
 		_id = id;
 		
 		_callId = request.getCallId();
-		_localParty = request.getFrom();
-		_remoteParty = request.getTo();
+		_localParty = request.getFrom(); // TODO 
+		_remoteParty = request.getTo(); // TODO
 	}
 	
 	public void handleRequest(SipRequest request) throws ServletException, IOException
@@ -55,6 +70,38 @@ public class Session implements SipSessionIf
 	protected SipServer getServer()
 	{
 		return null; //_applicationSession.getCallSession().getServer();
+	}
+	
+	private void checkValid()
+	{
+		if (!_valid)
+			throw new IllegalStateException("SipSession has been invalidated");
+	}
+	
+	protected Object doPutOrRemove(String name, Object value)
+	{
+		if (value == null)
+		{	
+			return _attributes != null ? _attributes.remove(name) : null;
+		}
+		else
+		{
+			if (_attributes == null)
+				_attributes = new HashMap<String, Object>();
+			return _attributes.put(name, value);
+		}
+	}
+	
+	private void bindValue(String name, Object value)
+	{
+		if (value != null && value instanceof SipSessionBindingListener)
+			((SipSessionBindingListener) value).valueBound(new SipSessionBindingEvent(this, name));
+	}
+	
+	private void unbindValue(String name, Object value)
+	{
+		if (value != null && value instanceof SipSessionBindingListener)
+			((SipSessionBindingListener) value).valueUnbound(new SipSessionBindingEvent(this, name));
 	}
 	
 	@Override
@@ -71,16 +118,27 @@ public class Session implements SipSessionIf
 		return _applicationSession;
 	}
 
-	@Override
-	public Object getAttribute(String arg0) {
-		// TODO Auto-generated method stub
-		return null;
+	/**
+	 * @see SipSession#getAttribute(String)
+	 */
+	public synchronized Object getAttribute(String name) 
+	{
+		checkValid();
+		if (name == null)
+			throw new NullPointerException("Attribute name is null");
+		
+		return _attributes != null ? _attributes.get(name) : null;
 	}
 
-	@Override
-	public Enumeration<String> getAttributeNames() {
-		// TODO Auto-generated method stub
-		return null;
+	/**
+	 * @see SipSession#getAttributeNames()
+	 */
+	public synchronized Enumeration<String> getAttributeNames() 
+	{
+		checkValid();
+		if (_attributes == null)
+			return Collections.emptyEnumeration();
+		return Collections.enumeration(new ArrayList<String>(_attributes.keySet()));
 	}
 
 	@Override
@@ -89,10 +147,12 @@ public class Session implements SipSessionIf
 		return null;
 	}
 
-	@Override
-	public long getCreationTime() {
-		// TODO Auto-generated method stub
-		return 0;
+	/**
+	 * @see SipSession#getCreationTime()
+	 */
+	public long getCreationTime() 
+	{
+		return _created;
 	}
 
 	/**
@@ -109,10 +169,12 @@ public class Session implements SipSessionIf
 		return false;
 	}
 
-	@Override
-	public long getLastAccessedTime() {
-		// TODO Auto-generated method stub
-		return 0;
+	/**
+	 * @see SipSession#getLastAccessedTime()
+	 */
+	public long getLastAccessedTime() 
+	{
+		return _lastAccessed;
 	}
 
 	@Override
@@ -133,10 +195,12 @@ public class Session implements SipSessionIf
 		return null;
 	}
 
-	@Override
-	public ServletContext getServletContext() {
-		// TODO Auto-generated method stub
-		return null;
+	/**
+	 * @see SipSession#getServletContext()
+	 */
+	public ServletContext getServletContext() 
+	{
+		return _applicationSession.getSessionManager().getContext();
 	}
 
 	/**
@@ -165,22 +229,42 @@ public class Session implements SipSessionIf
 		return false;
 	}
 
-	@Override
-	public boolean isValid() {
-		// TODO Auto-generated method stub
-		return false;
+	/**
+	 * @see SipSession#isValid()
+	 */
+	public boolean isValid() 
+	{
+		return _valid;
 	}
 
-	@Override
-	public void removeAttribute(String arg0) {
-		// TODO Auto-generated method stub
-		
+	/**
+	 * @see SipSession#removeAttribute(String)
+	 */
+	public void removeAttribute(String name) 
+	{
+		setAttribute(name, null);
 	}
 
-	@Override
-	public void setAttribute(String arg0, Object arg1) {
-		// TODO Auto-generated method stub
-		
+	/**
+	 * @see SipSession#setAttribute(String, Object)
+	 */
+	public void setAttribute(String name, Object value) 
+	{
+		Object old = null;
+		synchronized (this)
+		{
+			checkValid();
+			old = doPutOrRemove(name, value);
+		}
+		if (value == null || !value.equals(old))
+		{
+			if (old != null)
+				unbindValue(name, value);
+			if (value != null)
+				bindValue(name, value);
+			
+			_applicationSession.getSessionManager().doSessionAttributeListeners(this, name, old, value);
+		}
 	}
 
 	@Override

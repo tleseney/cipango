@@ -35,7 +35,7 @@ public class Main
 	}
 	
 	public static void main(String[] args) throws Exception
-	{				
+	{			
 		SipServer sipServer = new SipServer();
 		
 		UdpConnector connector = new UdpConnector();

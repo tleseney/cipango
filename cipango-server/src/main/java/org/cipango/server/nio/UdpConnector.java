@@ -3,7 +3,6 @@ package org.cipango.server.nio;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.text.ParseException;
@@ -19,6 +18,7 @@ import org.cipango.sip.SipGenerator;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipParser;
+import org.cipango.sip.SipVersion;
 import org.cipango.sip.Via;
 
 import org.eclipse.jetty.io.ByteBufferPool;
@@ -27,7 +27,6 @@ import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
-
 
 public class UdpConnector extends AbstractSipConnector
 {
@@ -171,7 +170,7 @@ public class UdpConnector extends AbstractSipConnector
 			MessageBuilder builder = new MessageBuilder();
 			SipParser parser = new SipParser(builder);
 			
-			parser.parseAll(buffer);
+			parser.parseNext(buffer);
 			
 			SipMessage message = builder._message;
 			message.setConnection(this);
@@ -185,7 +184,7 @@ public class UdpConnector extends AbstractSipConnector
 	{
 		private SipMessage _message;
 		
-		public boolean startRequest(String method, String uri, String version) throws IOException
+		public boolean startRequest(String method, String uri, SipVersion version)
 		{
 			SipRequest request = new SipRequest();
 			
@@ -196,7 +195,7 @@ public class UdpConnector extends AbstractSipConnector
 			return false;
 		}
 
-		public boolean parsedHeader(SipHeader header, String name, String value) throws IOException
+		public boolean parsedHeader(SipHeader header, String name, String value)
 		{
 			Object o = value;
 			
@@ -221,21 +220,26 @@ public class UdpConnector extends AbstractSipConnector
 			}
 			catch (ParseException e)
 			{
-				throw new IOException(e);
+				LOG.warn(e);
+				return true;
 			}
 			_message.getFields().add(name, o, false);
 			return false;
 		}
 
-		public boolean headerComplete() throws IOException 
+		public boolean headerComplete() 
 		{
 			return false;
 		}
 
-		@Override
-		public boolean messageComplete(ByteBuffer content) throws IOException 
+		public boolean messageComplete(ByteBuffer content) 
 		{
-			return true;
+			return false;
+		}
+		
+		public void badMessage(int status, String reason)
+		{
+			
 		}
 	}
 	

@@ -2,7 +2,6 @@ package org.cipango.sip;
 
 import java.nio.ByteBuffer;
 
-
 import org.eclipse.jetty.util.Utf8StringBuilder;
 
 public class SipParser 
@@ -25,8 +24,12 @@ public class SipParser
 		CONTENT;
 	}
 	
-	
 	private SipMessageHandler _handler;
+	
+	private SipHeader _header;
+	private String _headerString;
+	private String _valueString;
+
 	private State _state = State.START;
 	
 	private SipMethod _method;
@@ -35,16 +38,11 @@ public class SipParser
 	private SipVersion _version;
 	
 	private byte _eol;
-	
 	private long _contentLength;
-	
-	private String _headerString;
-	private String _valueString;
-	private SipHeader _header;
 	
     private final StringBuilder _string = new StringBuilder();
     private final Utf8StringBuilder _utf8 = new Utf8StringBuilder();
-    
+ 
 	private int _length;
 
 	public SipParser(SipMessageHandler eventHandler)
@@ -264,8 +262,18 @@ public class SipParser
 							
 							if (ch == SipGrammar.CR || ch == SipGrammar.LF)
 							{
-								_eol = ch;
-								_state = State.END;
+								consumeCRLF(ch, buffer);
+								if (_contentLength == 0)
+								{
+									_handler.headerComplete();
+									_state = State.END;
+									_handler.messageComplete(null);
+								}
+								else
+								{
+									_handler.headerComplete();
+									_state = State.CONTENT;
+								}
 							}
 							else
 							{
@@ -430,10 +438,15 @@ public class SipParser
 			switch (_state)
 			{
 				case START:
+					_version = null;
+					_method = null;
 					_methodString = null;
+					_uri = null;
 					_header = null;
+					_contentLength = -1;
 					quickStart(buffer);
 					break;
+					
 				case END:
 					return false;
 			}
@@ -444,7 +457,34 @@ public class SipParser
 			if (_state.ordinal() < State.END.ordinal())
 				if (parseHeaders(buffer))
 					return true;
+
+			if (_state == State.CONTENT)
+			{
+				if (_eol == SipGrammar.CR && buffer.hasRemaining() && buffer.get(buffer.position()) == SipGrammar.LF)
+				{
+					_eol=buffer.get();
+				}
+				_eol=0;
+	             
+	            if (_contentLength == -1)
+				{
+	            	 ByteBuffer content = buffer.asReadOnlyBuffer();
+	            	 _state = State.END;
+	            	 if (_handler.messageComplete(content))
+	            		 return true;
+				}
+				else if (buffer.remaining() >= _contentLength)
+				{
+					ByteBuffer content = buffer.asReadOnlyBuffer();
+					if (content.remaining() > _contentLength)
+						content.limit(content.position() + (int)_contentLength);
 			
+					_state = State.END;
+					if (_handler.messageComplete(content))
+						return true;
+				}
+	             
+			}
 			return false;
 		}
 		catch (Exception e)
@@ -490,7 +530,6 @@ public class SipParser
 	public void reset()
 	{
 		_state = State.START;
-		_contentLength = -1;
 	}
 	
 	public static void main(String[] args) throws Exception

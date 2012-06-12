@@ -207,9 +207,60 @@ public class SipParserTest
         assertEquals("notServer", _val[5]);
         assertEquals("Host Header", _hdr[6]);
         assertEquals("notHost", _val[6]);
-        assertEquals(6, _h);
-		
+        assertEquals(6, _h);	
 	}
+	
+	@Test
+	public void testResetParse()
+	{
+		Handler handler = new Handler();
+		SipParser parser = new SipParser(handler);
+		
+		for (int i = 0; i < 100; i++)
+		{
+			ByteBuffer buffer= BufferUtil.toBuffer(
+					"MESSAGE sip:bob@biloxi.com SIP/2.0\r\n" +
+	                "X-Iteration: " + i + "\r\n" +
+	                "\r\n");
+			parser.reset();
+			parser.parseNext(buffer);
+			
+			assertEquals(i, Integer.parseInt(_val[0]));
+		}
+	}
+	
+	@Test
+	public void testNoContentLength()
+	{
+		Handler handler = new Handler();
+		SipParser parser = new SipParser(handler);
+		
+		ByteBuffer buffer= BufferUtil.toBuffer(
+				"MESSAGE sip:bob@biloxi.com SIP/2.0\r\n" +
+                "Call-ID: foo\r\n" +
+				"\r\n" + 
+                "content with undefined length");
+		
+		parser.parseNext(buffer);
+		assertEquals("content with undefined length", _content);
+	}
+	
+	@Test
+	public void testContentLength()
+	{
+		Handler handler = new Handler();
+		SipParser parser = new SipParser(handler);
+		
+		ByteBuffer buffer= BufferUtil.toBuffer(
+				"MESSAGE sip:bob@biloxi.com SIP/2.0\r\n" +
+                "Content-Length: 15\r\n" +
+				"\r\n" + 
+                "contentEndsHereXXXXXXXXXXXXXXXXXXXXXXXXXX");
+		
+		parser.parseNext(buffer);
+		assertEquals("contentEndsHere", _content);
+	}
+	
 	@Before
 	public void init()
 	{
@@ -228,6 +279,8 @@ public class SipParserTest
 	private String[] _hdr;
 	private String[] _val;
 	private int _h;
+	
+	private String _content;
 	
 	private class Handler implements SipParser.SipMessageHandler
 	{
@@ -256,14 +309,15 @@ public class SipParserTest
 		}
 
 		@Override
-		public boolean headerComplete() {
-			// TODO Auto-generated method stub
+		public boolean headerComplete() 
+		{
 			return false;
 		}
 
 		@Override
-		public boolean messageComplete(ByteBuffer content) {
-			// TODO Auto-generated method stub
+		public boolean messageComplete(ByteBuffer content) 
+		{
+			_content = BufferUtil.toString(content, StringUtil.__UTF8_CHARSET);
 			return false;
 		}
 

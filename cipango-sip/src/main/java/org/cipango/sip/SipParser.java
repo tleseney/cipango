@@ -2,7 +2,10 @@ package org.cipango.sip;
 
 import java.nio.ByteBuffer;
 
+import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.Utf8StringBuilder;
+import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.log.Logger;
 
 public class SipParser 
 {
@@ -45,6 +48,8 @@ public class SipParser
  
 	private int _length;
 
+	private static final Logger LOG = Log.getLogger(SipParser.class);
+	
 	public SipParser(SipMessageHandler eventHandler)
 	{
 		_handler = eventHandler;
@@ -108,7 +113,9 @@ public class SipParser
 	
 	private boolean parseLine(ByteBuffer buffer)
 	{
-		while (_state.ordinal() < State.HEADER.ordinal() && buffer.hasRemaining())
+		boolean returnFromParse = false;
+		
+		while (_state.ordinal() < State.HEADER.ordinal() && buffer.hasRemaining() && !returnFromParse)
 		{
 			byte ch = buffer.get();
 			
@@ -184,7 +191,7 @@ public class SipParser
 								buffer.position(buffer.position()+_version.asString().length()-1);
 								_eol = buffer.get();
 								_state = State.HEADER;
-								_handler.startRequest(_methodString, _uri, _version);
+								returnFromParse |= _handler.startRequest(_methodString, _uri, _version);
 							}
 						}
 					}
@@ -202,7 +209,7 @@ public class SipParser
 						}
 						_eol = ch;
 						_state = State.HEADER;
-						_handler.startRequest(_methodString, _uri, _version);
+						returnFromParse |= _handler.startRequest(_methodString, _uri, _version);
 					}
 					else
 					{
@@ -216,7 +223,9 @@ public class SipParser
 	
 	private boolean parseHeaders(ByteBuffer buffer)
 	{
-		while (_state.ordinal() < State.END.ordinal() && buffer.hasRemaining())
+		boolean returnFromParse = false;
+		
+		while (_state.ordinal() < State.END.ordinal() && buffer.hasRemaining() && !returnFromParse)
 		{
 			byte ch = buffer.get();
 			if (_eol == SipGrammar.CR && ch == SipGrammar.LF)
@@ -234,7 +243,8 @@ public class SipParser
 						case SipGrammar.COLON:
 						case SipGrammar.SPACE:
 						case SipGrammar.TAB:
-							// TODO continuation
+							_length = -1;
+							_string.setLength(0);
 							_state = State.HEADER_VALUE;
 							break;
 							
@@ -254,7 +264,7 @@ public class SipParser
 										return true;
 									}
 								}
-								_handler.parsedHeader(_header, _headerString, _valueString);
+								returnFromParse |= _handler.parsedHeader(_header, _headerString, _valueString);
 							}
 							
 							_headerString = _valueString = null;
@@ -265,13 +275,13 @@ public class SipParser
 								consumeCRLF(ch, buffer);
 								if (_contentLength == 0)
 								{
-									_handler.headerComplete();
+									returnFromParse |= _handler.headerComplete();
 									_state = State.END;
-									_handler.messageComplete(null);
+									returnFromParse |= _handler.messageComplete(null);
 								}
 								else
 								{
-									_handler.headerComplete();
+									returnFromParse |= _handler.headerComplete();
 									_state = State.CONTENT;
 								}
 							}
@@ -489,14 +499,17 @@ public class SipParser
 		}
 		catch (Exception e)
 		{
-			e.printStackTrace();
+			LOG.warn(e);
+			_handler.badMessage(400, e.toString());
 			return true;
 		}
 	}
 	
 	private void badMessage(ByteBuffer buffer, String reason)
 	{
-		
+		BufferUtil.clear(buffer);
+		_state = State.END;
+		_handler.badMessage(400, reason);
 	}
 	
 	private String takeString()
@@ -531,332 +544,6 @@ public class SipParser
 	{
 		_state = State.START;
 	}
-	
-	public static void main(String[] args) throws Exception
-	{	
-		SipMessageHandler handler= new SipMessageHandler() 
-		{	
-			@Override
-			public boolean startRequest(String method, String uri, SipVersion version)
-					 {
-				// TODO Auto-generated method stub
-				return false;
-			}
-			
-			public void badMessage(int status, String reason)
-			{
-				System.out.println("bad message: " + reason);
-			}
-			
-			@Override
-			public boolean parsedHeader(SipHeader header, String name, String value)
-					 {
-				System.out.println("header: (" + name + ") = (" + value + ")");
-				return false;
-			}
-			
-			@Override
-			public boolean messageComplete(ByteBuffer content)  {
-				// TODO Auto-generated method stub
-				return false;
-			}
-			
-			@Override
-			public boolean headerComplete() {
-				// TODO Auto-generated method stub
-				return false;
-			}
-		};
-		SipParser parser = new SipParser(handler);
-		
-		ByteBuffer buffer = ByteBuffer.wrap("INVITE sip:localhost SIP/2.0\r\nazerty: xxx\r\n\r\n".getBytes());
-		
-		
-			parser.parseNext(buffer);
-		
-				System.out.println(parser);
-	}
-	
-	/*
-	public void parseAll(ByteBuffer buffer) throws IOException
-	{
-		if (_state == State.END)
-			reset();
-		if (_state != State.START)
-			throw new IllegalStateException("!START");
-		
-		while (_state != State.END && buffer.hasRemaining())
-		{
-			int remaining = buffer.remaining();
-			parseNextOld(buffer);
-			if (remaining == buffer.remaining())
-				break;
-		}
-	}
-	
-	
-	public boolean parseNextOld(ByteBuffer buffer) throws IOException
-	{
-		int start = -1;
-		State startState = null;
-		
-		try
-		{
-			if (_state == State.END)
-				return false;
-			
-			byte c;
-			int length = -1;
-			
-			while (_state.ordinal() < State.END.ordinal() && buffer.hasRemaining())
-			{
-				c = buffer.get();
-				
-				if (_eol == SipGrammar.CR && c == SipGrammar.LF)
-				{
-					_eol = SipGrammar.LF;
-					continue;
-				}
-				_eol = 0;
-				
-				switch (_state)
-				{
-					case START:
-						if (c > SipGrammar.SPACE || c < 0)
-						{
-							start = buffer.position() - 1;
-							startState = _state;
-							
-							_state = State.METHOD;
-						}
-						break;
-					case METHOD:
-						if (c == SipGrammar.SPACE)
-						{
-							SipMethod method = SipMethod.CACHE.get(buffer, start, buffer.position()-start-1);
-                            _field0=method==null?BufferUtil.toString(buffer,start,buffer.position()-start-1,StringUtil.__ISO_8859_1_CHARSET):method.toString();
-                            _state = State.SPACE1;
-						}
-						else if (c < SipGrammar.SPACE && c >= 0)
-						{
-							throw SipException.badRequest();
-						}
-						break;
-						
-					case SPACE1:
-						if (c > SipGrammar.SPACE || c < 0)
-						{
-							start = buffer.position()-1;
-							startState = _state;
-							_state = State.URI;
-						}
-						else if (c < SipGrammar.SPACE)
-						{
-							throw SipException.badRequest();
-						}
-						break;
-					case URI:
-						if (c == SipGrammar.SPACE)
-						{
-							_field1=BufferUtil.toString(buffer,start,buffer.position()-start-1,StringUtil.__UTF8_CHARSET);
-							start=-1;
-                            _state=State.SPACE2;
-						}
-						break;
-					case SPACE2:
-						if (c > SipGrammar.SPACE || c < 0)
-						{
-							start = buffer.position()-1;
-							startState = _state;
-							_state = State.REQUEST_VERSION;
-						}
-						else if (c < SipGrammar.SPACE)
-						{
-							throw SipException.badRequest();
-						}
-						break;
-					case REQUEST_VERSION:
-						if (c == SipGrammar.CR || c == SipGrammar.LF)
-						{
-							String version = BufferUtil.toString(buffer,start,buffer.position()-start-1,StringUtil.__UTF8_CHARSET);
-							start = -1;
-							
-							_handler.startRequest(_field0, _field1, version);
-							_eol = c;
-							_state = State.HEADER;
-							_field0 = _field1 = null;
-							continue;
-						}
-						break;
-						
-					case HEADER:
-						switch (c)
-						{
-							case SipGrammar.SPACE:
-							case SipGrammar.TAB:
-							{
-								length = -1;
-								_state = State.HEADER_VALUE;
-								break;
-							}
-							
-							default:
-							{
-								// header
-								if (_field0 != null || _field1 != null)
-								{
-									if (_header == SipHeader.CONTENT_LENGTH)
-									{
-										try
-										{
-											_contentLength = Long.parseLong(_field1);
-										}
-										catch (NumberFormatException e)
-										{
-											throw SipException.badRequest();
-										}
-									}
-									_handler.parsedHeader(_header, _field0, _field1);
-								}
-								_field0 = _field1 = null;
-								_header = null;
-								// _value = null;
-								
-								if (c == SipGrammar.CR || c == SipGrammar.LF)
-								{
-									_eol = c;
-									
-									if (_contentLength == 0)
-									{
-										_handler.headerComplete();
-										_state = State.END;
-										_handler.messageComplete(BufferUtil.EMPTY_BUFFER);
-									}
-									else
-									{
-										_state = State.CONTENT;
-										_handler.headerComplete();
-									}
-									//System.out.println("end of header");
-								}
-								else
-								{
-									start = buffer.position()-1; 
-									startState = _state;
-									length = 1;
-									_state = State.HEADER_NAME;
-								}
-							}
-								
-						}
-						break;
-						
-					case HEADER_NAME:
-						switch (c)
-						{
-							case SipGrammar.CR:
-							case SipGrammar.LF:
-								_eol = c;
-								_header = SipHeader.CACHE.get(buffer, start, length);
-								_field0 = _header == null ? BufferUtil.toString(buffer, start, length, StringUtil.__UTF8_CHARSET) : _header.toString();	
-								start = length = - 1;
-								_state = State.HEADER;
-								break;
-								
-							case SipGrammar.COLON:
-								_header = SipHeader.CACHE.get(buffer, start, length);
-								_field0 = _header == null ? BufferUtil.toString(buffer, start, length, StringUtil.__UTF8_CHARSET) : _header.toString();	
-								
-								//System.out.println("header: " + _field0);
-								
-								start = length = - 1;
-								_state = State.HEADER_VALUE;
-								break;
-							case SipGrammar.SPACE:
-							case SipGrammar.TAB:
-								break;
-							default:
-								length = buffer.position()-start;
-						}
-						break;		
-						
-					case HEADER_VALUE:
-						switch (c)
-						{
-							case SipGrammar.CR:
-							case SipGrammar.LF:
-								_eol = c;
-								if (length > 0)
-								{
-									_field1 = BufferUtil.toString(buffer, start, length, StringUtil.__UTF8_CHARSET);
-									//System.out.println("value: " + _field1);
-									start = length = -1;
-								}
-								_state = State.HEADER;
-								break;
-							case SipGrammar.SPACE:
-							case SipGrammar.TAB:
-								break;
-							default:
-								if (start == -1)
-								{
-									start = buffer.position()-1;
-									startState = _state;
-								}
-								length = buffer.position() - start;
-						}
-						break;
-							
-				} 
-			} 
-			// end header loop
-			
-			if (_state == State.CONTENT)
-			{
-				int remaining = buffer.remaining();
-				if (remaining > 0)
-				{
-					if (_eol == SipGrammar.CR && buffer.get(buffer.position()) == SipGrammar.LF)
-					{
-						_eol = buffer.get();
-						remaining--;
-					}
-					_eol = 0;
-					if (_contentLength == -1)
-					{
-						System.out.println("eof");
-						ByteBuffer content = buffer.asReadOnlyBuffer();
-						_state = State.END;
-						_handler.messageComplete(content);
-						
-					}
-					else if (remaining >= _contentLength)
-					{
-						System.out.println("length");
-						ByteBuffer content = buffer.asReadOnlyBuffer();
-						if (content.remaining() > _contentLength)
-							content.limit(content.position() + (int)_contentLength);
-				
-						_state = State.END;
-						_handler.messageComplete(content);
-					}
-				}
-			}
-			
-			
-			return true;
-		}
-		finally
-		{
-			if (start >=0)
-			{
-				buffer.position(start);
-				_state = startState;
-			}
-		}
-	}
-	*/
-
 	
 	public String toString()
 	{

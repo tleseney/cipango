@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.servlet.ServletContext;
@@ -47,6 +46,8 @@ public class Session implements SipSessionIf
 	private boolean _valid = true;
 	private final long _created;
 	private long _lastAccessed;
+	
+	private String _handler;
 	
 	public Session(ApplicationSession applicationSession, String id, SipRequest request)
 	{
@@ -267,10 +268,14 @@ public class Session implements SipSessionIf
 		}
 	}
 
-	@Override
-	public void setHandler(String arg0) throws ServletException {
-		// TODO Auto-generated method stub
+	/**
+	 * @see SipSession#setHandler(String)
+	 */
+	public void setHandler(String name) throws ServletException 
+	{
+		checkValid();
 		
+		_handler = name; // TODO check it exists
 	}
 
 	@Override

@@ -14,10 +14,12 @@ public class SipMethodTest
 	@Test
 	public void testLookup()
 	{
-		assertEquals(SipMethod.INVITE, lookup("INVITE"));
-		assertEquals(SipMethod.ACK, lookup("ACK"));
-		assertEquals(SipMethod.BYE, lookup("BYE"));
+		assertEquals(SipMethod.INVITE, lookup("INVITE "));
+		assertEquals(SipMethod.ACK, lookup("ACK "));
+		assertEquals(SipMethod.BYE, lookup("BYE "));
 		
-		assertEquals(SipMethod.REGISTER, lookup("REGISTER"));	
+		assertEquals(SipMethod.REGISTER, lookup("REGISTER "));	
+		assertNotSame(SipMethod.REGISTER, lookup("REGISTER--- "));	
+		
 	}
 }

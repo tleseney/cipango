@@ -38,22 +38,25 @@ public enum SipMethod
 	 {
 		 int length=limit-position;
 
+		 if (length < 4)
+			 return null;
+		 
 		 switch (bytes[position])
 		 {
 		 	case 'I':
-		 		if (length >= 6 && bytes[position+1] == 'N' && bytes[position+2] == 'V' && 
-		 			bytes[position+3] == 'I' && bytes[position+4] == 'T' && bytes[position+5] == 'E')
+		 		if (bytes[position+1] == 'N' && bytes[position+2] == 'V' && bytes[position+3] == 'I' 
+		 			&& length >= 7 && bytes[position+4] == 'T' && bytes[position+5] == 'E' && bytes[position+6] == ' ')
 		 			return INVITE;
 	        case 'A':
-	        	if (length >= 3 && bytes[position+1] == 'C' && bytes[position+2] == 'K')
+	        	if (length >= 3 && bytes[position+1] == 'C' && bytes[position+2] == 'K' && bytes[position+3] == ' ')
 	        		return ACK;
 	        case 'B':
-	        	if (length >= 3 && bytes[position+1] == 'Y' && bytes[position+2] == 'E')
+	        	if (length >= 3 && bytes[position+1] == 'Y' && bytes[position+2] == 'E' && bytes[position+3] == ' ')
 	        		return BYE;       	
 	        case 'R':
-	        	if (length >= 8 && bytes[position+1] == 'E' && bytes[position+2] == 'G' && 
-	        		bytes[position+3] == 'I' && bytes[position+4] == 'S' && bytes[position+5] == 'T' && 
-	        		bytes[position+6] == 'E' && bytes[position+7] == 'R')
+	        	if (bytes[position+1] == 'E' && bytes[position+2] == 'G' && bytes[position+3] == 'I' && 
+	        		length >= 9 && bytes[position+4] == 'S' && bytes[position+5] == 'T' && 
+	        		bytes[position+6] == 'E' && bytes[position+7] == 'R' && bytes[position+8] == ' ')
 		        	return REGISTER;
 		 }
 		 return null;

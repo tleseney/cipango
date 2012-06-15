@@ -69,6 +69,27 @@ public class SipParser
 	{
 		while (_state == State.START && buffer.hasRemaining())
 		{
+			if (Character.isDigit(buffer.get(buffer.position())))
+			{
+				_version = SipVersion.lookAheadGet(buffer);
+				if (_version != null)
+				{
+					buffer.position(buffer.position()+_version.asString().length()+1);
+                    _state = State.SPACE1;
+                    return;
+				}
+			}
+			else 
+			{
+				_method = SipMethod.lookAheadGet(buffer);
+                if (_method!=null)
+                {
+                    _methodString = _method.asString();
+                    buffer.position(buffer.position()+_methodString.length()+1);
+                    _state=State.SPACE1;
+                    return;
+                }
+			}
 			byte ch = buffer.get();
 			if (_eol == SipGrammar.CR && ch == SipGrammar.LF)
 			{
@@ -79,33 +100,9 @@ public class SipParser
 			
 			if (ch > SipGrammar.SPACE || ch < 0)
 			{				
-				if (Character.isDigit(ch))
-				{
-					_version = SipVersion.lookAheadGet(buffer);
-					if (_version != null)
-					{
-						buffer.position(buffer.position()+_version.asString().length()+1);
-	                    _state = State.SPACE1;
-	                    return;
-					}
-					_string.setLength(0);
-					_string.append((char) ch);
-					_state = State.RESPONSE_VERSION;
-				}
-				else 
-				{
-					_method = SipMethod.lookAheadGet(buffer);
-	                if (_method!=null)
-	                {
-	                    _methodString = _method.asString();
-	                    buffer.position(buffer.position()+_methodString.length()+1);
-	                    _state=State.SPACE1;
-	                    return;
-	                }
-	                _string.setLength(0);
-					_string.append((char) ch);
-					_state = State.METHOD;
-				}
+				_string.setLength(0);
+				_string.append((char) ch);
+				_state = Character.isDigit(ch) ? State.RESPONSE_VERSION : State.METHOD;
 				return;
 			}
 		}

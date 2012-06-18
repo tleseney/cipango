@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE sip-app
+     PUBLIC "-//Java Community Process//DTD SIP Application 1.0//EN"
+     "http://www.jcp.org/dtd/sip-app_1_0.dtd">
+
+<sip-app>
+    <display-name>SIP Servlet based Registrar</display-name>
+
+    <context-param>
+        <param-name>contextConfigLocation</param-name>
+        <param-value>/WEB-INF/kaleo.xml</param-value>
+    </context-param>
+        
+    <listener>
+        <listener-class>org.cipango.server.sipapp.TestListener</listener-class>
+    </listener>
+
+    <servlet>
+        <servlet-name>main</servlet-name>
+        <display-name>PBX Servlet</display-name>
+        <description>blablabla</description>
+        <servlet-class>org.cipango.kaleo.PbxServlet</servlet-class>
+        <init-param>
+            <param-name>name</param-name>
+            <param-value>value</param-value>
+        </init-param>
+        <load-on-startup>10</load-on-startup>
+    </servlet>
+        
+    <servlet>
+        <servlet-name>presence</servlet-name>
+        <servlet-class>org.cipango.kaleo.presence.PresenceServlet</servlet-class>
+        <load-on-startup/>
+    </servlet>
+    
+    
+    <servlet-mapping>
+        <servlet-name>main</servlet-name>
+        <pattern>
+          <or>
+            <equal>
+                <var>request.method</var>
+                <value>REGISTER</value>
+            </equal>    
+            <equal>
+                    <var>request.method</var>
+                    <value>PUBLISH</value>
+                </equal>
+                <equal>
+                    <var>request.method</var>
+                    <value>SUBSCRIBE</value>
+                </equal>
+                <equal>
+                    <var>request.method</var>
+                    <value>INVITE</value>
+                </equal>
+          </or>
+        </pattern>
+    </servlet-mapping>
+    
+    <session-config>
+        <session-timeout>60</session-timeout>
+    </session-config>
+
+</sip-app>

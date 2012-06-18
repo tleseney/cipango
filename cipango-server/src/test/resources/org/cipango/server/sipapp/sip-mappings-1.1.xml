@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<sip-app  xmlns="http://www.jcp.org/xml/ns/sipservlet" 
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://www.jcp.org/xml/ns/sipservlet http://www.jcp.org/xml/ns/sipservlet/sip-app_1_1.xsd"
+          version="1.1">
+    <app-name>org.cipango.test.servlet-mapping</app-name>
+    <servlet-selection>
+        <servlet-mapping>
+        	<servlet-name>main</servlet-name>
+        	<pattern>
+                <equal>
+                	<var>request.method</var>
+                	<value>INVITE</value>
+            	</equal>    
+                </pattern>
+    	</servlet-mapping>
+	<servlet-mapping>
+        	<servlet-name>presence</servlet-name>
+        	<pattern>
+                <equal>
+                	<var>request.method</var>
+                	<value>PUBLISH</value>
+            	</equal>    
+                </pattern>
+    	</servlet-mapping>
+
+    </servlet-selection>
+
+    <servlet>
+        <servlet-name>main</servlet-name>
+        <display-name>PBX Servlet</display-name>
+        <description>blablabla</description>
+        <servlet-class>org.cipango.kaleo.PbxServlet</servlet-class>
+        <init-param>
+            <param-name>name</param-name>
+            <param-value>value</param-value>
+        </init-param>
+        <load-on-startup>10</load-on-startup>
+    </servlet>
+    
+    <servlet>
+        <servlet-name>presence</servlet-name>
+        <servlet-class>org.cipango.kaleo.presence.PresenceServlet</servlet-class>
+        <load-on-startup/>
+    </servlet>
+
+    <listener>
+        <listener-class>
+            org.cipango.server.sipapp.TestListener
+        </listener-class>
+    </listener>
+    
+    <session-config>
+        <session-timeout>60</session-timeout>
+    </session-config>
+</sip-app>

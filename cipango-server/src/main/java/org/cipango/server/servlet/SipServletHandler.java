@@ -11,7 +11,7 @@ import javax.servlet.ServletException;
 import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.handler.AbstractSipHandler;
-import org.eclipse.jetty.server.handler.ContextHandler;
+import org.cipango.server.sipapp.SipServletMapping;
 import org.eclipse.jetty.util.LazyList;
 import org.eclipse.jetty.util.MultiException;
 import org.eclipse.jetty.util.log.Log;
@@ -25,6 +25,8 @@ public class SipServletHandler extends AbstractSipHandler
 	
 	private Map<String, SipServletHolder> _nameMap = new HashMap<String, SipServletHolder>();
 	private ServletContext _servletContext;
+	private SipServletHolder _mainServlet;
+	private SipServletMapping[] _servletMappings;
 	
 	public SipServletHolder addSipServlet(String className)
 	{
@@ -38,6 +40,7 @@ public class SipServletHandler extends AbstractSipHandler
 	@Override
 	protected void doStart() throws Exception
 	{
+		super.doStart();
 		initialize();
 	}
 	
@@ -96,9 +99,41 @@ public class SipServletHandler extends AbstractSipHandler
 				}
 			}
 		}
+		
+		updateSipMappings();  
+        
+        if (_mainServlet == null && _servlets != null && (_servletMappings == null || _servletMappings.length == 0))
+        {
+        	if (_servlets.length == 1)
+        		_mainServlet = _servlets[0];
+        	else if (_servlets.length != 0)
+        		mex.add(new IllegalStateException("Multiple servlets and no SIP servlet mappping defined."));
+        }
+		
 		mex.ifExceptionThrow();
 	}
 	
+	protected void updateSipMappings() throws ServletException
+    {
+        if (_servlets == null)
+        {
+            _nameMap = null;
+        }
+        else
+        {   
+            Map<String, SipServletHolder> nm = new HashMap<String, SipServletHolder>();
+            
+            for (int i = 0; i < _servlets.length; i++)
+            {
+            	if (nm.containsKey(_servlets[i].getName()))
+            		throw new ServletException("A servlet with name " + _servlets[i].getName() + " is already registered");
+                nm.put(_servlets[i].getName(), _servlets[i]);
+                //_sipServlets[i].setServletHandler(this);
+            }
+            _nameMap = nm;
+        }
+	}
+		
 	public void handle(SipMessage message) throws IOException, ServletException
 	{
 		System.out.println("yooooopi");
@@ -115,6 +150,11 @@ public class SipServletHandler extends AbstractSipHandler
 		}
 	}
 	
+	public SipServletHolder getHolder(String name)
+	{
+		return _nameMap == null ? null : _nameMap.get(name);
+	}
+	
 	protected SipServletHolder getHolder(SipRequest request)
 	{
 		return _servlets[0];
@@ -129,4 +169,42 @@ public class SipServletHandler extends AbstractSipHandler
 	{
 		return _servletContext;
 	}
+	
+	public void addServletMapping(SipServletMapping mapping) 
+	{		
+		setServletMappings((SipServletMapping[]) LazyList.addToArray(getServletMappings(), mapping,
+				SipServletMapping.class));
+	}
+	
+	public SipServletMapping[] getServletMappings()
+	{
+		return _servletMappings;
+	}
+	
+	
+	public void setServletMappings(SipServletMapping[] servletMappings)
+	{
+//		if (getServer() != null)
+//            getServer().getContainer().update(this, _servletMappings, servletMappings, "servletMapping", true);
+         
+        _servletMappings = servletMappings;
+    }
+	
+	public void setMainServletName(String name)
+	{
+		SipServletHolder previous = _mainServlet;
+		_mainServlet = getServlet(name);
+//		if (getServer() != null)
+//			getServer().getContainer().update(this, previous, _mainServlet, "mainServlet", true);
+	}
+	
+	public SipServletHolder getMainServlet()
+	{
+		return _mainServlet;
+	}
+	
+	 public SipServletHolder getServlet(String name)
+	    {
+	        return (SipServletHolder) _nameMap.get(name);
+	    }
 }

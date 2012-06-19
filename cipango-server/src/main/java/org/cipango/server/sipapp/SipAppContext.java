@@ -14,30 +14,19 @@
 package org.cipango.server.sipapp;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
-import java.util.Enumeration;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.EventListener;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterRegistration;
-import javax.servlet.FilterRegistration.Dynamic;
 import javax.servlet.RequestDispatcher;
-import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
-import javax.servlet.ServletRegistration;
-import javax.servlet.SessionCookieConfig;
-import javax.servlet.SessionTrackingMode;
-import javax.servlet.descriptor.JspConfigDescriptor;
 import javax.servlet.sip.SipApplicationSessionAttributeListener;
 import javax.servlet.sip.SipApplicationSessionListener;
 import javax.servlet.sip.SipErrorListener;
+import javax.servlet.sip.SipServlet;
 import javax.servlet.sip.SipServletListener;
 import javax.servlet.sip.SipSessionAttributeListener;
 import javax.servlet.sip.SipSessionListener;
@@ -50,10 +39,15 @@ import org.cipango.server.servlet.SipServletHandler;
 import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.session.SessionHandler;
 import org.eclipse.jetty.util.LazyList;
+import org.eclipse.jetty.util.component.LifeCycle;
+import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.webapp.WebAppContext;
 
 public class SipAppContext extends AbstractSipHandler 
 {
+	private static final Logger LOG = Log.getLogger(SipAppContext.class);
+	
 	public static final int VERSION_10 = 10;
 	public static final int VERSION_11 = 11;
     
@@ -74,7 +68,7 @@ public class SipAppContext extends AbstractSipHandler
 	};
 	
 	public static final String EXTERNAL_INTERFACES = "org.cipango.externalOutboundInterfaces";
-	public final static String SIP_DEFAULTS_XML="org/cipango/sipapp/sipdefault.xml";
+	public final static String SIP_DEFAULTS_XML="org/cipango/server/sipapp/sipdefault.xml";
 	
 	private String _name;
 	private String _defaultsDescriptor=SIP_DEFAULTS_XML;
@@ -101,6 +95,8 @@ public class SipAppContext extends AbstractSipHandler
     private SipSessionListener[] _sessionListeners = new SipSessionListener[0];
     private SipSessionAttributeListener[] _sessionAttributeListeners = new SipSessionAttributeListener[0];
     private SipServletListener[] _servletListeners = new SipServletListener[0];
+    
+
 	
 	public SipAppContext()
 	{
@@ -112,6 +108,12 @@ public class SipAppContext extends AbstractSipHandler
 	{
 		_context = context;
 		_sContext = new SContext(_context.getServletContext());
+		WebAppContextListener l = new WebAppContextListener();
+		context.addLifeCycleListener(l);
+		
+		// Ensure that lifeCycleStarting is call even if context is starting.
+		if (context.isStarting())
+			l.lifeCycleStarting(context);
 	}
 	
 	public ServletContext getServletContext()
@@ -128,16 +130,7 @@ public class SipAppContext extends AbstractSipHandler
 	{
 		return _name;
 	}
-	
-	@Override
-	protected void doStart() throws Exception
-	{
 		
-		_sessionHandler.setHandler(_servletHandler);
-		_sessionHandler.start();
-		super.doStart();
-	}
-	
 	public SipApplicationSessionListener[] getSipApplicationSessionListeners()
 	{
 		return _appSessionListeners;
@@ -289,6 +282,12 @@ public class SipAppContext extends AbstractSipHandler
 	{
 		return _servletHandler;
 	}
+	
+	public boolean hasSipServlets()
+    {
+    	SipServletHolder[] holders = getSipServletHandler().getServlets();
+    	return holders != null && holders.length != 0;
+    }
 
 	class SContext extends ServletContextProxy
 	{
@@ -317,7 +316,91 @@ public class SipAppContext extends AbstractSipHandler
 			return "Cipango-3.0";
 			//return super.getServerInfo();
 		}
+	}
+	
+	private class WebAppContextListener implements LifeCycle.Listener
+	{
 
+		@SuppressWarnings("deprecation")
+		@Override
+		public void lifeCycleStarting(LifeCycle event)
+		{
+		    _context.setAttribute(SipServlet.PRACK_SUPPORTED, Boolean.TRUE);
+//		    _context.setAttribute(SipServlet.SIP_FACTORY, getSipFactory());
+//		    _context.setAttribute(SipServlet.TIMER_SERVICE, getTimerService());
+//		    _context.setAttribute(SipServlet.SIP_SESSIONS_UTIL, getSipSessionsUtil());
+		    _context.setAttribute(SipServlet.SUPPORTED, Collections.unmodifiableList(Arrays.asList(EXTENSIONS)));
+		    _context.setAttribute(SipServlet.SUPPORTED_RFCs, Collections.unmodifiableList(Arrays.asList(SUPPORTED_RFC)));
+		}
 
+		@Override
+		public void lifeCycleStarted(LifeCycle event)
+		{
+			try
+			{
+	//	        if (_sipSecurityHandler!=null)
+	//	        {
+	//	        	_sipSecurityHandler.setHandler(_servletHandler);	            
+	//	            _sipSecurityHandler.start(); // FIXME when should it be started
+	//	        }
+				_sessionHandler.setHandler(_servletHandler);
+				      		
+				_servletHandler.start();
+				
+				if (!_context.isAvailable())
+		    	{
+	//	    		if (_name == null)
+	//					_name = getDefaultName();
+	//				Events.fire(Events.DEPLOY_FAIL, 
+	//	        			"Unable to deploy application " + getName()
+	//	        			+ ": " + _context.getUnavailableException().getMessage());
+		    	}
+		    	else if (hasSipServlets())
+		    	{
+	//	    		getServer().applicationStarted(this);
+		    	}
+			}
+			catch (Exception e) 
+			{
+				LOG.warn("Failed to start SipAppContext " + getName(), e);
+				_context.setAvailable(false);
+			}
+			
+		}
+
+		@Override
+		public void lifeCycleFailure(LifeCycle event, Throwable cause)
+		{
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void lifeCycleStopping(LifeCycle event)
+		{
+			try
+			{
+				if (hasSipServlets() && _context.isAvailable())
+	//				getServer().applicationStopped(this);
+				
+						
+	//			if (_sipSecurityHandler != null)
+	//				_sipSecurityHandler.stop();
+					
+				_servletHandler.stop();
+			}
+			catch (Exception e) 
+			{
+				LOG.warn("Failed to stop SipAppContext " + getName(), e);
+			}
+		}
+
+		@Override
+		public void lifeCycleStopped(LifeCycle event)
+		{
+			// TODO Auto-generated method stub
+			
+		}
+		
 	}
 }

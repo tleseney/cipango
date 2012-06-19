@@ -8,9 +8,7 @@
   <url>http://www.cipango.org</url>
   <packaging>pom</packaging>
   <properties>
-    <!-- jetty-version>7.6.1.v20120215</jetty-version -->
     <jetty-version>9.0.0-SNAPSHOT</jetty-version>
-    <servlet-version>3.0</servlet-version>
     <sip-api-version>1.1</sip-api-version>
     <junit4-version>4.8.1</junit4-version>
     <jsp-2-1-version>2.1.v20100127</jsp-2-1-version>
@@ -55,16 +53,14 @@
         </configuration>
       </plugin>
 
-<!--
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-release-plugin</artifactId>
         <configuration>
-          <tagBase>https://cipango.googlecode.com/svn/tags</tagBase>
+          <autoVersionSubmodules>true</autoVersionSubmodules>
         </configuration>
       </plugin>
 
--->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
@@ -75,7 +71,6 @@
       </plugin>
     </plugins>
 
-<!--
     <extensions>
       <extension>
         <groupId>org.apache.maven.wagon</groupId>
@@ -88,7 +83,7 @@
          <version>1.0-beta-6</version>
       </extension>
     </extensions>
--->
+
  
     <pluginManagement>
       <plugins>
@@ -148,7 +143,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-assembly-plugin</artifactId>
-          <version>2.2-beta-5</version>
+          <version>2.2.1</version>
           <dependencies>
             <dependency>
               <groupId>org.eclipse.jetty.toolchain</groupId>
@@ -166,19 +161,17 @@
     <module>cipango-server</module>
     <module>cipango-sip</module>
     <module>cipango-util</module>
+    <module>cipango-deploy</module>
     <module>cipango-distribution</module>
 
 <!--
-    <module>cipango-server</module>
     <module>cipango-jmx</module>
     <module>cipango-dar</module>
-    <module>cipango-deploy</module>
     <module>cipango-plus</module>
     <module>cipango-annotations</module>
     <module>cipango-diameter</module>
     <module>cipango-console</module>
     <module>cipango-callflow</module>
-    <module>cipango-distribution</module>
     <module>cipango-maven-plugin</module>
     <module>cipango-embedded</module>
 -->
@@ -270,18 +263,18 @@
         <groupId>javax.servlet</groupId>
         <artifactId>sip-api</artifactId>
         <version>${sip-api-version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
-<!--      <dependency>
-        <groupId>javax.servlet</groupId>
-        <artifactId>servlet-api</artifactId>
-        <version>${servlet-version}</version>
-      </dependency>  -->
- 	<dependency>
-         <groupId>org.eclipse.jetty.orbit</groupId>
-         <artifactId>javax.servlet</artifactId>
-         <version>3.0.0.v201112011016</version>
-       </dependency>
-
+      <dependency>
+        <groupId>org.eclipse.jetty.orbit</groupId>
+        <artifactId>javax.servlet</artifactId>
+        <version>3.0.0.v201112011016</version>
+      </dependency>
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>

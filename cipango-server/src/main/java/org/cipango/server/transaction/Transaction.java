@@ -100,6 +100,11 @@ public abstract class Transaction
 		return _request.isCancel();
 	}
 	
+	public boolean isCompleted()
+	{
+		return _state.ordinal() >= State.COMPLETED.ordinal();
+	}
+	
 	public String getBranch()
 	{
 		return _branch;

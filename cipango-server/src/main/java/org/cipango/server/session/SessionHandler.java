@@ -17,6 +17,7 @@ package org.cipango.server.session;
 import java.io.IOException;
 
 import javax.servlet.ServletException;
+import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.server.SipHandler;
 import org.cipango.server.SipMessage;
@@ -52,7 +53,7 @@ public class SessionHandler extends AbstractSipHandler
 		if (message.isRequest())
 		{
 			SipRequest request = (SipRequest) message;
-			
+						
 			Session session = null;
 			
 			if (request.isInitial())
@@ -63,17 +64,45 @@ public class SessionHandler extends AbstractSipHandler
 			else
 			{
 				String appId = request.getParameter("appid");
-				ApplicationSession appSession = _sessionManager.getApplicationSession(appId);
-				session = appSession.getSession(request);
+				if (appId == null)
+				{
+					String tag = request.getToTag();
+					int i = tag.indexOf('-');
+					if (i != -1)
+						appId = tag.substring(0,  i);
+				}
+				if (appId == null)
+				{
+					notFound(request, "No Application Session Identifier");
+					return;
+				}
+				
+				ApplicationSession	appSession = _sessionManager.getApplicationSession(appId);
+				
+				if (appSession == null)
+				{
+					notFound(request, "No Application Session");
+					return;
+				}
 			}
+			
+			if (session == null)
+			{
+				notFound(request, "No SIP Session");
+				return;
+			}
+			session.accessed();
 			request.setSession(session);
-						
+			
 			_handler.handle(request);
 		}
-		// TODO Auto-generated method stub
-		
 	}
 	
+	protected void notFound(SipRequest request, String reason)
+	{
+		if (!request.isAck())
+			request.createResponse(SipServletResponse.SC_CALL_LEG_DONE, reason);
+	}
 	protected String getApplicationId(String s)
 	{
 		return s.substring(s.lastIndexOf('-'));

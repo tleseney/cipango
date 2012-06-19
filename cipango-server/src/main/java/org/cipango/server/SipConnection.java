@@ -6,6 +6,8 @@ import java.nio.ByteBuffer;
 
 public interface SipConnection 
 {
+	SipConnector getConnector();
+	
 	Transport getTransport();
 	
 	InetAddress getLocalAddress();

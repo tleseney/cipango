@@ -14,6 +14,7 @@ import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.server.transaction.Transaction;
+import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipFields;
 import org.cipango.sip.SipHeader;
 
@@ -29,6 +30,7 @@ public class SipResponse extends SipMessage implements SipServletResponse
 		if (status >= 200)
 			_request.setCommitted(true);
 		
+		_session = request._session;
 		setStatus(status, reason);
 		
 		SipFields requestFields = request.getFields();
@@ -40,6 +42,28 @@ public class SipResponse extends SipMessage implements SipServletResponse
 		
 		if (status < 300)
 			_fields.copy(requestFields, SipHeader.RECORD_ROUTE);
+		
+		if (_session != null)
+		{
+			if (_request.isInitial())
+			{
+				AddressImpl to = (AddressImpl) _fields.get(SipHeader.TO);
+				if (to.getTag() == null)
+				{
+					_session.setUAS();
+					to.setParameter(AddressImpl.TAG, _session.getLocalTag());
+				}
+			}
+			if (needsContact())
+			{
+				_fields.set(SipHeader.CONTACT, _session.getContact(request.getConnection()));
+			}
+		}
+	}
+	
+	protected boolean needsContact()
+	{
+		return (_request.isInvite() && _status < 300); // TODO
 	}
 	
 	public Transaction getTransaction()
@@ -60,7 +84,8 @@ public class SipResponse extends SipMessage implements SipServletResponse
 		if (isCommitted())
 			throw new IllegalStateException("response is committed");
 		
-		((ServerTransaction) getTransaction()).send(this);
+		_session.sendResponse(this);
+		//((ServerTransaction) getTransaction()).send(this);
 		
 		setCommitted(true);
 		// TODO scope
@@ -162,22 +187,26 @@ public class SipResponse extends SipMessage implements SipServletResponse
 		return null;
 	}
 
-	@Override
-	public String getReasonPhrase() {
-		// TODO Auto-generated method stub
-		return null;
+	/**
+	 * @see SipServletResponse#getReasonPhrase()
+	 */
+	public String getReasonPhrase()
+	{
+		return _reason;
 	}
 
-	@Override
-	public SipServletRequest getRequest() {
-		// TODO Auto-generated method stub
-		return null;
+	/**
+	 * @see SipServletResponse#getRequest()
+	 */
+	public SipServletRequest getRequest()
+	{
+		return _request;
 	}
 
 	/**
 	 * @see SipServletResponse#getStatus()
 	 */
-	public int getStatus() 
+	public int getStatus()
 	{
 		return _status;
 	}

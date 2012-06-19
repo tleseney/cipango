@@ -9,6 +9,7 @@ import java.text.ParseException;
 
 import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.SipConnection;
+import org.cipango.server.SipConnector;
 import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
@@ -109,6 +110,11 @@ public class UdpConnector extends AbstractSipConnector
 		public UdpConnection(InetSocketAddress address)
 		{
 			_address = address;
+		}
+		
+		public SipConnector getConnector()
+		{
+			return UdpConnector.this;
 		}
 		
 		public Transport getTransport()

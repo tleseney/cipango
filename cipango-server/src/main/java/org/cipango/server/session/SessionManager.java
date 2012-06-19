@@ -73,6 +73,22 @@ public class SessionManager extends AbstractLifeCycle
 		return StringUtil.toBase62String2(r);
 	}
 	
+	public String newSessionId()
+	{
+		long r = _random.nextInt();
+		if (r<0)
+			r = -r;
+		return StringUtil.toBase62String2(r);
+	}
+	
+	public String newUASTag(ApplicationSession session)
+	{
+		long r = _random.nextInt();
+		if (r<0)
+			r = -r;
+		return session.getId() + "-" + StringUtil.toBase62String2(r);
+	}
+	
 	public void removeApplicationSession(ApplicationSession session)
 	{
 		_appSessions.remove(session.getId());

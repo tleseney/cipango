@@ -133,6 +133,9 @@ public class ServerTransaction extends Transaction
 						
 					startTimer(Timer.H, 64*__T1); 
 				}
+				
+				break;
+				
 			case ACCEPTED:
 				if (status < 200 || status >= 300)
 					throw new IllegalStateException("accepted && !2xx");

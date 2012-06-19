@@ -10,7 +10,7 @@
   <properties>
     <!-- jetty-version>7.6.1.v20120215</jetty-version -->
     <jetty-version>9.0.0-SNAPSHOT</jetty-version>
-    <servlet-version>2.5</servlet-version>
+    <servlet-version>3.0</servlet-version>
     <sip-api-version>1.1</sip-api-version>
     <junit4-version>4.8.1</junit4-version>
     <jsp-2-1-version>2.1.v20100127</jsp-2-1-version>
@@ -271,11 +271,17 @@
         <artifactId>sip-api</artifactId>
         <version>${sip-api-version}</version>
       </dependency>
-      <dependency>
+<!--      <dependency>
         <groupId>javax.servlet</groupId>
         <artifactId>servlet-api</artifactId>
         <version>${servlet-version}</version>
-      </dependency> 
+      </dependency>  -->
+ 	<dependency>
+         <groupId>org.eclipse.jetty.orbit</groupId>
+         <artifactId>javax.servlet</artifactId>
+         <version>3.0.0.v201112011016</version>
+       </dependency>
+
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>

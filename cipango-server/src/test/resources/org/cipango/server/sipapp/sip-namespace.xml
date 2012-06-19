@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<sip-app xmlns="http://www.jcp.org/xml/ns/sipservlet" 
+     xmlns:javaee="http://java.sun.com/xml/ns/javaee" version="1.1">
+  <app-name>org.cipango.kaleo</app-name>
+  
+  <servlet-selection>
+  <main-servlet>
+        main
+  </main-servlet>
+  </servlet-selection>
+
+  <context-param>
+    <javaee:param-name>contextConfigLocation</javaee:param-name>
+    <javaee:param-value>/WEB-INF/kaleo.xml</javaee:param-value>
+  </context-param>
+
+  <servlet>
+    <javaee:servlet-name>main</javaee:servlet-name>
+    <javaee:servlet-class>org.cipango.kaleo.PbxServlet</javaee:servlet-class>
+    <javaee:init-param>
+        <javaee:param-name>name</javaee:param-name>
+        <javaee:param-value>value</javaee:param-value>
+    </javaee:init-param>
+  </servlet>
+
+</sip-app>

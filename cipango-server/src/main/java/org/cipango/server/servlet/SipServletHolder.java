@@ -10,6 +10,7 @@ import javax.servlet.Servlet;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
+import javax.servlet.SingleThreadModel;
 import javax.servlet.UnavailableException;
 import javax.servlet.sip.SipServlet;
 import javax.servlet.sip.SipServletRequest;
@@ -31,6 +32,8 @@ public class SipServletHolder extends AbstractLifeCycle
 	private Config _config;
 	
 	private long _unavailable;
+	
+	private int _initOrder;
 	private boolean _initOnStartup = false;
 	
 	private SipServletHandler _servletHandler;
@@ -86,6 +89,11 @@ public class SipServletHolder extends AbstractLifeCycle
 		_class = null;
 	}
 	
+	public String getClassName()
+    {
+        return _className;
+    }
+	
 	public String getName()
 	{
 		return _name;
@@ -95,6 +103,26 @@ public class SipServletHolder extends AbstractLifeCycle
 	{
 		_name = name;
 	}
+	
+	public synchronized void setServlet(SipServlet servlet)
+	{
+		if (servlet == null)
+			throw new IllegalArgumentException();
+
+		_servlet = servlet;
+		setHeldClass(servlet.getClass());
+	}
+	
+	public void setHeldClass(Class<? extends SipServlet> held)
+    {
+        _class=held;
+        if (held!=null)
+        {
+            _className=held.getName();
+            if (_name==null)
+                _name=held.getName()+"-"+this.hashCode();
+        }
+    }
 	
 	public void handle(SipMessage message) throws ServletException, IOException
 	{
@@ -165,6 +193,21 @@ public class SipServletHolder extends AbstractLifeCycle
 		return Collections.enumeration(_initParams.keySet());
 	}
 	
+    
+    /* ------------------------------------------------------------ */
+    public void setInitParameter(String param,String value)
+    {
+        _initParams.put(param,value);
+    }
+    
+    /* ---------------------------------------------------------------- */
+    public void setInitParameters(Map<String,String> map)
+    {
+        _initParams.clear();
+        _initParams.putAll(map);
+    }
+    
+	
 	class Config implements ServletConfig
 	{
 		public String getServletName()
@@ -186,5 +229,17 @@ public class SipServletHolder extends AbstractLifeCycle
 		{
 			return SipServletHolder.this.getInitParameterNames();
 		}
+	}
+
+
+	public int getInitOrder()
+	{
+		return _initOrder;
+	}
+
+	public void setInitOrder(int initOrder)
+	{
+		_initOnStartup = true;
+		_initOrder = initOrder;
 	}
 }

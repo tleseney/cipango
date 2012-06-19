@@ -17,6 +17,7 @@ import javax.servlet.sip.SipSession;
 
 import org.cipango.server.session.Session;
 import org.cipango.server.transaction.Transaction;
+import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipFields;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.Via;
@@ -75,6 +76,12 @@ public abstract class SipMessage implements SipServletMessage
 	public Via getTopVia()
 	{
 		return (Via) _fields.get(SipHeader.VIA);
+	}
+	
+	public String getToTag()
+	{
+		AddressImpl to = (AddressImpl) _fields.get(SipHeader.TO);
+		return to.getTag();
 	}
 	
 	public void addAcceptLanguage(Locale arg0) {

@@ -17,6 +17,7 @@ import javax.servlet.sip.SipSession;
 import javax.servlet.sip.URI;
 
 import org.cipango.server.SipRequest;
+import org.cipango.util.StringUtil;
 import org.cipango.util.TimerTask;
 
 public class ApplicationSession implements SipApplicationSession
@@ -57,6 +58,16 @@ public class ApplicationSession implements SipApplicationSession
 		Session session = new Session(this, "sipsessionid", initial);
 		_sessions.add(session);
 		return session;
+	}
+	
+	protected String newSessionId()
+	{
+		return _sessionManager.newSessionId();
+	}
+	
+	protected String newUASTag()
+	{
+		return _sessionManager.newUASTag(this);
 	}
 	
 	public Session getSession(SipRequest request)

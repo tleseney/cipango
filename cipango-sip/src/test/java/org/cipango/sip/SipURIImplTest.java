@@ -25,7 +25,7 @@ public class SipURIImplTest
 			{ "sip:%61lice@atlanta.com", "false", "alice", null, "atlanta.com", "-1" },
 			{ "sip:+358-555-1234567;postd=pp22@foo.com;user=phone", "false", "+358-555-1234567;postd=pp22", null, "foo.com", "-1" },
 			{ "sip:biloxi.com;sos;transport=tcp;lr", "false", null, null, "biloxi.com", "-1", "sos", "", "transport", "tcp", "lr", "" },
-			{ "sip:biloxi.com;name=fran%c3%a7ois;%6c%72", "false", null, null, "biloxi.com", "-1", "name", "françois", "lr", "" }	
+			{ "sip:biloxi.com;name=fran%c3%a7ois;%6c%72", "false", null, null, "biloxi.com", "-1", "name", "fran√ßois", "lr", "" }	
 	};
 	
 	static String[][] __equal = 

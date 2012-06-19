@@ -44,7 +44,7 @@ public class StringUtilTest
 	@Test
 	public void testEncode()
 	{
-		assertEquals("fran%c3%a7ois", StringUtil.encode("françois"));
+		assertEquals("fran%c3%a7ois", StringUtil.encode("fran√ßois"));
 		assertEquals("*%20%40", StringUtil.encode("* @"));
 	}
 	

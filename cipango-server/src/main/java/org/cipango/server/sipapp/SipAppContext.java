@@ -68,7 +68,6 @@ public class SipAppContext extends AbstractSipHandler
 	{
 		_sessionHandler.handle(message);
 		// TODO Auto-generated method stub
-		
 	}
 	
 	class SContext implements ServletContext
@@ -79,13 +78,14 @@ public class SipAppContext extends AbstractSipHandler
 		}
 
 		@Override
-		public String getContextPath() {
-			// TODO Auto-generated method stub
-			return null;
+		public String getContextPath() 
+		{
+			return getWebContext().getContextPath();
 		}
 
 		@Override
-		public ServletContext getContext(String uripath) {
+		public ServletContext getContext(String uripath) 
+		{
 			// TODO Auto-generated method stub
 			return null;
 		}
@@ -194,12 +194,11 @@ public class SipAppContext extends AbstractSipHandler
 			return null;
 		}
 
-		@Override
-		public Object getAttribute(String name) {
-			// TODO Auto-generated method stub
-			return null;
+		public Object getAttribute(String name) 
+		{
+			return getWebContext().getAttribute(name);
 		}
-
+		
 		@Override
 		public Enumeration getAttributeNames() {
 			// TODO Auto-generated method stub

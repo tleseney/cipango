@@ -11,7 +11,6 @@ import javax.servlet.ServletException;
 import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.handler.AbstractSipHandler;
-import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.util.LazyList;
 import org.eclipse.jetty.util.MultiException;
 import org.eclipse.jetty.util.log.Log;
@@ -101,7 +100,6 @@ public class SipServletHandler extends AbstractSipHandler
 	
 	public void handle(SipMessage message) throws IOException, ServletException
 	{
-		System.out.println("yooooopi");
 		if (message.isRequest())
 		{
 			SipRequest request = (SipRequest) message;

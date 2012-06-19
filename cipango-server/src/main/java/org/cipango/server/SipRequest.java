@@ -142,6 +142,15 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		return _sipMethod == SipMethod.CANCEL;
 	}
 	
+	public boolean isBye()
+	{
+		return _sipMethod == SipMethod.BYE;
+	}
+	public boolean isMethod(SipMethod method)
+	{
+		return _sipMethod == method;
+	}
+	
 	public String getParameter(String name) 
 	{
 		// TODO Auto-generated method stub

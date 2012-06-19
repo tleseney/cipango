@@ -17,6 +17,7 @@ import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipFields;
 import org.cipango.sip.SipHeader;
+import org.cipango.sip.SipStatus;
 
 public class SipResponse extends SipMessage implements SipServletResponse
 {
@@ -90,6 +91,11 @@ public class SipResponse extends SipMessage implements SipServletResponse
 		setCommitted(true);
 		// TODO scope
 		
+	}
+	
+	public boolean isSuccess()
+	{
+		return SipStatus.isSuccess(_status);
 	}
 	
 	public boolean isRequest()

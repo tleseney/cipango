@@ -226,7 +226,7 @@ public class Session implements SipSessionIf
 				break;
 			}
 		}
-		else if (request.isBye() && response.is2xx())
+		else if (request.isBye())
 		{
 			setState(State.TERMINATED);
 		}

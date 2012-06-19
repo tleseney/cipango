@@ -121,4 +121,9 @@ public enum SipStatus
 	{
 		return _reason;
 	}
+	
+	public static boolean isSuccess(int code)
+	{
+		return ((200 <= code) && (code < 300));
+	}
 }

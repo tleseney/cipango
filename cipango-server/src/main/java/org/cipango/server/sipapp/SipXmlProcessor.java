@@ -38,7 +38,7 @@ import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.webapp.WebDescriptor;
-import org.eclipse.jetty.xml.XmlParser;
+import org.eclipse.jetty.xml.XmlParser; 
 
 public class SipXmlProcessor 
 {

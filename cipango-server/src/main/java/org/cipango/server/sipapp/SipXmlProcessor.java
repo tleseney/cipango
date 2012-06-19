@@ -112,7 +112,7 @@ public class SipXmlProcessor
 	{
 		XmlParser xmlParser = new WebDescriptor(null).newParser();
 		
-		URL jsp21xsd = Loader.getResource(Servlet.class, "javax/servlet/resources/jsp_2_1.xsd", true);
+		URL jsp21xsd = Loader.getResource(Servlet.class, "org/cipango/server/sipapp/jsp_2_1.xsd", true);
         redirect(xmlParser,"jsp_2_1.xsd",jsp21xsd);
 		
 		URL dtd10 = SipAppContext.class.getResource("/javax/servlet/sip/resources/sip-app_1_0.dtd");

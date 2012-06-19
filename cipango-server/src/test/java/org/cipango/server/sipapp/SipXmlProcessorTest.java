@@ -191,6 +191,7 @@ public class SipXmlProcessorTest
 	@Test
 	public void testMappings11() throws Exception 
 	{
+		System.setProperty("org.eclipse.jetty.xml.XmlParser.Validating", "false");
 		SipAppContext context = new SipAppContext();
 		WebAppContext webAppContext = new WebAppContext();
 		context.setWebAppContext(webAppContext);
@@ -210,6 +211,7 @@ public class SipXmlProcessorTest
 	@Test
 	public void testNamespace() throws Exception
 	{
+		System.setProperty("org.eclipse.jetty.xml.XmlParser.Validating", "false");
 		SipAppContext context = new SipAppContext();
 		WebAppContext webAppContext = new WebAppContext();
 		context.setWebAppContext(webAppContext);

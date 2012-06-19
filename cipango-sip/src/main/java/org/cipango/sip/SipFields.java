@@ -85,6 +85,16 @@ public class SipFields implements Iterable<SipFields.Field>
 		return field == null ? null : field.getValue();
 	}
 	
+	public void set(String name, Object value)
+	{
+		_map.put(name, new Field(name, value));
+	}
+	
+	public void set(SipHeader header, Object value)
+	{
+		set(header.asString(), value);
+	}
+	
 	public Object removeFirst(SipHeader header)
 	{
 		Field field = getField(header);

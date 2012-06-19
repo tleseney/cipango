@@ -2,7 +2,7 @@ package org.cipango.sip;
 
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.BitSet;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -11,13 +11,38 @@ import java.util.Map;
 
 import javax.servlet.sip.SipURI;
 
+import org.cipango.util.StringUtil;
 import org.eclipse.jetty.util.StringMap;
-import org.eclipse.jetty.util.TypeUtil;
 import org.eclipse.jetty.util.UrlEncoded;
 
 public class SipURIImpl implements SipURI
 {
-	enum Param { TRANSPORT, TTL, MADDR, METHOD, USER, LR }
+	public static final String SIP_SCHEME = "sip:";
+	public static final String SIPS_SCHEME = "sips:";
+	
+	enum Param 
+	{ 
+		TRANSPORT, TTL, MADDR, METHOD, USER, LR;
+	
+		private String _string;
+		
+		Param()
+		{
+			_string = name().toLowerCase();
+		}
+		
+		@Override
+		public String toString()
+		{
+			return _string;
+		}
+		
+		public String asString()
+		{
+			return _string;
+		}
+	}
+	
 	enum State { USER, PASSWORD, HOST, PORT, PARAMETERS, HEADERS }
 	enum Host { IPV4, NAME, IPV6 }
 
@@ -42,6 +67,8 @@ public class SipURIImpl implements SipURI
 	private EnumMap<Param, String> _params;
 	private Map<String, String> _otherParameters;
 	
+	private Map<String, String> _headers;
+	
 	public SipURIImpl(String host, int port)
 	{
 		_host = host;
@@ -55,7 +82,6 @@ public class SipURIImpl implements SipURI
 	
 	public SipURIImpl() { }
 	
-
 	public boolean isSipURI() 
 	{
 		return true;
@@ -165,10 +191,9 @@ public class SipURIImpl implements SipURI
 					case -1:
 						throw new ParseException("missing host", i);
 				}
-				continue;
+				break;
 			}
 			case PASSWORD:
-			{
 				if (c == '@')
 				{
 					if (i-m>0)
@@ -182,10 +207,9 @@ public class SipURIImpl implements SipURI
 				}
 				else if (c == -1)
 					throw new ParseException("missing host", i);
-				continue;
-			}
+				
+				break;
 			case HOST:
-			{
 				if (c == ':')
 				{
 					if (i-m>0)
@@ -205,6 +229,15 @@ public class SipURIImpl implements SipURI
 					m = i; encoded = false;
 					state = State.PARAMETERS;
 				}
+				else if (c == '?')
+				{
+					if (i-m>0)
+						_host = encoded ? UrlEncoded.decodeString(uri, m, i-m, null) : uri.substring(m, i);
+					else
+						throw new ParseException("missing host", i);
+					m = i; encoded = false;
+					state = State.HEADERS;
+				}
 				else if (c == -1)
 				{
 					if (i-m>0)
@@ -213,9 +246,10 @@ public class SipURIImpl implements SipURI
 						throw new ParseException("missing host", i);
 					return;
 				}
-			}
+			
+				break;
+				
 			case PORT:
-			{
 				if (Character.isDigit(c))
 				{
 					if (port == -1) port = 0;
@@ -230,16 +264,23 @@ public class SipURIImpl implements SipURI
 						m = i;
 						state = State.PARAMETERS;
 					}
+					else if (c == '?')
+					{
+						m = i;
+						state = State.HEADERS;
+					}
 					else if (c == -1)
 					{
 						return;
 					}
 				}	
-				continue;
-			}
+				break;
+			
 			case PARAMETERS:
 				switch (c)
 				{
+				case '?':
+					state = State.HEADERS;
 				case ';':
 					value = i-m-1 == 0 ? "" : 
 						(encoded ? UrlEncoded.decodeString(uri, m+1, i-m-1, null) : uri.substring(m+1,i));
@@ -277,89 +318,49 @@ public class SipURIImpl implements SipURI
 					}
 					return;
 				}
+			
+				break;
+			
+			case HEADERS:
+				switch (c)
+				{
+				case ';':
+					state = State.PARAMETERS;
+				case '&':
+					value = i-m-1 == 0 ? "" : 
+						(encoded ? UrlEncoded.decodeString(uri, m+1, i-m-1, null) : uri.substring(m+1,i));
+					encoded = false;
+					m = i;
+					if (key != null && value != null)
+						setHeader(key, value);
+					
+					key = value = null;
+					break;
+				case '=':
+					if (key != null)
+						break;
+					key = encoded ? UrlEncoded.decodeString(uri, m+1, i-m-1, null) : uri.substring(m+1,i);
+					encoded = false;
+					m = i;
+					break;
+				case '%':
+					encoded = true;
+					break;
+				case -1:
+					if (key != null)
+					{
+						value = i-m-1 == 0 ? "" : 
+							(encoded ? UrlEncoded.decodeString(uri, m+1, i-m-1, null) : uri.substring(m+1));
+						setHeader(key, value);
+					}
+					return;
+				}
+			
+				break;
 			}
 		}		
-		//System.out.println(uri + " user=" + user + ",passwd=" + passwd + ",host=" + host + ",port=" + port)
 	}
 	
-	
-	
-	public static void main(String[] args) throws Exception
-	{
-		String s= "Fran%c3%a7ois";
-		
-		
-		System.out.println(UrlEncoded.decodeString(s, 0, s.length(), null));
-		/*
-		InetAddress addr = InetAddress.getByName("2001:0db8:0000:85a3:0000:0000:ac1f:8001");
-		System.out.println(addr);
-		SipURIImpl suri = new SipURIImpl();
-		suri.parse3("sip:alice@atlanta.com");
-		System.out.println(suri.getUser());
-		System.out.println(suri.getHost());
-		System.out.println(suri.getPort());
-		
-		suri.setTransportParam("tcp");
-		System.out.println(suri.getTransportParam());
-		System.out.println(suri.getParameter("transport"));
-			
-		long start = System.currentTimeMillis();
-		
-		for (int i = 0; i < 1000000; i++)
-		{
-			SipURIImpl uri = new SipURIImpl();
-			uri.parse("sip:alice@atlanta.com");
-		}
-		
-		System.out.println(System.currentTimeMillis() - start);
-		
-	 start = System.currentTimeMillis();
-		
-	 
-	 	int n = 1000000;
-	 
-		for (int i = 0; i < n; i++)
-		{
-			SipURIImpl uri = new SipURIImpl();
-			uri.parse3("sip:atlanta.com");
-		}
-		
-		System.out.println(System.currentTimeMillis() - start);
-		
-		String s = "sip:alice@atlanta.com:5060;lr";
-		
-		start = System.currentTimeMillis();
-		
-		for (int i = 0; i < n; i++)
-		{
-			SipURIImpl uri = new SipURIImpl();
-			uri.parse3(s);
-		}
-		
-		System.out.println("parse3: " + (System.currentTimeMillis() - start));
-		
-		start = System.currentTimeMillis();
-		
-		for (int i = 0; i < n; i++)
-		{
-			SipURIImpl uri = new SipURIImpl();
-			uri.parse(s);
-		}
-		
-		System.out.println("parse: " + (System.currentTimeMillis() - start));
-		
-		start = System.currentTimeMillis();
-		
-		for (int i = 0; i < 1000000; i++)
-		{
-			SipURIImpl3 uri = new SipURIImpl3(s);
-			uri.getHost();
-		}
-		
-		System.out.println("parse: " + (System.currentTimeMillis() - start));
-		*/
-	}
-
 	private String getParameter(Param name)
 	{
 		if (_params == null)
@@ -400,12 +401,20 @@ public class SipURIImpl implements SipURI
 				list.add(param.toString());
 			}
 		}
+		if (_otherParameters != null)
+		{
+			list.addAll(_otherParameters.keySet());
+		}
 		return list.iterator();
 	}
 
 	public void removeParameter(String name)
 	{
-		
+		Param param = (Param) CACHE.get(name);
+		if (param != null)
+			removeParameter(param);
+		else if (_otherParameters != null)
+			_otherParameters.remove(name);
 	}
 
 	public void setParameter(String name, String value) 
@@ -471,68 +480,204 @@ public class SipURIImpl implements SipURI
 		return getParameter(Param.USER);
 	}
 
-	@Override
-	public void removeHeader(String arg0) {
-		// TODO Auto-generated method stub
-		
+	public void removeHeader(String name) 
+	{
+		if (_headers != null)
+			_headers.remove(name);
 	}
 
-	@Override
-	public void setHeader(String arg0, String arg1) {
-		// TODO Auto-generated method stub
-		
+	public void setHeader(String name, String value) 
+	{
+		if (_headers == null)
+			_headers = new HashMap<String, String>();
+		_headers.put(name, value);		
 	}
 
-	@Override
-	public void setMAddrParam(String arg0) {
-		// TODO Auto-generated method stub
-		
+	public void setMAddrParam(String maddr) 
+	{
+		setParameter(Param.MADDR, maddr);		
 	}
 
-	@Override
-	public void setMethodParam(String arg0) {
-		// TODO Auto-generated method stub
-		
+	public void setMethodParam(String method) 
+	{
+		setParameter(Param.METHOD, method);		
 	}
 
-	@Override
-	public void setTTLParam(int arg0) {
-		// TODO Auto-generated method stub
-		
+	public void setTTLParam(int ttl) 
+	{
+		setParameter(Param.TTL, Integer.toString(ttl));		
 	}
 
-	@Override
 	public void setTransportParam(String transport) 
 	{
 		setParameter(Param.TRANSPORT, transport);
 	}
 
-	@Override
-	public void setUserParam(String arg0) {
-		// TODO Auto-generated method stub
+	public void setUserParam(String user) 
+	{
+		setParameter(Param.USER, user);
+	}
+	
+	public String getHeader(String name) 
+	{
+		return _headers != null ? _headers.get(name) : null;
+	}
+
+	public Iterator<String> getHeaderNames() 
+	{
+		if (_headers == null)
+			return Collections.emptyIterator();
 		
-	}
-	
-	@Override
-	public String getHeader(String arg0) {
-		// TODO Auto-generated method stub
-		return null;
+		return new ArrayList<String>(_headers.keySet()).iterator();
 	}
 
-	@Override
-	public Iterator<String> getHeaderNames() {
-		// TODO Auto-generated method stub
-		return null;
+	@Override 
+	public String toString() // TODO escape
+	{
+		StringBuilder buffer = new StringBuilder(32);
+		
+		buffer.append(_secure ? SIPS_SCHEME : SIP_SCHEME);
+		if (_user != null)
+		{
+			buffer.append(_user);
+			if (_password != null)
+			{
+				buffer.append(':');
+				buffer.append(_password);
+			}
+			buffer.append('@');
+		}
+		buffer.append(_host);
+		if (_port > 0)
+		{
+			buffer.append(':'); 
+			buffer.append(_port);
+		}
+		
+		if (_params != null && _params.size() > 0)
+		{
+			for (Param p : Param.values())
+			{
+				if (_params.containsKey(p))
+				{
+					String value = _params.get(p);
+					buffer.append(';');
+					buffer.append(p.asString());
+					if (value != null)
+					{
+						buffer.append('=');
+						buffer.append(value);
+					}
+				}
+			}
+		}
+		
+		if (_otherParameters != null)
+		{
+			for (String name : _otherParameters.keySet())
+			{
+				String value = _otherParameters.get(name);
+				buffer.append(';');
+				buffer.append(name);
+				if (value != null)
+				{
+					buffer.append('=');
+					buffer.append(value);
+				}
+			}
+		}
+		
+		return buffer.toString();
 	}
-
 	
+	public boolean equals(Object o)
+	{
+		if (o == null || !(o instanceof SipURI))
+			return false;
+		
+		SipURI uri = (SipURI) o;
+		if (_secure != uri.isSecure())
+			return false;
+		
+		if (!StringUtil.equals(_user, uri.getUser()))
+			return false;
+		
+		if (!StringUtil.equals(_password, uri.getUserPassword()))
+			return false;
+		
+		if (!_host.equalsIgnoreCase(uri.getHost()))
+			return false;
+		
+		if (_port != uri.getPort())
+			return false;
+		
+		for (Param param : Param.values())
+		{
+			if (param == Param.LR)
+			{
+				if (getParameter(Param.LR) != null && uri.getParameter(Param.LR.asString()) != null &&
+					getLrParam() != uri.getLrParam())
+					return false;
+			}
+			else
+			{	
+				if (!StringUtil.equalsIgnoreCase(getParameter(param), uri.getParameter(param.asString())))
+					return false;
+			}
+		}
+		
+		if (_otherParameters != null)
+		{
+			Iterator<String> parameters = uri.getParameterNames();
+			while (parameters.hasNext())
+			{
+				String name = parameters.next();
+				if (_otherParameters.containsKey(name) 
+						&& !StringUtil.equalsIgnoreCase(_otherParameters.get(name), uri.getParameter(name)))
+						return false;
+			}
+		}
+		
+		Iterator<String> headers = uri.getHeaderNames();
+		if (headers.hasNext())
+		{
+			if (_headers == null)
+				return false;
+			
+			int i = 0;
+			while (headers.hasNext())
+			{
+				String name = headers.next();
+				if (!uri.getHeader(name).equals(_headers.get(name)))
+					return false;
+				i++;
+			}
+			if (i != _headers.size())
+				return false;
+		}
+		else
+		{
+			if (_headers != null && _headers.size() > 0)
+				return false;
+		}
+		
+		return true;
+	}
 	
 	public SipURIImpl clone() 
 	{
 		try
 		{
-			return (SipURIImpl) super.clone();
-		} 
+			SipURIImpl clone = (SipURIImpl) super.clone();
+			if (_params != null)
+				clone._params = _params.clone();
+			if (_otherParameters != null)
+				clone._otherParameters = new HashMap<String, String>(_otherParameters);
+			if (_headers != null)
+				clone._headers = new HashMap<String, String>(_headers);
+			
+			return clone;
+		}
 		catch (CloneNotSupportedException e)
 		{
 			throw new RuntimeException(e);

@@ -28,7 +28,32 @@ public class SipURIImplTest
 			{ "sip:biloxi.com;name=fran%c3%a7ois;%6c%72", "false", null, null, "biloxi.com", "-1", "name", "françois", "lr", "" }	
 	};
 	
-	SipURI getURI(String s) throws Exception
+	static String[][] __equal = 
+		{
+				{"sip:%61lice@atlanta.com;transport=TCP", "sip:alice@AtlanTa.CoM;Transport=tcp"},
+				{"sip:carol@chicago.com", "sip:carol@chicago.com;newparam=5"},
+				{"sip:carol@chicago.com", "sip:carol@chicago.com;lr"},
+				{"sip:carol@chicago.com;security=on", "sip:carol@chicago.com;newparam=5"},
+				{"sip:alice@atlanta.com?subject=project%20x&priority=urgent", "sip:alice@atlanta.com?priority=urgent&subject=project%20x"}
+		};
+				
+		static String[][] __different = 
+		{
+				{"sip:alice@atlanta.com", "sip:ALICE@atlanta.com"},
+				{"sip:bob@biloxi.com", "sip:bob@biloxi.com:5060"},
+				{"sip:bob@biloxi.com", "sip:bob@biloxi.com;transport=tcp"},
+				{"sip:bob@biloxi.com", "sip:bob@biloxi.com;ttl=255"},
+				{"sip:bob@biloxi.com", "sip:bob@biloxi.com;user=phone"},
+				{"sip:bob@biloxi.com", "sip:bob@biloxi.com;maddr=192.168.1.2"},
+				{"sip:bob@biloxi.com", "sip:bob@biloxi.com;method=INVITE"},
+				{"sip:bob@biloxi.com;transport=udp", "sip:bob@biloxi.com;transport=tcp"},
+				{"sip:carol@chicago.com;newparam=6", "sip:carol@chicago.com;newparam=5"},
+				{"sip:carol@chicago.com", "sip:carol@chicago.com?Subject=next%20meeting"},
+				{"sip:carol@chicago.com?Subject=next%20meeting", "sip:carol@chicago.com?Subject=another%20meeting"}
+		};
+		
+	
+	SipURI sipURI(String s) throws Exception
 	{
 		SipURIImpl uri = new SipURIImpl();
 		uri.parse(s);
@@ -44,7 +69,7 @@ public class SipURIImplTest
 		
 		for (int i = 0; i < n; i++)
 		{
-			SipURI uri = getURI("sip:192.168.2.150");
+			SipURI uri = sipURI("sip:192.168.2.150");
 			assertEquals(null, uri.getUser());
 		}
 		
@@ -59,7 +84,7 @@ public class SipURIImplTest
 		{
 			try 
 			{
-				uri = getURI(uris[i][0]);
+				uri = sipURI(uris[i][0]);
 			}
 			catch (Exception e)
 			{
@@ -87,7 +112,33 @@ public class SipURIImplTest
 	{
 		for (int i = 0; i < invalids.length; i++)
 		{
-			try { getURI(invalids[i]); fail("expected invalid " + invalids[i]); } catch (Exception e) { }
+			try { sipURI(invalids[i]); fail("expected invalid " + invalids[i]); } catch (Exception e) { }
 		}
 	}
+	
+
+	@Test
+	public void testEqual() throws Exception 
+	{
+		for (int i = 0; i < __equal.length; i++) 
+		{
+			SipURI uri1 = sipURI(__equal[i][0]);
+			SipURI uri2 = sipURI(__equal[i][1]);
+			assertEquals(uri1, uri2);
+			assertEquals(uri2, uri1);
+		}
+	}
+
+	@Test
+	public void testDifferent() throws Exception 
+	{
+		for (int i = 8; i < __different.length; i++) 
+		{
+			SipURI uri1 = sipURI(__different[i][0]);
+			SipURI uri2 = sipURI(__different[i][1]);
+			assertFalse(__different[i][0], uri1.equals(uri2));
+			assertFalse(__different[i][1], uri2.equals(uri1));
+		}
+	}
+
 }

@@ -45,6 +45,11 @@ public class AddressImpl extends Parameters implements Address
 		_string = string;
 	}
 	
+	public AddressImpl(URI uri)
+	{
+		_uri = uri;
+	}
+	
 	public String getTag()
 	{
 		return _tag;
@@ -163,6 +168,8 @@ public class AddressImpl extends Parameters implements Address
 	 */
 	public void setParameter(String name, String value) 
 	{
+		_string = null;
+		
 		if (name.equalsIgnoreCase("tag"))
 			_tag = value;
 		else
@@ -269,7 +276,9 @@ public class AddressImpl extends Parameters implements Address
 	{
 		try
 		{
-			return (Address) super.clone();
+			AddressImpl clone =  (AddressImpl) super.clone();
+			clone._uri = _uri.clone();
+			return clone;
 		}
 		catch (CloneNotSupportedException e)
 		{

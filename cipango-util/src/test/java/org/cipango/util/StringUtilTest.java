@@ -42,14 +42,27 @@ public class StringUtilTest
 	public static final byte[] intToByteArray(int value) { return new byte[]{ (byte)(value >>> 24), (byte)(value >> 16 & 0xff), (byte)(value >> 8 & 0xff), (byte)(value & 0xff) }; }
 
 	@Test
+	public void testEncode()
+	{
+		assertEquals("fran%c3%a7ois", StringUtil.encode("françois"));
+		assertEquals("*%20%40", StringUtil.encode("* @"));
+	}
+	
+	@Test
 	public void testBase62()
 	{
 		System.out.println(Long.toString(new Random().nextInt(), 36));
 		System.out.println(StringUtil.toBase62String2(new Random().nextInt()));
 		System.out.println(TypeUtil.toHexString(intToByteArray(new Random().nextInt())));
 		System.out.println(StringUtil.toBase62String2(System.currentTimeMillis() / 1000));
-		
-		
-
+	}
+	
+	@Test
+	public void testStringEquals()
+	{
+		assertTrue(StringUtil.equals(null, null));
+		assertFalse(StringUtil.equals("xxx", null));
+		assertFalse(StringUtil.equals(null, "xxx"));
+		assertTrue(StringUtil.equals("xxx", "xxx"));
 	}
 }

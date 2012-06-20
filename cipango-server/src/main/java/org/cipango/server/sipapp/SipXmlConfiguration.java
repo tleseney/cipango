@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2012 NEXCOM Systems
+// Copyright 2008-2012 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,10 +11,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // ========================================================================
+
 package org.cipango.server.sipapp;
 
-import java.util.List;
+import java.io.IOException;
+import java.net.MalformedURLException;
 
+import org.cipango.server.servlet.SipServletHandler;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.resource.Resource;
@@ -22,92 +25,79 @@ import org.eclipse.jetty.webapp.AbstractConfiguration;
 import org.eclipse.jetty.webapp.WebAppContext;
 
 public class SipXmlConfiguration extends AbstractConfiguration
-{
+{	
 	private static final Logger LOG = Log.getLogger(SipXmlConfiguration.class);
-
+	
 	public void preConfigure(WebAppContext context) throws Exception
 	{
-		LOG.info("SipXmlConfiguration::preConfigure context " + context.getContextPath());
-
-		Resource sipXml = findSipXml(context);
-		if (sipXml != null) // FIXME case only annotations and no sip.xml
+		SipAppContext sac = context.getBean(SipAppContext.class);
+		if (sac == null)
 		{
-			
-			SipAppContext sac = context.getBean(SipAppContext.class);
-			if (sac == null)
-			{
-				sac = new SipAppContext();
-				sac.setWebAppContext(context);
-				context.addBean(sac);
-			}
-			else
-				sac.setWebAppContext(context);
-
-			
-			SipXmlProcessor processor = context.getBean(SipXmlProcessor.class);
-			if (processor == null)
-			{
-				processor = new SipXmlProcessor(sac);
-				context.addBean(processor);
-			}
-			
-			String defaultsDescriptor = sac.getDefaultsDescriptor();
-			if (defaultsDescriptor != null && defaultsDescriptor.length() > 0)
-			{
-				Resource dftSipResource = Resource.newSystemResource(defaultsDescriptor);
-				if (dftSipResource == null)
-					dftSipResource = context.newResource(defaultsDescriptor);
-				processor.parseDefaults(dftSipResource);
-				processor.processDefaults();
-			}
-
-			if (sipXml != null)
-				processor.parseSipXml(sipXml);
-
-			LOG.info("SIP Application: " + context.getWar());
+			sac = new SipAppContext();
+			sac.setWebAppContext(context);
+			context.addBean(sac);
 		}
+		else
+			sac.setWebAppContext(context);
+		
+				
+		String defaultsSipDescriptor = sac.getDefaultsDescriptor();
+		if (defaultsSipDescriptor != null && defaultsSipDescriptor.length() > 0)
+		{
+			Resource dftSipResource = Resource.newSystemResource(defaultsSipDescriptor);
+			if (dftSipResource == null)
+				dftSipResource = context.newResource(defaultsSipDescriptor);
+			sac.getMetaData().setDefaults(dftSipResource);
+		}
+		Resource sipXml = findSipXml(context);
+		if (sipXml != null)
+			sac.getMetaData().setSipXml(sipXml);
+		
+		//parse but don't process override-sip.xml
+        for (String overrideDescriptor : sac.getOverrideDescriptors())
+        {
+            if (overrideDescriptor != null && overrideDescriptor.length() > 0)
+            {
+                Resource orideResource = Resource.newSystemResource(overrideDescriptor);
+                if (orideResource == null) 
+                    orideResource = context.newResource(overrideDescriptor);
+                sac.getMetaData().addOverride(orideResource);
+            }
+        }
 	}
-
+	
 	public void configure(WebAppContext context) throws Exception
 	{
-		LOG.info("SipXmlConfiguration::configure");
-
 		SipAppContext sac = context.getBean(SipAppContext.class);
-		if (sac != null)
-		{
-			SipXmlProcessor processor = context.getBean(SipXmlProcessor.class);
-			if (processor == null)
-			{
-				processor = new SipXmlProcessor(sac);
-				context.addBean(processor);
-			}
-			
-			processor.processSipXml();
-			
-			List<String> overrideSipDescriptors = sac.getOverrideDescriptors();
-			if (overrideSipDescriptors != null)
-			{
-				for (String descriptor : overrideSipDescriptors)
-				{
-					Resource overrideSipResource = Resource.newSystemResource(descriptor);
-					if (overrideSipResource == null)
-						overrideSipResource = context.newResource(descriptor);
-					processor.parseSipOverride(overrideSipResource);
-					processor.processSipOverride();
-				}
-			}
-		}
+
+		sac.getMetaData().addDescriptorProcessor(new StandardDescriptorProcessor());
+	}
+	
+	public void deconfigure(WebAppContext context) throws Exception 
+	{
+		// TODO preserve any configuration that pre-existed.
+		SipAppContext sac = context.getBean(SipAppContext.class);
+        SipServletHandler servletHandler = sac.getSipServletHandler();
+       
+        servletHandler.setServlets(null);
+        servletHandler.setServletMappings(null);
+
+        context.setEventListeners(null);
+
+        // TODO remove classpaths from classloader
 	}
 
-	protected Resource findSipXml(WebAppContext context) throws Exception
+	
+	protected Resource findSipXml(WebAppContext context) throws IOException, MalformedURLException 
 	{
+		// TODO sip descriptor
 		Resource webInf = context.getWebInf();
-		if (webInf != null && webInf.isDirectory())
+		if (webInf != null && webInf.isDirectory()) 
 		{
-			Resource sipXml = webInf.addPath("sip.xml");
-			if (sipXml.exists())
-				return sipXml;
-			LOG.info("No WEB-INF/sip.xml in " + context.getWar());
+			Resource sip = webInf.addPath("sip.xml");
+			if (sip.exists()) 
+				return sip;
+			LOG.debug("No WEB-INF/sip.xml in " + context.getWar());
 		}
 		return null;
 	}

@@ -161,14 +161,14 @@
     <module>cipango-server</module>
     <module>cipango-sip</module>
     <module>cipango-util</module>
+    <module>cipango-plus</module>
+    <module>cipango-annotations</module>
     <module>cipango-deploy</module>
     <module>cipango-distribution</module>
 
 <!--
     <module>cipango-jmx</module>
     <module>cipango-dar</module>
-    <module>cipango-plus</module>
-    <module>cipango-annotations</module>
     <module>cipango-diameter</module>
     <module>cipango-console</module>
     <module>cipango-callflow</module>

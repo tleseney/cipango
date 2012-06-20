@@ -38,6 +38,8 @@ public class SipServletHolder extends AbstractLifeCycle
 	
 	private SipServletHandler _servletHandler;
 	
+	private String _displayName;
+	
 	private final Map<String, String> _initParams = new HashMap<String, String>();
 	
 	public void doStart() throws Exception
@@ -241,5 +243,15 @@ public class SipServletHolder extends AbstractLifeCycle
 	{
 		_initOnStartup = true;
 		_initOrder = initOrder;
+	}
+
+	public String getDisplayName()
+	{
+		return _displayName;
+	}
+
+	public void setDisplayName(String displayName)
+	{
+		_displayName = displayName;
 	}
 }

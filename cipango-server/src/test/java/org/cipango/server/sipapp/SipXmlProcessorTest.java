@@ -25,20 +25,32 @@ import java.util.Enumeration;
 import org.cipango.server.servlet.SipServletHandler;
 import org.cipango.server.servlet.SipServletHolder;
 import org.eclipse.jetty.util.resource.Resource;
-import org.eclipse.jetty.webapp.StandardDescriptorProcessor;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.xml.XmlParser;
+import org.junit.Before;
 import org.junit.Test;
 import org.xml.sax.SAXParseException;
 
 public class SipXmlProcessorTest
 {
-	XmlParser getParser(boolean validating) throws ClassNotFoundException
+	private SipAppContext _context;
+	private WebAppContext _webAppContext;
+	
+	@Before
+	public void setUp()
+	{
+		_context = new SipAppContext();
+		_webAppContext = new WebAppContext();
+		_context.setWebAppContext(_webAppContext);
+		_webAppContext.addBean(_context);
+	}
+	
+	private XmlParser getParser(boolean validating) throws ClassNotFoundException
 	{
 		String value = (validating ? "true" : "false");
 		System.setProperty("org.eclipse.jetty.xml.XmlParser.Validating", value);
 		
-		return SipXmlProcessor.sipXmlParser(); 
+		return new SipDescriptor(null).newParser(); 
 	}
 	
 	@Test
@@ -75,9 +87,10 @@ public class SipXmlProcessorTest
 	public void testSipXml() throws Exception
 	{
 		System.setProperty("org.eclipse.jetty.xml.XmlParser.Validating", "false");
-		
-		SipXmlProcessor processor = new SipXmlProcessor(new SipAppContext());
-		processor.parseSipXml(getResource("sip-xsd.xml"));
+		SipDescriptor descriptor = new SipDescriptor(getResource("sip-xsd.xml"));
+		descriptor.parse();
+		StandardDescriptorProcessor processor = new StandardDescriptorProcessor();
+		processor.process(_webAppContext, descriptor);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -86,25 +99,23 @@ public class SipXmlProcessorTest
 	{
 		//System.setProperty("org.eclipse.jetty.xml.XmlParser.Validating", "false");
 		
-		SipAppContext context = new SipAppContext();
-		WebAppContext webAppContext = new WebAppContext();
-		context.setWebAppContext(webAppContext);
+		MetaData metaData = _context.getMetaData();
+		metaData.setSipXml(getResource("sip-sample-1.0.xml"));
+		metaData.addDescriptorProcessor(new StandardDescriptorProcessor());
+		metaData.resolve(_context);
+
+		SipServletHandler servletHandler = (SipServletHandler) _context.getServletHandler();
 		
-		SipXmlProcessor processor = new SipXmlProcessor(context);
-		processor.parseSipXml(getResource("sip-sample-1.0.xml"));
-		processor.processSipXml();
-		SipServletHandler servletHandler = (SipServletHandler) context.getServletHandler();
+		assertEquals(SipAppContext.VERSION_10, _context.getSpecVersion());
+		assertEquals("SIP Servlet based Registrar", _webAppContext.getDisplayName());
 		
-		assertEquals(SipAppContext.VERSION_10, context.getSpecVersion());
-		assertEquals("SIP Servlet based Registrar", webAppContext.getDisplayName());
-		
-		Enumeration<String> e = webAppContext.getInitParameterNames();
+		Enumeration<String> e = _webAppContext.getInitParameterNames();
 		String name = (String) e.nextElement();
 		assertEquals("contextConfigLocation", name);
-		assertEquals("/WEB-INF/kaleo.xml", webAppContext.getInitParameter(name));
+		assertEquals("/WEB-INF/kaleo.xml", _webAppContext.getInitParameter(name));
 		assertFalse(e.hasMoreElements());	
 		
-		assertEquals(TestListener.class, context.getTimerListeners()[0].getClass());
+		assertEquals(TestListener.class, _context.getTimerListeners()[0].getClass());
 	
 		// servlets
 		SipServletHolder[] holders = servletHandler.getServlets();
@@ -130,7 +141,7 @@ public class SipXmlProcessorTest
 		assertEquals("main", mappings[0].getServletName());
 		assertEquals("((request.method == REGISTER) or (request.method == PUBLISH) or (request.method == SUBSCRIBE) or (request.method == INVITE))", 
 				mappings[0].getMatchingRuleExpression());
-		assertEquals(60, context.getSessionTimeout());
+		assertEquals(60, _context.getSessionTimeout());
 		
 		assertNull(servletHandler.getMainServlet());
 	}
@@ -140,27 +151,25 @@ public class SipXmlProcessorTest
 	public void testSipXml11() throws Exception
 	{
 		System.setProperty("org.eclipse.jetty.xml.XmlParser.Validating", "false");
-		SipAppContext context = new SipAppContext();
-		WebAppContext webAppContext = new WebAppContext();
-		context.setWebAppContext(webAppContext);
 		
-		SipXmlProcessor processor = new SipXmlProcessor(context);
-		processor.parseSipXml(getResource("sip-sample-1.1.xml"));
-		processor.processSipXml();
+		MetaData metaData = _context.getMetaData();
+		metaData.setSipXml(getResource("sip-sample-1.1.xml"));
+		metaData.addDescriptorProcessor(new StandardDescriptorProcessor());
+		metaData.resolve(_context);		
 		
-		assertEquals(SipAppContext.VERSION_11, context.getSpecVersion());
-		assertEquals("SIP Servlet based Registrar", webAppContext.getDisplayName());
+		assertEquals(SipAppContext.VERSION_11, _context.getSpecVersion());
+		assertEquals("SIP Servlet based Registrar", _webAppContext.getDisplayName());
 		
-		Enumeration<String> e = webAppContext.getInitParameterNames();
+		Enumeration<String> e = _webAppContext.getInitParameterNames();
 		String name = (String) e.nextElement();
 		assertEquals("contextConfigLocation", name);
-		assertEquals("/WEB-INF/kaleo.xml", webAppContext.getInitParameter(name));
+		assertEquals("/WEB-INF/kaleo.xml", _webAppContext.getInitParameter(name));
 		assertFalse(e.hasMoreElements());	
 		
-		assertEquals(TestListener.class, context.getTimerListeners()[0].getClass());
+		assertEquals(TestListener.class, _context.getTimerListeners()[0].getClass());
 	
 		// servlets
-		SipServletHandler servletHandler = (SipServletHandler) context.getServletHandler();
+		SipServletHandler servletHandler = (SipServletHandler) _context.getServletHandler();
 		SipServletHolder[] holders = servletHandler.getServlets();
 		assertEquals(2, holders.length);
 		
@@ -180,29 +189,26 @@ public class SipXmlProcessorTest
 		
 		// servlet-mapping
 		SipServletMapping[] mappings = servletHandler.getServletMappings();
-		assertEquals(0, mappings.length);
-		assertEquals(60, context.getSessionTimeout());
+		assertNull(mappings);
+		assertEquals(60, _context.getSessionTimeout());
 		
 		assertNotNull(servletHandler.getMainServlet());
 		assertEquals("main", servletHandler.getMainServlet().getName());
-		assertEquals("org.cipango.kaleo", context.getName());
+		assertEquals("org.cipango.kaleo", _context.getName());
 	}
 
 	@Test
 	public void testMappings11() throws Exception 
 	{
 		System.setProperty("org.eclipse.jetty.xml.XmlParser.Validating", "false");
-		SipAppContext context = new SipAppContext();
-		WebAppContext webAppContext = new WebAppContext();
-		context.setWebAppContext(webAppContext);
+		MetaData metaData = _context.getMetaData();
+		metaData.setSipXml(getResource("sip-mappings-1.1.xml"));
+		metaData.addDescriptorProcessor(new StandardDescriptorProcessor());
+		metaData.resolve(_context);	
 		
-		SipXmlProcessor processor = new SipXmlProcessor(context);
-		processor.parseSipXml(getResource("sip-mappings-1.1.xml"));
-		processor.processSipXml();
+		assertEquals(SipAppContext.VERSION_11, _context.getSpecVersion());
 		
-		assertEquals(SipAppContext.VERSION_11, context.getSpecVersion());
-		
-		SipServletHandler servletHandler = (SipServletHandler) context.getServletHandler();
+		SipServletHandler servletHandler = (SipServletHandler) _context.getServletHandler();
 		SipServletMapping[] mappings = servletHandler.getServletMappings();
 		assertEquals(2, mappings.length);
 	}
@@ -212,26 +218,22 @@ public class SipXmlProcessorTest
 	public void testNamespace() throws Exception
 	{
 		System.setProperty("org.eclipse.jetty.xml.XmlParser.Validating", "false");
-		SipAppContext context = new SipAppContext();
-		WebAppContext webAppContext = new WebAppContext();
-		context.setWebAppContext(webAppContext);
+		MetaData metaData = _context.getMetaData();
+		metaData.setSipXml(getResource("sip-namespace.xml"));
+		metaData.addDescriptorProcessor(new StandardDescriptorProcessor());
+		metaData.resolve(_context);	
+				
+		assertEquals(SipAppContext.VERSION_11, _context.getSpecVersion());
 		
-		SipXmlProcessor processor = new SipXmlProcessor(context);
-		processor.parseSipXml(getResource("sip-namespace.xml"));
-		processor.processSipXml();
-
-		
-		assertEquals(SipAppContext.VERSION_11, context.getSpecVersion());
-		
-		Enumeration<String> e = webAppContext.getInitParameterNames();
+		Enumeration<String> e = _webAppContext.getInitParameterNames();
 		String name = (String) e.nextElement();
 		assertNotNull(name);
 		assertEquals("contextConfigLocation", name);
-		assertEquals("/WEB-INF/kaleo.xml", webAppContext.getInitParameter(name));
+		assertEquals("/WEB-INF/kaleo.xml", _webAppContext.getInitParameter(name));
 		assertFalse(e.hasMoreElements());	
 		
 		// servlets
-		SipServletHandler servletHandler = (SipServletHandler) context.getServletHandler();
+		SipServletHandler servletHandler = (SipServletHandler) _context.getServletHandler();
 		SipServletHolder[] holders = servletHandler.getServlets();
 		assertEquals(1, holders.length);
 		
@@ -245,11 +247,11 @@ public class SipXmlProcessorTest
 		
 		// servlet-mapping
 		SipServletMapping[] mappings = servletHandler.getServletMappings();
-		assertEquals(0, mappings.length);
+		assertNull(mappings);
 		
 		assertEquals("main", servletHandler.getMainServlet().getName());
 		
-		assertEquals("org.cipango.kaleo", context.getName());	
+		assertEquals("org.cipango.kaleo", _context.getName());	
 	}
 
 	@Test
@@ -257,20 +259,10 @@ public class SipXmlProcessorTest
 	{
 		System.setProperty("org.eclipse.jetty.xml.XmlParser.Validating", "true");
 		
-		SipAppContext context = new SipAppContext();
-		WebAppContext webAppContext = new WebAppContext();
-		context.setWebAppContext(webAppContext);
-		SipXmlProcessor processor = new SipXmlProcessor(context);
-		
-		processor.parseSipXml(getResource("sip-validated-1.1.xml"));
-		processor.processSipXml();
-//		StandardDescriptorProcessor processor = new StandardDescriptorProcessor();
-//		
-//		SipDescriptor descriptor = new SipDescriptor(getResource("sip-validated-1.1.xml"));
-//		descriptor.setValidating(true);
-//		descriptor.parse();
-//			
-//		processor.process(new SipAppContext(), descriptor);
+		MetaData metaData = _context.getMetaData();
+		metaData.setSipXml(getResource("sip-validated-1.1.xml"));
+		metaData.addDescriptorProcessor(new StandardDescriptorProcessor());
+		metaData.resolve(_context);	
 	}
 
 	@Test

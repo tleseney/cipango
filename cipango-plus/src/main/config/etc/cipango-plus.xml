@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<!DOCTYPE Configure PUBLIC "-//Jetty//Configure//EN" "http://www.eclipse.org/jetty/configure.dtd">
+
+<!-- =============================================================== -->
+<!-- Configure Cipango Plus features based on Jetty Plus             -->
+<!--                                                                 -->
+<!-- You can instead configure individual webapps with Cipango Plus  -->
+<!-- features by using the ContextDeployer (configured in            -->
+<!-- $jetty.home/etc/cipango.xml), and ensuring that you set the     -->
+<!-- same set of classes listed below in the "plusConfig" as the     -->
+<!-- sipapp's configurationClasses.                                  -->
+<!--                                                                 -->
+<!-- For more information about Cipango Plus, see                    -->
+<!--    http://confluence.cipango.org/display/DOC/JNDI               -->
+<!-- =============================================================== -->
+<Configure class="org.cipango.deploy.providers.SipAppProvider" id="SipAppProvider">
+
+  <Array id="plusConfig" type="java.lang.String">
+    <Item>org.eclipse.jetty.webapp.WebInfConfiguration</Item>
+    <Item>org.eclipse.jetty.webapp.WebXmlConfiguration</Item>
+    <Item>org.eclipse.jetty.webapp.MetaInfConfiguration</Item>
+    <Item>org.eclipse.jetty.webapp.FragmentConfiguration</Item>
+    <Item>org.eclipse.jetty.plus.webapp.EnvConfiguration</Item>
+    <Item>org.eclipse.jetty.webapp.JettyWebXmlConfiguration</Item>
+    <Item>org.eclipse.jetty.webapp.TagLibConfiguration</Item>
+    <Item>org.cipango.sipapp.SipXmlConfiguration</Item>
+    <Item>org.cipango.plus.sipapp.PlusConfiguration</Item>
+    <Item>org.cipango.annotations.AnnotationConfiguration</Item>
+  </Array>
+ 
+  <Set name="configurationClasses"><Ref id="plusConfig"/></Set>
+
+  
+</Configure>

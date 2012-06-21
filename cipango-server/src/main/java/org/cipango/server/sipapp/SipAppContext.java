@@ -104,6 +104,16 @@ public class SipAppContext extends AbstractSipHandler
 		_servletHandler = new SipServletHandler();
 	}
 	
+
+	@Override
+	protected void doStart() throws Exception
+	{
+		
+		_sessionHandler.setHandler(_servletHandler);
+		_sessionHandler.start();
+		super.doStart();
+	}
+	
 	public void setWebAppContext(WebAppContext context)
 	{
 		_context = context;

@@ -29,10 +29,6 @@ import javax.servlet.sip.SipSession;
 import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
 
-import org.cipango.sip.AddressImpl;
-import org.cipango.sip.SipHeader;
-import org.cipango.sip.SipMethod;
-
 /**
  * Manages registration of a user agent.
  * Refreshes regularly the registration to remain registered.
@@ -64,7 +60,7 @@ public class Registration
 		{
 			SipApplicationSession appSession = _userAgent.getFactory().createApplicationSession();
 			register = _userAgent.getFactory().createRequest(appSession, 
-					SipMethod.REGISTER.asString(),
+					SipMethods.REGISTER,
 					_userAgent.getAor(), 
 					_userAgent.getAor());
 			
@@ -73,12 +69,12 @@ public class Registration
 		}
 		else
 		{
-			register = _session.createRequest(SipMethod.REGISTER.asString());
+			register = _session.createRequest(SipMethods.REGISTER);
 		}
 		
 		SipURI registrar = _userAgent.getFactory().createSipURI(null, _userAgent.getDomain());
 		register.setRequestURI(registrar);
-		register.setAddressHeader(SipHeader.CONTACT.asString(), new AddressImpl(contact));
+		register.setAddressHeader(SipHeaders.CONTACT, _userAgent.getFactory().createAddress(contact));
 		register.setExpires(expires);
 		
 //		if (_authentication != null)
@@ -150,11 +146,11 @@ public class Registration
 			{
 				int expires = -1;
 				
-				Address requestContact = response.getRequest().getAddressHeader(SipHeader.CONTACT.asString());
+				Address requestContact = response.getRequest().getAddressHeader(SipHeaders.CONTACT);
 				
 				List<Address> contacts = new ArrayList<Address>();
 				
-				ListIterator<Address> it = response.getAddressHeaders(SipHeader.CONTACT.asString());
+				ListIterator<Address> it = response.getAddressHeaders(SipHeaders.CONTACT);
 				while (it.hasNext())
 				{
 					Address contact = it.next();

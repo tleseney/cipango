@@ -45,7 +45,6 @@ public class RequestHandler
 		{
 			notify();
 		}
-		//if (_expected == -1 || _expected == response.getStatus() || response.getStatus() >= 200)
 	}
 
 	public SipServletResponse getNextResponse()

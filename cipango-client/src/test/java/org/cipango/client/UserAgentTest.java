@@ -14,30 +14,53 @@
 
 package org.cipango.client;
 
+import static org.cipango.client.Constants.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 import java.text.ParseException;
 
 import javax.servlet.sip.Address;
+import javax.servlet.sip.ServletParseException;
+import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipFactory;
+import javax.servlet.sip.SipServletRequest;
 
+import org.cipango.sip.SipMethod;
+import org.jmock.Expectations;
 import org.jmock.Mockery;
+import org.jmock.integration.junit4.JMock;
+import org.jmock.integration.junit4.JUnit4Mockery;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+@RunWith(JMock.class)
 public class UserAgentTest 
 {
-	SipClient _client;
-    Mockery _context = new Mockery();
+	Mockery _context = new JUnit4Mockery();
+	SipFactory _factory;
+	SipProfile _profile;
     
+	@Before
+	public void setup()
+	{
+		_factory = _context.mock(SipFactory.class);
+		_profile = _context.mock(SipProfile.class);
+		_context.checking(new Expectations() {{
+			allowing (_profile).getUsername(); will(returnValue("alice"));
+	        allowing (_profile).getDomain(); will(returnValue("nexcom.fr"));
+	        allowing (_profile).getURI(); will(returnValue(ALICE_URI));
+	    }});
+	}
+	
 	@Test
 	public void testConstructor() throws ParseException
 	{
-		final SipProfile profile = _context.mock(SipProfile.class);
-		UserAgent ua = new UserAgent(profile);
+		UserAgent ua = new UserAgent(_profile);
 		assertThat(ua.getFactory(), is(nullValue()));
 		assertThat(ua.getContact(), is(nullValue()));
-		assertThat(ua.getProfile(), is(sameInstance(profile)));
+		assertThat(ua.getProfile(), is(sameInstance(_profile)));
 	}
 	
 	@Test
@@ -52,23 +75,70 @@ public class UserAgentTest
 	@Test
 	public void testSetFactory() throws ParseException
 	{
-		final SipProfile profile = _context.mock(SipProfile.class);
-		final SipFactory factory = _context.mock(SipFactory.class);
-		UserAgent ua = new UserAgent(profile);
-		ua.setFactory(factory);
-		assertThat(ua.getFactory(), is(sameInstance(factory)));
+		UserAgent ua = new UserAgent(_profile);
+		ua.setFactory(_factory);
+		assertThat(ua.getFactory(), is(sameInstance(_factory)));
 	}
 	
 	@Test
-	public void testSetCredentials() throws ParseException
+	public void testSetContact() throws ParseException
 	{
-		final SipProfile profile = _context.mock(SipProfile.class);
 		final Address contact = _context.mock(Address.class);
-		UserAgent ua = new UserAgent(profile);
+		UserAgent ua = new UserAgent(_profile);
 		ua.setContact(contact);
 		assertThat(ua.getContact(), is(sameInstance(contact)));
 	}
+
+	@Test
+	public void testCreateRequest() throws ServletParseException
+	{
+		final SipApplicationSession appSession = _context.mock(SipApplicationSession.class);
+		final SipServletRequest request = _context.mock(SipServletRequest.class);
+		
+		_context.checking(new Expectations() {{
+	        oneOf(_factory).createApplicationSession(); will(returnValue(appSession));
+	        oneOf(_factory).createRequest(appSession, SipMethod.OPTIONS.asString(), ALICE_URI, EXAMPLE_URI); will(returnValue(request));
+	    }});
+		
+		UserAgent ua = new UserAgent(_profile);
+		ua.setFactory(_factory);
+		SipServletRequest req = ua.createRequest(SipMethod.OPTIONS.asString(), EXAMPLE_URI);
+
+		assertThat(req, is(sameInstance(request)));
+	}
+
+	@Test
+	public void testCreateRequestWithApplicationSession()
+	{
+		final SipApplicationSession appSession = _context.mock(SipApplicationSession.class);
+		final SipServletRequest request = _context.mock(SipServletRequest.class);
+		
+		_context.checking(new Expectations() {{
+	        oneOf(_factory).createRequest(appSession, SipMethod.OPTIONS.asString(), ALICE_URI, EXAMPLE_URI); will(returnValue(request));
+	    }});
+		
+		UserAgent ua = new UserAgent(_profile);
+		ua.setFactory(_factory);
+		SipServletRequest req = ua.createRequest(appSession, SipMethod.OPTIONS.asString(), EXAMPLE_URI);
+
+		assertThat(req, is(sameInstance(request)));
+	}
+
+	@Test
+	public void testWaitForResponse()
+	{
+		// TODO
+	}
+
+	@Test
+	public void testWaitForResponseWithRequest()
+	{
+		// TODO
+	}
 	
+	// To be moved in another project or test.
+	
+//	SipClient _client;
 	
 //	@Before
 //	public void start() throws Exception

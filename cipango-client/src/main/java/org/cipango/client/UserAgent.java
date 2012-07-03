@@ -100,11 +100,17 @@ public class UserAgent
 //
 //	}
 	
-	public SipServletRequest createRequest()
+	public SipServletRequest createRequest(String method, URI to)
 	{
-		return null;
+		SipApplicationSession appSession = _factory.createApplicationSession();
+		return createRequest(appSession, method, to);
 	}
-	
+
+	public SipServletRequest createRequest(SipApplicationSession appSession, String method, URI to)
+	{
+		return _factory.createRequest(appSession, method, _profile.getURI(), to);
+	}
+
 	public SipServletResponse waitForResponse(String method, URI to) throws IOException, InterruptedException
 	{
 		return waitForResponse(method, to, -1);
@@ -112,9 +118,7 @@ public class UserAgent
 
 	public SipServletResponse waitForResponse(String method, URI to, int code) throws IOException, InterruptedException
 	{
-		SipApplicationSession appSession = _factory.createApplicationSession();
-		SipServletRequest request = _factory.createRequest(appSession, method, _profile.getURI(), to);
-		return waitForResponse(request, code);
+		return waitForResponse(createRequest(method, to), code);
 	}
 
 	public SipServletResponse waitForResponse(SipServletRequest request, int code) throws IOException, InterruptedException

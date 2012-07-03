@@ -164,6 +164,7 @@
     <module>cipango-plus</module>
     <module>cipango-annotations</module>
     <module>cipango-deploy</module>
+    <module>cipango-client</module>
     <module>cipango-distribution</module>
 
 <!--

@@ -14,9 +14,14 @@
 
 package org.cipango.client;
 
-import static org.cipango.client.Constants.*;
+import static org.cipango.client.Constants.ALICE_URI;
+import static org.cipango.client.Constants.EXAMPLE_URI;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
+
+import static org.cipango.client.matcher.SipMatchers.*;
 
 import java.text.ParseException;
 
@@ -26,6 +31,7 @@ import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipFactory;
 import javax.servlet.sip.SipServletRequest;
 
+import org.cipango.server.SipResponse;
 import org.cipango.sip.SipMethod;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
@@ -135,6 +141,16 @@ public class UserAgentTest
 	{
 		// TODO
 	}
+	
+	@Test
+	public void testResponse() throws ParseException
+	{
+		SipResponse response = new SipResponse();
+		response.setStatus(200);
+		assertThat(response, isSuccess());
+		assertThat(response, hasStatus(200));
+	}
+	
 	
 	// To be moved in another project or test.
 	

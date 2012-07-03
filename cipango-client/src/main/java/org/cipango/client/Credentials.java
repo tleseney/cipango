@@ -18,5 +18,7 @@ public interface Credentials
 {
 	public String getUser();
 	
-	public String getPasswd();
+	public String getPassword();
+	
+	public String getRealm();
 }

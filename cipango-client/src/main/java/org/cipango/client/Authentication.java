@@ -46,7 +46,7 @@ public class Authentication
 			md.update((byte) ':');
 			md.update(_digest._realm.getBytes(StringUtil.__ISO_8859_1));
 			md.update((byte) ':');
-			md.update(credentials.getPasswd().getBytes(StringUtil.__ISO_8859_1));
+			md.update(credentials.getPassword().getBytes(StringUtil.__ISO_8859_1));
 			byte[] ha1 = md.digest();
 						
 			md.reset();

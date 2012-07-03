@@ -33,48 +33,27 @@ import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
 
+/**
+ * Manages registration of a user agent.
+ * Refreshes regularly the registration to remain registered.
+ *
+ */
 public class Registration 
 {
+	private UserAgent _userAgent;
 	private Listener _listener;
 	private Authentication _authentication;
-	private Credentials _credentials;
-	private SipFactory _factory;
 	private SipSession _session;
-	private SipURI _uri;
 
-	public Registration(SipURI uri)
+
+	public Registration(UserAgent userAgent)
 	{
-		_uri = uri;
+		_userAgent = userAgent;
 	}
 
 	public void setListener(Listener listener)
 	{
 		_listener = listener;
-	}
-
-	public void setFactory(SipFactory factory)
-	{
-		_factory = factory;
-	}
-
-	public SipFactory getFactory()
-	{
-		return _factory;
-	}
-	
-	public void setCredentials(Credentials credentials)
-	{
-		_credentials = credentials;
-	}
-
-	public Credentials getCredentials()
-	{
-		return _credentials;
-	}
-
-	public SipURI getURI()
-	{
-		return _uri;
 	}
 
 	public SipServletRequest createRegister(URI contact, int expires)
@@ -83,37 +62,40 @@ public class Registration
 		
 		if (_session == null)
 		{
-			SipApplicationSession appSession = _factory.createApplicationSession();
-			register = _factory.createRequest(appSession, SipMethod.REGISTER.asString(), _uri, _uri);
+			SipApplicationSession appSession = _userAgent.getFactory().createApplicationSession();
+			register = _userAgent.getFactory().createRequest(appSession, 
+					SipMethod.REGISTER.asString(),
+					_userAgent.getAor(), 
+					_userAgent.getAor());
 			
 			_session = register.getSession();
-			//_session.setAttribute(MessageHandler.class.getName(), _handler);
+			_session.setAttribute(MessageHandler.class.getName(), new Handler());
 		}
 		else
 		{
 			register = _session.createRequest(SipMethod.REGISTER.asString());
 		}
 		
-		SipURI registrar = _factory.createSipURI(null, _uri.getHost());
+		SipURI registrar = _userAgent.getFactory().createSipURI(null, _userAgent.getDomain());
 		register.setRequestURI(registrar);
 		register.setAddressHeader(SipHeader.CONTACT.asString(), new AddressImpl(contact));
 		register.setExpires(expires);
 		
-		if (_authentication != null)
-		{
-			try
-			{
-				String authorization = _authentication.authorize(
-						register.getMethod(),
-						register.getRequestURI().toString(), 
-						_credentials);
-				register.addHeader(SipHeader.AUTHORIZATION.asString(), authorization);
-			}
-			catch (ServletException e)
-			{
-				e.printStackTrace();
-			}
-		}
+//		if (_authentication != null)
+//		{
+//			try
+//			{
+//				String authorization = _authentication.authorize(
+//						register.getMethod(),
+//						register.getRequestURI().toString(), 
+//						_credentials);
+//				register.addHeader(SipHeader.AUTHORIZATION.asString(), authorization);
+//			}
+//			catch (ServletException e)
+//			{
+//				e.printStackTrace();
+//			}
+//		}
 		
 		return register;
 	}
@@ -147,6 +129,7 @@ public class Registration
 	public interface Listener
 	{
 		void onRegistered(Address contact, int expires, List<Address> contacts);
+		void onUnregistered(Address contact);
 		void onRegistrationFailed(int status);
 	}
 	
@@ -187,29 +170,29 @@ public class Registration
 			}
 			else if (status == SipServletResponse.SC_UNAUTHORIZED)
 			{
-				if (_credentials == null)
-				{
-					registrationFailed(status);
-				}
-				else
-				{
-					String authorization = response.getRequest().getHeader(SipHeader.AUTHORIZATION.asString());
-					
-					String authenticate = response.getHeader(SipHeader.WWW_AUTHENTICATE.asString());
-					Authentication.Digest digest = Authentication.getDigest(authenticate);
-					
-					if (authorization != null && !digest.isStale())
-					{
-						registrationFailed(status);
-					}
-					else
-					{
-						_authentication = new Authentication(digest);
-						
-						URI contact = response.getRequest().getAddressHeader(SipHeader.CONTACT.asString()).getURI();
-						register(contact, response.getRequest().getExpires());
-					}
-				}
+//				if (_credentials == null)
+//				{
+//					registrationFailed(status);
+//				}
+//				else
+//				{
+//					String authorization = response.getRequest().getHeader(SipHeader.AUTHORIZATION.asString());
+//					
+//					String authenticate = response.getHeader(SipHeader.WWW_AUTHENTICATE.asString());
+//					Authentication.Digest digest = Authentication.getDigest(authenticate);
+//					
+//					if (authorization != null && !digest.isStale())
+//					{
+//						registrationFailed(status);
+//					}
+//					else
+//					{
+//						_authentication = new Authentication(digest);
+//						
+//						URI contact = response.getRequest().getAddressHeader(SipHeader.CONTACT.asString()).getURI();
+//						register(contact, response.getRequest().getExpires());
+//					}
+//				}
 			}
 			else 
 			{

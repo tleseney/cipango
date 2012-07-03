@@ -34,9 +34,13 @@ import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.sip.AddressImpl;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
+import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.log.Logger;
 
 public class SipClient extends AbstractLifeCycle
 {
+	private Logger LOG = Log.getLogger(SipClient.class);
+	
 	private SipServer _server;
 	private SipAppContext _context;
 	private List<UserAgent> _userAgents;
@@ -91,13 +95,14 @@ public class SipClient extends AbstractLifeCycle
 		return _server.getConnectors()[0].getURI();
 	}
 	
-	public UserAgent createUserAgent(SipProfile profile)
+	public UserAgent createUserAgent(String aor)
 	{
-		UserAgent agent = new UserAgent(profile);
+		UserAgent agent = new UserAgent(new AddressImpl(aor));
 		addUserAgent(agent);
 		return agent;
 	}
 	
+
 	public void addUserAgent(UserAgent agent)
 	{
 		SipURI contact = (SipURI) getContact().clone();
@@ -117,7 +122,7 @@ public class SipClient extends AbstractLifeCycle
 		{
 			for (UserAgent agent : _userAgents)
 			{
-				if (agent.getProfile().getURI().equals(uri))
+				if (agent.getAor().getURI().equals(uri))
 					return agent;
 			}
 		}
@@ -127,7 +132,15 @@ public class SipClient extends AbstractLifeCycle
 	@SuppressWarnings("serial")
 	class ClientServlet extends SipServlet
 	{
-		protected MessageHandler getHandler(SipServletMessage message)
+		protected MessageHandler getHandler(SipServletResponse response)
+		{
+			MessageHandler handler =  (MessageHandler) response.getRequest().getAttribute(MessageHandler.class.getName());
+			if (handler == null)
+				return (MessageHandler) response.getSession().getAttribute(MessageHandler.class.getName());
+			return handler;
+		}
+		
+		protected MessageHandler getHandler(SipServletRequest message)
 		{
 			return (MessageHandler) message.getSession().getAttribute(MessageHandler.class.getName());
 		}
@@ -159,6 +172,30 @@ public class SipClient extends AbstractLifeCycle
 		protected void doResponse(SipServletResponse response) throws ServletException, IOException
 		{
 			MessageHandler handler = getHandler(response);
+			SipServletRequest request = response.getRequest();
+			List<SipServletResponse> l = (List<SipServletResponse>) request.getAttribute(SipServletResponse.class.getName());
+			if (l==null)
+			{
+				l = new ArrayList<SipServletResponse>();
+				request.setAttribute(SipServletResponse.class.getName(), l);
+			}
+			l.add(response);
+			
+			if (response.getStatus() == SipServletResponse.SC_UNAUTHORIZED
+					|| response.getStatus() == SipServletResponse.SC_PROXY_AUTHENTICATION_REQUIRED)
+			{
+				UserAgent agent = getUserAgent(response.getRequest().getFrom().getURI());
+				if (agent != null)
+				{
+					boolean handled = agent.handleChallenge(response);
+					if (handled)
+						return;
+				}
+				else
+					LOG.warn("Could not find user agent for response: " + response.getStatus() + " " + response.getMethod()
+							+ ". Do not handle challenge");
+			}
+			
 			if (handler != null)
 				handler.handleResponse(response);
 			else

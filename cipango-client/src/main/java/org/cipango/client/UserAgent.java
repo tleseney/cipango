@@ -12,9 +12,6 @@ import javax.servlet.sip.SipFactory;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipURI;
-import javax.servlet.sip.URI;
-
-import org.cipango.sip.SipHeader;
 
 public class UserAgent 
 {
@@ -22,6 +19,8 @@ public class UserAgent
 	private Address _contact;
 	private List<Credentials> _credentials = new ArrayList<Credentials>();
 	private SipFactory _factory;
+	private Registration _registration;
+	private Registration.Listener _registrationListener;
 	private long _timeout;
 
 	public UserAgent(Address aor)
@@ -29,16 +28,34 @@ public class UserAgent
 		_aor = aor;
 	}
 	
-	public void setFactory(SipFactory factory)
-	{
-		_factory = factory;
-	}
-	
 	public SipFactory getFactory()
 	{
 		return _factory;
 	}
 	
+	public void setFactory(SipFactory factory)
+	{
+		_factory = factory;
+	}
+	
+	/**
+	 * @return the registrationListener
+	 */
+	public Registration.Listener getRegistrationListener()
+	{
+		return _registrationListener;
+	}
+
+	/**
+	 * @param registrationListener the registrationListener to set
+	 */
+	public void setRegistrationListener(Registration.Listener listener)
+	{
+		_registrationListener = listener;
+		if (_registration != null)
+			_registration.setListener(listener);
+	}
+
 	public void setContact(Address contact)
 	{
 		_contact = contact;
@@ -53,39 +70,36 @@ public class UserAgent
 	{
 		// TODO
 	}
-	
-	
+		
 	/**
-	 * High level and synchronous registration method.
-	 * @throws InterruptedException 
+	 * Synchronous registers this <code>UserAgent</code>.
+	 * 
+	 * @param expires
+	 * @throws IOException 
+	 * @throws ServletException 
+	 * @see Registration#register(javax.servlet.sip.URI, int)
 	 */
-	public void register(int expires) throws InterruptedException
+	public void register(int expires) throws IOException, ServletException
 	{
-//		final Registration reg = new Registration(this);
-//		
-//		reg.setListener(new Registration.Listener() {
-//			@Override
-//			public void onRegistered(Address contact, int expires,
-//					List<Address> contacts)
-//			{
-//				reg.notify();
-//			}
-//			@Override
-//			public void onRegistrationFailed(int status)
-//			{
-//				reg.notify();
-//			}
-//		});
-//
-//		try
-//		{
-//			reg.register(_contact.getURI(), expires);
-//			reg.wait(_timeout);
-//		}
-//		catch (IOException e)
-//		{
-//			// TODO
-//		}
+		if (!_aor.getURI().isSipURI())
+		{
+			// TODO
+			return;
+		}
+
+		if (_registration == null)
+		{
+			_registration = new Registration((SipURI) _aor.getURI());
+			_registration.setListener(_registrationListener);
+		}
+
+		_registration.register(_contact.getURI(), expires);
+	}
+	
+	public void unregister() throws IOException, ServletException
+	{
+		if (_registration != null)
+			_registration.unregister();
 	}
 		
 //	Call call(URI remote)
@@ -119,7 +133,7 @@ public class UserAgent
 	 * @throws IOException
 	 * @see {@link #setTimeout()}
 	 */
-	public SipServletResponse sendSynchronous(String method, Address to) throws IOException, InterruptedException
+	public SipServletResponse sendSynchronous(String method, Address to) throws IOException
 	{
 		return sendSynchronous(createRequest(method, to));
 	}

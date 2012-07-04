@@ -8,7 +8,7 @@ import javax.servlet.ServletException;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
-public class RequestHandler
+public class RequestHandler implements MessageHandler
 {
 	private List<SipServletResponse> _responses = new ArrayList<SipServletResponse>();
 	private int _read = 0;
@@ -19,6 +19,7 @@ public class RequestHandler
 	{
 		_timeout = timeout;
 		_request = request;
+		_request.setAttribute(MessageHandler.class.getName(), this);
 	}
 	
 	public RequestHandler(SipServletRequest request, UserAgent userAgent)
@@ -33,11 +34,13 @@ public class RequestHandler
 		_request.send();
 	}
 
+	@Override
 	public void handleRequest(SipServletRequest request) throws IOException, ServletException 
 	{
 		request.createResponse(SipServletResponse.SC_NOT_ACCEPTABLE_HERE).send();
 	}
 
+	@Override
 	public void handleResponse(SipServletResponse response) throws IOException, ServletException 
 	{
 		_responses.add(response);
@@ -45,7 +48,6 @@ public class RequestHandler
 		{
 			notify();
 		}
-		//if (_expected == -1 || _expected == response.getStatus() || response.getStatus() >= 200)
 	}
 
 	public SipServletResponse getNextResponse()

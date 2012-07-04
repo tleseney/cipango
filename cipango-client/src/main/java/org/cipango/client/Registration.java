@@ -29,10 +29,6 @@ import javax.servlet.sip.SipSession;
 import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
 
-import org.cipango.sip.AddressImpl;
-import org.cipango.sip.SipHeader;
-import org.cipango.sip.SipMethod;
-
 /**
  * Manages the registration of a user agent.
  * 
@@ -120,17 +116,17 @@ public class Registration
 		if (_session == null)
 		{
 			SipApplicationSession appSession = _factory.createApplicationSession();
-			register = _factory.createRequest(appSession, SipMethod.REGISTER.asString(), _uri, _uri);
+			register = _factory.createRequest(appSession, SipMethods.REGISTER, _uri, _uri);
 			_session = register.getSession();
 		}
 		else
 		{
-			register = _session.createRequest(SipMethod.REGISTER.asString());
+			register = _session.createRequest(SipMethods.REGISTER);
 		}
 		
 		SipURI registrar = _factory.createSipURI(null, _uri.getHost());
 		register.setRequestURI(registrar);
-		register.setAddressHeader(SipHeader.CONTACT.asString(), new AddressImpl(contact));
+		register.setAddressHeader(SipHeaders.CONTACT, _factory.createAddress(contact));
 		register.setExpires(expires);
 		
 		if (_authentication != null)
@@ -141,7 +137,7 @@ public class Registration
 						register.getMethod(),
 						register.getRequestURI().toString(), 
 						_credentials);
-				register.addHeader(SipHeader.AUTHORIZATION.asString(), authorization);
+				register.addHeader(SipHeaders.AUTHORIZATION, authorization);
 			}
 			catch (ServletException e)
 			{
@@ -249,11 +245,11 @@ public class Registration
 		{
 			int expires = -1;
 			
-			Address requestContact = response.getRequest().getAddressHeader(SipHeader.CONTACT.asString());
+			Address requestContact = response.getRequest().getAddressHeader(SipHeaders.CONTACT);
 			
 			List<Address> contacts = new ArrayList<Address>();
 			
-			ListIterator<Address> it = response.getAddressHeaders(SipHeader.CONTACT.asString());
+			ListIterator<Address> it = response.getAddressHeaders(SipHeaders.CONTACT);
 			while (it.hasNext())
 			{
 				Address contact = it.next();
@@ -275,9 +271,9 @@ public class Registration
 			}
 			else
 			{
-				String authorization = response.getRequest().getHeader(SipHeader.AUTHORIZATION.asString());
+				String authorization = response.getRequest().getHeader(SipHeaders.AUTHORIZATION);
 				
-				String authenticate = response.getHeader(SipHeader.WWW_AUTHENTICATE.asString());
+				String authenticate = response.getHeader(SipHeaders.WWW_AUTHENTICATE);
 				Authentication.Digest digest = Authentication.getDigest(authenticate);
 				
 				if (authorization != null && !digest.isStale())
@@ -287,7 +283,7 @@ public class Registration
 				else
 				{
 					_authentication = new Authentication(digest);
-					_contact = response.getRequest().getAddressHeader(SipHeader.CONTACT.asString()).getURI();
+					_contact = response.getRequest().getAddressHeader(SipHeaders.CONTACT).getURI();
 					_expires = response.getRequest().getExpires();
 				}
 			}

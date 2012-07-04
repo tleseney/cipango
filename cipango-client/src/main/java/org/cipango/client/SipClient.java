@@ -22,7 +22,6 @@ import javax.servlet.ServletException;
 import javax.servlet.sip.Address;
 import javax.servlet.sip.SipFactory;
 import javax.servlet.sip.SipServlet;
-import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipURI;
@@ -160,11 +159,11 @@ public class SipClient extends AbstractLifeCycle
 				if (agent != null)
 					agent.handleInitialRequest(request);
 				else
-					log("No agent for initial request: " + request.getMethod() + " " + request.getRequestURI());
+					LOG.warn("No agent for initial request: " + request.getMethod() + " " + request.getRequestURI());
 			}
 			else
 			{
-				log("No handler for request: " + request.getMethod() + " " + request.getRequestURI());
+				LOG.warn("No handler for request: " + request.getMethod() + " " + request.getRequestURI());
 			}
 		}
 		
@@ -173,6 +172,8 @@ public class SipClient extends AbstractLifeCycle
 		{
 			MessageHandler handler = getHandler(response);
 			SipServletRequest request = response.getRequest();
+			
+			@SuppressWarnings("unchecked")
 			List<SipServletResponse> l = (List<SipServletResponse>) request.getAttribute(SipServletResponse.class.getName());
 			if (l==null)
 			{
@@ -180,26 +181,18 @@ public class SipClient extends AbstractLifeCycle
 				request.setAttribute(SipServletResponse.class.getName(), l);
 			}
 			l.add(response);
-			
-			if (response.getStatus() == SipServletResponse.SC_UNAUTHORIZED
-					|| response.getStatus() == SipServletResponse.SC_PROXY_AUTHENTICATION_REQUIRED)
-			{
-				UserAgent agent = getUserAgent(response.getRequest().getFrom().getURI());
-				if (agent != null)
-				{
-					boolean handled = agent.handleChallenge(response);
-					if (handled)
-						return;
-				}
-				else
-					LOG.warn("Could not find user agent for response: " + response.getStatus() + " " + response.getMethod()
-							+ ". Do not handle challenge");
-			}
-			
+
 			if (handler != null)
-				handler.handleResponse(response);
+			{
+				if (response.getStatus() == SipServletResponse.SC_UNAUTHORIZED
+						|| response.getStatus() == SipServletResponse.SC_PROXY_AUTHENTICATION_REQUIRED)
+					handler.handleAuthentication(response);
+
+				if (response.getAttribute(RequestHandler.HANDLED_ATTRIBUTE) == null)
+					handler.handleResponse(response);
+			}
 			else
-				log("No handler for response: " + response.getStatus() + " " + response.getMethod());
+				LOG.warn("No handler for response: " + response.getStatus() + " " + response.getMethod());
 		}
 	}
 }

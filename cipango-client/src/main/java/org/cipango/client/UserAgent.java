@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.servlet.ServletException;
 import javax.servlet.sip.Address;
 import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.SipApplicationSession;
@@ -98,7 +99,7 @@ public class UserAgent
 	public void unregister() throws IOException, ServletException
 	{
 		if (_registration != null)
-			_registration.unregister();
+			_registration.unregister(null);
 	}
 		
 //	Call call(URI remote)
@@ -162,37 +163,6 @@ public class UserAgent
 		RequestHandler handler = new RequestHandler(request, this);
 		handler.send();
 		return handler;
-	}
-	
-	/**
-	 * Returns <code>true</code> if a challenge has been proceeded and a request has been sent else
-	 * returns <code>false</code>.
-	 * @param response
-	 * @return
-	 */
-	public boolean handleChallenge(SipServletResponse response)
-	{
-		if (_credentials.isEmpty())
-			return false;
-		
-		return true;
-		
-// TODO		String authorization = response.getRequest().getHeader(SipHeader.AUTHORIZATION.asString());
-//		
-//		String authenticate = response.getHeader(SipHeader.WWW_AUTHENTICATE.asString());
-//		Authentication.Digest digest = Authentication.getDigest(authenticate);
-//		
-//		if (authorization != null && !digest.isStale())
-//		{
-//			registrationFailed(status);
-//		}
-//		else
-//		{
-//			_authentication = new Authentication(digest);
-//			
-//			URI contact = response.getRequest().getAddressHeader(SipHeader.CONTACT.asString()).getURI();
-//			register(contact, response.getRequest().getExpires());
-//		}
 	}
 	
 	@SuppressWarnings("unchecked")

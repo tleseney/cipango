@@ -38,13 +38,11 @@ import javax.servlet.sip.URI;
 public class Registration 
 {
 	private Listener _listener;
-	private Authentication _authentication;
 	private Credentials _credentials;
 	private SipFactory _factory;
 	private SipSession _session;
 	private SipURI _uri;
 	private URI _contact;
-	private int _expires;
 	private long _timeout;
 	private Status _status;
 	
@@ -126,24 +124,11 @@ public class Registration
 		
 		SipURI registrar = _factory.createSipURI(null, _uri.getHost());
 		register.setRequestURI(registrar);
-		register.setAddressHeader(SipHeaders.CONTACT, _factory.createAddress(contact));
+		if (contact != null)
+			register.setAddressHeader(SipHeaders.CONTACT, _factory.createAddress(contact));
+		else
+			register.setHeader(SipHeaders.CONTACT, "*");
 		register.setExpires(expires);
-		
-		if (_authentication != null)
-		{
-			try
-			{
-				String authorization = _authentication.authorize(
-						register.getMethod(),
-						register.getRequestURI().toString(), 
-						_credentials);
-				register.addHeader(SipHeaders.AUTHORIZATION, authorization);
-			}
-			catch (ServletException e)
-			{
-				e.printStackTrace();
-			}
-		}
 		
 		return register;
 	}
@@ -170,44 +155,41 @@ public class Registration
 		RequestHandler handler;
 
 		_contact = contact;
-		_expires = expires;
 		_status = Status.PENDING;
 		
-		while (_status == Status.PENDING)
-		{
-			handler = new RequestHandler(createRegister(_contact, _expires),
-					end - System.currentTimeMillis());
-			handler.send();
-			processResponse(handler.waitFinalResponse());
-		}
+		handler = new RequestHandler(createRegister(_contact, expires),
+				end - System.currentTimeMillis());
+		handler.send();
+		processResponse(handler.waitFinalResponse());
 		
 		// TODO: start registration monitoring.
 	}
 
 	/**
-	 * Unregisters any registration previously successfully achieved.
+	 * Synchronously unregisters <code>contact</code>.
 	 * 
 	 * After this method returns, the contact that was previously registered is
 	 * unregistered, and no background activity is sustained to register it
 	 * again.
 	 * 
-	 * @throws IOException 
-	 * @throws ServletException 
+	 * @param contact
+	 *            the contact to unregister. If null, then <code>*</code> is set
+	 *            in the REGISTER request's Contact header, so that all contacts
+	 *            are unregistered.
+	 * @throws IOException
+	 * @throws ServletException
 	 */
-	public void unregister() throws IOException, ServletException
+	public void unregister(URI contact) throws IOException, ServletException
 	{
 		long end = System.currentTimeMillis() + _timeout;
 		RequestHandler handler;
 
 		_status = Status.PENDING;
 		
-		while (_status == Status.PENDING)
-		{
-			handler = new RequestHandler(createRegister(_contact, 0),
-					end - System.currentTimeMillis());
-			handler.send();
-			processResponse(handler.waitFinalResponse());
-		}
+		handler = new RequestHandler(createRegister(_contact, 0),
+				end - System.currentTimeMillis());
+		handler.send();
+		processResponse(handler.waitFinalResponse());
 
 		// TODO: start registration monitoring.
 	}
@@ -265,28 +247,8 @@ public class Registration
 		}
 		else if (status == SipServletResponse.SC_UNAUTHORIZED)
 		{
-			if (_credentials == null)
-			{
+			if (response.getAttribute(RequestHandler.HANDLED_ATTRIBUTE) == null)
 				registrationFailed(status);
-			}
-			else
-			{
-				String authorization = response.getRequest().getHeader(SipHeaders.AUTHORIZATION);
-				
-				String authenticate = response.getHeader(SipHeaders.WWW_AUTHENTICATE);
-				Authentication.Digest digest = Authentication.getDigest(authenticate);
-				
-				if (authorization != null && !digest.isStale())
-				{
-					registrationFailed(status);
-				}
-				else
-				{
-					_authentication = new Authentication(digest);
-					_contact = response.getRequest().getAddressHeader(SipHeaders.CONTACT).getURI();
-					_expires = response.getRequest().getExpires();
-				}
-			}
 		}
 		else 
 		{

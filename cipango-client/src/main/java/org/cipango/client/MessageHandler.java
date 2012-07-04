@@ -23,5 +23,8 @@ import javax.servlet.sip.SipServletResponse;
 public interface MessageHandler 
 {
 	void handleRequest(SipServletRequest request) throws IOException, ServletException;
+
 	void handleResponse(SipServletResponse response) throws IOException, ServletException;
+
+	void handleAuthentication(SipServletResponse response) throws IOException, ServletException;
 }

@@ -19,7 +19,8 @@ public class UserAgent
 	private Address _contact;
 	private List<Credentials> _credentials = new ArrayList<Credentials>();
 	private SipFactory _factory;
-	private Registration _registration;
+	private Thread _registrationThread;
+	private RegistrationTask _registrationTask;
 	private Registration.Listener _registrationListener;
 	private long _timeout;
 
@@ -52,13 +53,16 @@ public class UserAgent
 	public void setRegistrationListener(Registration.Listener listener)
 	{
 		_registrationListener = listener;
-		if (_registration != null)
-			_registration.setListener(listener);
+		if (_registrationTask != null)
+			_registrationTask.setListener(listener);
 	}
 
 	public void setContact(Address contact)
 	{
 		_contact = contact;
+		
+		// TODO: Should current registration be dropped or unregistration called
+		//       for the previous contact?
 	}
 	
 	public Address getContact()
@@ -72,34 +76,73 @@ public class UserAgent
 	}
 		
 	/**
-	 * Synchronous registers this <code>UserAgent</code>.
+	 * Synchronously registers this <code>UserAgent</code>'s contact with the
+	 * given expiration value.
+	 * 
+	 * This method returns either when success, failure or request timeout is
+	 * encountered, and the listener, if any, is notified as well.
+	 * Authentication is handled automatically if credentials were provided to
+	 * this <code>UserAgent</code>.
+	 * 
+	 * On success, the registration is maintained in the background by sending
+	 * regularly re-REGISTER requests. Subsequent events (end of registration,
+	 * failure to register) will only be reported through the listener.
 	 * 
 	 * @param expires
-	 * @throws IOException 
-	 * @throws ServletException 
+	 *            the expiration time demanded by this <code>UserAgent</code>.
+	 * @return <code>true</code> if registration was successful,
+	 *         <code>false</code> otherwise.
+	 * @throws IOException
+	 * @throws ServletException
 	 * @see Registration#register(javax.servlet.sip.URI, int)
 	 */
-	public void register(int expires) throws IOException, ServletException
+	public boolean register(int expires) throws IOException, ServletException
 	{
+		boolean result;
+		
 		if (!_aor.getURI().isSipURI())
-		{
-			// TODO
-			return;
-		}
+			throw new ServletException(_aor.toString() + " is not a SIP URI. Cannot register");
 
-		if (_registration == null)
+		if (_registrationThread == null)
 		{
-			_registration = new Registration((SipURI) _aor.getURI());
-			_registration.setListener(_registrationListener);
+			Registration registration = new Registration((SipURI) _aor.getURI());
+			registration.setFactory(_factory);
+			registration.setCredentials(_credentials);
+			registration.setTimeout(_timeout);
+			_registrationTask = new RegistrationTask(registration, _contact);
+			_registrationTask.setListener(_registrationListener);
+			_registrationThread = new Thread(_registrationTask, "registration-task");	
 		}
-
-		_registration.register(_contact.getURI(), expires);
+				
+		result = _registrationTask.getRegistration().register(_contact.getURI(), expires);
+		if (result)
+			_registrationThread.run();
+		else
+			_registrationThread.interrupt();
+		
+		return result;
 	}
 	
-	public void unregister() throws IOException, ServletException
+	/**
+	 * Synchronously unregisters this <code>UserAgent</code>'s contact.
+	 * 
+	 * After this method returns, the contact that was previously registered is
+	 * unregistered, and no background activity is sustained to register it
+	 * again.
+	 * 
+	 * @return <code>true</code> if unregistration was successful,
+	 *         <code>false</code> otherwise or if unregistration was a no-op.
+	 * @throws IOException
+	 * @throws ServletException
+	 */
+	public boolean unregister() throws IOException, ServletException
 	{
-		if (_registration != null)
-			_registration.unregister(null);
+		if (_registrationThread != null)
+			_registrationThread.interrupt();
+
+		if (_registrationTask != null)
+			return _registrationTask.getRegistration().unregister(null);
+		return false;
 	}
 		
 //	Call call(URI remote)

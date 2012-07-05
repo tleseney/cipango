@@ -12,6 +12,14 @@ import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipSession;
 
+/**
+ * Handles a transaction, keeping track of all responses received in a list.
+ *
+ * If credentials are provided, then authentication is automatically handled by
+ * this object. In this case, responses with a challenge are not directly
+ * propagated to the user, but are recorded in the request responses list
+ * anyway.
+ */
 public class RequestHandler implements MessageHandler
 {
 	private static final List<String> SYSTEM_HEADERS = Arrays.asList(SipHeaders.CALL_ID,
@@ -51,8 +59,18 @@ public class RequestHandler implements MessageHandler
 		_credentials = credentials;
 	}
 	
-	public void send() throws IOException
+	public void send() throws IOException, ServletException
 	{
+		SipSession session = _request.getSession();
+		Authentication authentication = (Authentication) session
+				.getAttribute(Authentication.class.getName());
+		if (authentication != null)
+		{
+			Credentials credentials = (Credentials) session.getAttribute(Credentials.class.getName());
+			String authorization = authentication.authorize(_request.getMethod(),
+					_request.getRequestURI().toString(), credentials);
+			_request.addHeader(SipHeaders.AUTHORIZATION, authorization);
+		}
 		_request.send();
 	}
 
@@ -157,7 +175,7 @@ public class RequestHandler implements MessageHandler
 		}
 	}
 	
-	// Should be moved to some toolkit package or class.
+	// Should probably be moved to some toolkit package or class.
   	protected SipServletRequest buildAuthenticatedRequest(
   			SipServletResponse response, Authentication authentication,
   			Credentials credentials)

@@ -17,11 +17,7 @@ package org.cipango.client;
 import static org.cipango.client.Constants.ALICE_URI;
 import static org.cipango.client.Constants.EXAMPLE_URI;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.sameInstance;
-
-import static org.cipango.client.matcher.SipMatchers.*;
+import static org.hamcrest.Matchers.*;
 
 import java.text.ParseException;
 
@@ -31,8 +27,7 @@ import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipFactory;
 import javax.servlet.sip.SipServletRequest;
 
-import org.cipango.server.SipResponse;
-import org.cipango.sip.SipMethod;
+import org.cipango.sip.AddressImpl;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.integration.junit4.JMock;
@@ -45,28 +40,23 @@ import org.junit.runner.RunWith;
 public class UserAgentTest 
 {
 	Mockery _context = new JUnit4Mockery();
+	Address _aor;
 	SipFactory _factory;
-	SipProfile _profile;
     
 	@Before
 	public void setup()
 	{
+		_aor = new AddressImpl(ALICE_URI);
 		_factory = _context.mock(SipFactory.class);
-		_profile = _context.mock(SipProfile.class);
-		_context.checking(new Expectations() {{
-			allowing (_profile).getUsername(); will(returnValue("alice"));
-	        allowing (_profile).getDomain(); will(returnValue("nexcom.fr"));
-	        allowing (_profile).getURI(); will(returnValue(ALICE_URI));
-	    }});
 	}
 	
 	@Test
 	public void testConstructor() throws ParseException
 	{
-		UserAgent ua = new UserAgent(_profile);
+		UserAgent ua = new UserAgent(_aor);
 		assertThat(ua.getFactory(), is(nullValue()));
 		assertThat(ua.getContact(), is(nullValue()));
-		assertThat(ua.getProfile(), is(sameInstance(_profile)));
+		assertThat(ua.getAor(), is(sameInstance(_aor)));
 	}
 	
 	@Test
@@ -75,13 +65,13 @@ public class UserAgentTest
 		UserAgent ua = new UserAgent(null);
 		assertThat(ua.getFactory(), is(nullValue()));
 		assertThat(ua.getContact(), is(nullValue()));
-		assertThat(ua.getProfile(), is(nullValue()));
+		assertThat(ua.getAor(), is(nullValue()));
 	}
 	
 	@Test
 	public void testSetFactory() throws ParseException
 	{
-		UserAgent ua = new UserAgent(_profile);
+		UserAgent ua = new UserAgent(_aor);
 		ua.setFactory(_factory);
 		assertThat(ua.getFactory(), is(sameInstance(_factory)));
 	}
@@ -90,7 +80,7 @@ public class UserAgentTest
 	public void testSetContact() throws ParseException
 	{
 		final Address contact = _context.mock(Address.class);
-		UserAgent ua = new UserAgent(_profile);
+		UserAgent ua = new UserAgent(_aor);
 		ua.setContact(contact);
 		assertThat(ua.getContact(), is(sameInstance(contact)));
 	}
@@ -100,55 +90,20 @@ public class UserAgentTest
 	{
 		final SipApplicationSession appSession = _context.mock(SipApplicationSession.class);
 		final SipServletRequest request = _context.mock(SipServletRequest.class);
+		final Address addr = _context.mock(Address.class);
 		
 		_context.checking(new Expectations() {{
 	        oneOf(_factory).createApplicationSession(); will(returnValue(appSession));
-	        oneOf(_factory).createRequest(appSession, SipMethod.OPTIONS.asString(), ALICE_URI, EXAMPLE_URI); will(returnValue(request));
+	        oneOf(_factory).createAddress(EXAMPLE_URI.toString()); will(returnValue(addr));
+			// TODO: The following is not famous, but matching addresses is not possible for now...
+	        oneOf(_factory).createRequest(with(appSession), with(SipMethods.OPTIONS), with(any(Address.class)), with(any(Address.class))); will(returnValue(request));
 	    }});
 		
-		UserAgent ua = new UserAgent(_profile);
+		UserAgent ua = new UserAgent(_aor);
 		ua.setFactory(_factory);
-		SipServletRequest req = ua.createRequest(SipMethod.OPTIONS.asString(), EXAMPLE_URI);
+		SipServletRequest req = ua.createRequest(SipMethods.OPTIONS, EXAMPLE_URI.toString());
 
 		assertThat(req, is(sameInstance(request)));
-	}
-
-	@Test
-	public void testCreateRequestWithApplicationSession()
-	{
-		final SipApplicationSession appSession = _context.mock(SipApplicationSession.class);
-		final SipServletRequest request = _context.mock(SipServletRequest.class);
-		
-		_context.checking(new Expectations() {{
-	        oneOf(_factory).createRequest(appSession, SipMethod.OPTIONS.asString(), ALICE_URI, EXAMPLE_URI); will(returnValue(request));
-	    }});
-		
-		UserAgent ua = new UserAgent(_profile);
-		ua.setFactory(_factory);
-		SipServletRequest req = ua.createRequest(appSession, SipMethod.OPTIONS.asString(), EXAMPLE_URI);
-
-		assertThat(req, is(sameInstance(request)));
-	}
-
-	@Test
-	public void testWaitForResponse()
-	{
-		// TODO
-	}
-
-	@Test
-	public void testWaitForResponseWithRequest()
-	{
-		// TODO
-	}
-	
-	@Test
-	public void testResponse() throws ParseException
-	{
-		SipResponse response = new SipResponse();
-		response.setStatus(200);
-		assertThat(response, isSuccess());
-		assertThat(response, hasStatus(200));
 	}
 	
 	

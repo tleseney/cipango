@@ -38,7 +38,7 @@ import javax.servlet.sip.URI;
 public class Registration 
 {
 	private Listener _listener;
-	private Credentials _credentials;
+	private List<Credentials> _credentials;
 	private SipFactory _factory;
 	private SipSession _session;
 	private SipURI _uri;
@@ -77,12 +77,12 @@ public class Registration
 		_factory = factory;
 	}
 
-	public Credentials getCredentials()
+	public List<Credentials> getCredentials()
 	{
 		return _credentials;
 	}
 
-	public void setCredentials(Credentials credentials)
+	public void setCredentials(List<Credentials> credentials)
 	{
 		_credentials = credentials;
 	}
@@ -151,14 +151,12 @@ public class Registration
 	 */
 	public void register(URI contact, int expires) throws IOException, ServletException
 	{
-		long end = System.currentTimeMillis() + _timeout;
-		RequestHandler handler;
+		RequestHandler handler = new RequestHandler(createRegister(contact, expires), _timeout);
 
 		_contact = contact;
 		_status = Status.PENDING;
-		
-		handler = new RequestHandler(createRegister(_contact, expires),
-				end - System.currentTimeMillis());
+
+		handler.setCredentials(_credentials);
 		handler.send();
 		processResponse(handler.waitFinalResponse());
 		
@@ -181,17 +179,14 @@ public class Registration
 	 */
 	public void unregister(URI contact) throws IOException, ServletException
 	{
-		long end = System.currentTimeMillis() + _timeout;
-		RequestHandler handler;
+		RequestHandler handler = new RequestHandler(createRegister(_contact, 0), _timeout);
+
+		// TODO: start registration monitoring.
 
 		_status = Status.PENDING;
 		
-		handler = new RequestHandler(createRegister(_contact, 0),
-				end - System.currentTimeMillis());
 		handler.send();
 		processResponse(handler.waitFinalResponse());
-
-		// TODO: start registration monitoring.
 	}
 	
 	protected void registrationDone(Address contact, int expires, List<Address> contacts)

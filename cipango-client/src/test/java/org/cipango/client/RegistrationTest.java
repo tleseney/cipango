@@ -19,6 +19,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.servlet.sip.Address;
 import javax.servlet.sip.ServletParseException;
@@ -28,8 +30,6 @@ import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
 
-import org.cipango.sip.SipHeader;
-import org.cipango.sip.SipMethod;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.integration.junit4.JUnit4Mockery;
@@ -71,10 +71,10 @@ public class RegistrationTest
 	@Test
 	public void testSetCredentials() throws ParseException
 	{
-		final Credentials credentials = _context.mock(Credentials.class);
+		List<Credentials> l = new ArrayList<Credentials>();
 		Registration r = new Registration(_uri);
-		r.setCredentials(credentials);
-		assertThat(r.getCredentials(), is(sameInstance(credentials)));
+		r.setCredentials(l);
+		assertThat(r.getCredentials(), is(sameInstance(l)));
 	}
 
 	@Test
@@ -83,18 +83,20 @@ public class RegistrationTest
 		final SipApplicationSession appSession = _context.mock(SipApplicationSession.class);
 		final SipFactory factory = _context.mock(SipFactory.class);
 		final SipServletRequest request = _context.mock(SipServletRequest.class);
+		final Address addr = _context.mock(Address.class);
 		
 		_context.checking(new Expectations() {{
 			allowing(request).getSession(); will(returnValue(null));
 			oneOf(request).setRequestURI(with(any(URI.class)));
-			oneOf(request).setAddressHeader(with(equal(SipHeader.CONTACT.asString())), with(any(Address.class)));
-			// Can't get this matching...
+			oneOf(request).setAddressHeader(with(equal(SipHeaders.CONTACT)), with(any(Address.class)));
+			// TODO: The following is better but can't match for now...
 			//oneOf(request).setAddressHeader(with(equal(SipHeader.CONTACT.asString())), with(equal(new AddressImpl(BOB_URI))));
 			oneOf(request).setExpires(1800);
 
 			allowing(factory).createSipURI(with(any(String.class)), with(any(String.class))); will(returnValue(EXAMPLE_URI));
 	        oneOf(factory).createApplicationSession(); will(returnValue(appSession));
-	        oneOf(factory).createRequest(appSession, SipMethod.REGISTER.asString(), ALICE_URI, ALICE_URI); will(returnValue(request));
+	        oneOf(factory).createRequest(appSession, SipMethods.REGISTER, ALICE_URI, ALICE_URI); will(returnValue(request));
+	        oneOf(factory).createAddress(BOB_URI); will(returnValue(addr));
 	    }});
 		
 		Registration r = new Registration(_uri);
@@ -103,13 +105,34 @@ public class RegistrationTest
 
 		assertThat(req, is(sameInstance(request)));
 		
-		// TODO: test a second invocation (the session now exists).
+		// TODO: test a second invocation (the session now exists) ?
 	}
 
 	@Test
-	public void testCreateRegisterWithAuthentication() throws ServletParseException
+	public void testCreateRegisterWithAsterisk() throws ServletParseException
 	{
-		// TODO
+		final SipApplicationSession appSession = _context.mock(SipApplicationSession.class);
+		final SipFactory factory = _context.mock(SipFactory.class);
+		final SipServletRequest request = _context.mock(SipServletRequest.class);
+		
+		_context.checking(new Expectations() {{
+			allowing(request).getSession(); will(returnValue(null));
+			oneOf(request).setRequestURI(with(any(URI.class)));
+			oneOf(request).setHeader(SipHeaders.CONTACT, "*");
+			oneOf(request).setExpires(3600);
+
+			allowing(factory).createSipURI(with(any(String.class)), with(any(String.class))); will(returnValue(EXAMPLE_URI));
+	        oneOf(factory).createApplicationSession(); will(returnValue(appSession));
+	        oneOf(factory).createRequest(appSession, SipMethods.REGISTER, ALICE_URI, ALICE_URI); will(returnValue(request));
+	    }});
+		
+		Registration r = new Registration(_uri);
+		r.setFactory(factory);
+		SipServletRequest req = r.createRegister(null, 3600);
+
+		assertThat(req, is(sameInstance(request)));
+		
+		// TODO: test a second invocation (the session now exists) ?
 	}
 	
 	@Test(expected=NullPointerException.class) 

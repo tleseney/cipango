@@ -131,9 +131,10 @@ public class UserAgent
 	 * @param request
 	 * @return the final response or <code>null</code> if no response has been received before timeout.
 	 * @throws IOException
+	 * @throws ServletException 
 	 * @see {@link #setTimeout()}
 	 */
-	public SipServletResponse sendSynchronous(String method, Address to) throws IOException
+	public SipServletResponse sendSynchronous(String method, Address to) throws IOException, ServletException
 	{
 		return sendSynchronous(createRequest(method, to));
 	}
@@ -143,9 +144,10 @@ public class UserAgent
 	 * @param request
 	 * @return the final response or <code>null</code> if no response has been received before timeout.
 	 * @throws IOException
+	 * @throws ServletException 
 	 * @see {@link #setTimeout()}
 	 */
-	public SipServletResponse sendSynchronous(SipServletRequest request) throws IOException
+	public SipServletResponse sendSynchronous(SipServletRequest request) throws IOException, ServletException
 	{
 		RequestHandler handler = new RequestHandler(request, this);
 		handler.send();
@@ -157,8 +159,9 @@ public class UserAgent
 	 * @param request
 	 * @return the request handler.
 	 * @throws IOException
+	 * @throws ServletException 
 	 */
-	public RequestHandler send(SipServletRequest request) throws IOException
+	public RequestHandler send(SipServletRequest request) throws IOException, ServletException
 	{
 		RequestHandler handler = new RequestHandler(request, this);
 		handler.send();

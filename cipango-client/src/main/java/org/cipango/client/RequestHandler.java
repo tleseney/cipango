@@ -140,6 +140,9 @@ public class RequestHandler implements MessageHandler
 	{
 		synchronized (this)
 		{
+			SipServletResponse response = getNextResponse();
+			if (response != null)
+				return response;
 			doWait(_timeout);
 			return getNextResponse();
 

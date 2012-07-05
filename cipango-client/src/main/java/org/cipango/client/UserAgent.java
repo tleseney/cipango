@@ -16,6 +16,7 @@ public class UserAgent
 {
 	private Address _aor;
 	private Address _contact;
+	private AuthHelper _authHelper;
 	private List<Credentials> _credentials = new ArrayList<Credentials>();
 	private SipFactory _factory;
 	private Registration _registration;
@@ -163,38 +164,7 @@ public class UserAgent
 		handler.send();
 		return handler;
 	}
-	
-	/**
-	 * Returns <code>true</code> if a challenge has been proceeded and a request has been sent else
-	 * returns <code>false</code>.
-	 * @param response
-	 * @return
-	 */
-	public boolean handleChallenge(SipServletResponse response)
-	{
-		if (_credentials.isEmpty())
-			return false;
 		
-		return true;
-		
-// TODO		String authorization = response.getRequest().getHeader(SipHeader.AUTHORIZATION.asString());
-//		
-//		String authenticate = response.getHeader(SipHeader.WWW_AUTHENTICATE.asString());
-//		Authentication.Digest digest = Authentication.getDigest(authenticate);
-//		
-//		if (authorization != null && !digest.isStale())
-//		{
-//			registrationFailed(status);
-//		}
-//		else
-//		{
-//			_authentication = new Authentication(digest);
-//			
-//			URI contact = response.getRequest().getAddressHeader(SipHeader.CONTACT.asString()).getURI();
-//			register(contact, response.getRequest().getExpires());
-//		}
-	}
-	
 	@SuppressWarnings("unchecked")
 	public List<SipServletResponse> getResponses(SipServletRequest request)
 	{
@@ -231,5 +201,15 @@ public class UserAgent
 		if (_aor.getURI().isSipURI())
 			return ((SipURI) _aor.getURI()).getHost();
 		return null;
+	}
+
+	public AuthHelper getAuthHelper()
+	{
+		return _authHelper;
+	}
+
+	public void setAuthHelper(AuthHelper authHelper)
+	{
+		_authHelper = authHelper;
 	}
 }

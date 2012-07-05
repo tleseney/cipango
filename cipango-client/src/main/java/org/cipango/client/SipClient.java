@@ -184,16 +184,26 @@ public class SipClient extends AbstractLifeCycle
 			if (response.getStatus() == SipServletResponse.SC_UNAUTHORIZED
 					|| response.getStatus() == SipServletResponse.SC_PROXY_AUTHENTICATION_REQUIRED)
 			{
-				UserAgent agent = getUserAgent(response.getRequest().getFrom().getURI());
-				if (agent != null)
+				Object o = response.getSession().getAttribute(AuthHelper.class.getName());
+				if (o != null && o instanceof AuthHelper)
 				{
-					boolean handled = agent.handleChallenge(response);
+					boolean handled = ((AuthHelper) o).handleChallenge(response);
 					if (handled)
 						return;
 				}
 				else
-					LOG.warn("Could not find user agent for response: " + response.getStatus() + " " + response.getMethod()
-							+ ". Do not handle challenge");
+				{
+					UserAgent agent = getUserAgent(response.getRequest().getFrom().getURI());
+					if (agent != null && agent.getAuthHelper() != null)
+					{
+						boolean handled = agent.getAuthHelper().handleChallenge(response);
+						if (handled)
+							return;
+					}
+					else
+						LOG.warn("Could not find user agent for response: " + response.getStatus() + " " + response.getMethod()
+								+ ". Do not handle challenge");
+				}
 			}
 			
 			if (handler != null)

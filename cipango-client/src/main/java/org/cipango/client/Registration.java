@@ -38,8 +38,7 @@ import javax.servlet.sip.URI;
 public class Registration 
 {
 	private Listener _listener;
-	private Authentication _authentication;
-	private Credentials _credentials;
+	private AuthHelper _authHelper;
 	private SipFactory _factory;
 	private SipSession _session;
 	private SipURI _uri;
@@ -77,16 +76,6 @@ public class Registration
 	public void setFactory(SipFactory factory)
 	{
 		_factory = factory;
-	}
-
-	public Credentials getCredentials()
-	{
-		return _credentials;
-	}
-
-	public void setCredentials(Credentials credentials)
-	{
-		_credentials = credentials;
 	}
 
 	public long getTimeout()
@@ -129,22 +118,17 @@ public class Registration
 		register.setAddressHeader(SipHeaders.CONTACT, _factory.createAddress(contact));
 		register.setExpires(expires);
 		
-		if (_authentication != null)
-		{
+		if (_authHelper != null)
 			try
 			{
-				String authorization = _authentication.authorize(
-						register.getMethod(),
-						register.getRequestURI().toString(), 
-						_credentials);
-				register.addHeader(SipHeaders.AUTHORIZATION, authorization);
+				_authHelper.addAuthentication(register);
 			}
 			catch (ServletException e)
 			{
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-		}
-		
+				
 		return register;
 	}
 
@@ -265,32 +249,27 @@ public class Registration
 		}
 		else if (status == SipServletResponse.SC_UNAUTHORIZED)
 		{
-			if (_credentials == null)
+			if (_authHelper != null)
 			{
-				registrationFailed(status);
+				boolean handled = _authHelper.handleChallenge(response);
+				if (handled)
+					return;
 			}
-			else
-			{
-				String authorization = response.getRequest().getHeader(SipHeaders.AUTHORIZATION);
-				
-				String authenticate = response.getHeader(SipHeaders.WWW_AUTHENTICATE);
-				Authentication.Digest digest = Authentication.getDigest(authenticate);
-				
-				if (authorization != null && !digest.isStale())
-				{
-					registrationFailed(status);
-				}
-				else
-				{
-					_authentication = new Authentication(digest);
-					_contact = response.getRequest().getAddressHeader(SipHeaders.CONTACT).getURI();
-					_expires = response.getRequest().getExpires();
-				}
-			}
+			registrationFailed(status);
 		}
 		else 
 		{
 			registrationFailed(status);
 		}
+	}
+
+	public AuthHelper getAuthHelper()
+	{
+		return _authHelper;
+	}
+
+	public void setAuthHelper(AuthHelper authHelper)
+	{
+		_authHelper = authHelper;
 	}
 }

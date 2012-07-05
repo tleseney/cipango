@@ -25,6 +25,10 @@ public class SipResponse extends SipMessage implements SipServletResponse
 	private int _status;
 	private String _reason;
 	
+	public SipResponse()
+	{	
+	}
+	
 	public SipResponse(SipRequest request, int status, String reason)
 	{
 		_request = request;

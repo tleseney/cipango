@@ -28,6 +28,7 @@ public class Authentication
 	private Digest _digest;
 	private Random _random;
 	private int _nc = 1;
+	private boolean _proxyAuthentication;
 	
 	public Authentication(Digest digest) throws ServletException
 	{
@@ -42,23 +43,23 @@ public class Authentication
 		{
 			MessageDigest md = MessageDigest.getInstance("MD5");
 			
-			md.update(credentials.getUser().getBytes(StringUtil.__ISO_8859_1));
+			md.update(credentials.getUser().getBytes(StringUtil.__ISO_8859_1_CHARSET));
 			md.update((byte) ':');
-			md.update(_digest._realm.getBytes(StringUtil.__ISO_8859_1));
+			md.update(_digest._realm.getBytes(StringUtil.__ISO_8859_1_CHARSET));
 			md.update((byte) ':');
-			md.update(credentials.getPassword().getBytes(StringUtil.__ISO_8859_1));
+			md.update(credentials.getPassword().getBytes(StringUtil.__ISO_8859_1_CHARSET));
 			byte[] ha1 = md.digest();
 						
 			md.reset();
-			md.update(method.getBytes(StringUtil.__ISO_8859_1));
+			md.update(method.getBytes(StringUtil.__ISO_8859_1_CHARSET));
 			md.update((byte) ':');
-			md.update(uri.getBytes(StringUtil.__ISO_8859_1));
+			md.update(uri.getBytes(StringUtil.__ISO_8859_1_CHARSET));
 			byte[] ha2 = md.digest();
 			
 			md.reset();
-			md.update(TypeUtil.toString(ha1, 16).getBytes(StringUtil.__ISO_8859_1));
+			md.update(TypeUtil.toString(ha1, 16).getBytes(StringUtil.__ISO_8859_1_CHARSET));
 			md.update((byte) ':');
-			md.update(_digest._nonce.getBytes(StringUtil.__ISO_8859_1));
+			md.update(_digest._nonce.getBytes(StringUtil.__ISO_8859_1_CHARSET));
 			
 			md.update((byte) ':');
 			if (_digest._qop != null)
@@ -72,15 +73,15 @@ public class Authentication
 				
 				cnonce = TypeUtil.toString(b, 16); 
 				
-				md.update(toHex8(_nc++).getBytes(StringUtil.__ISO_8859_1));
+				md.update(toHex8(_nc++).getBytes(StringUtil.__ISO_8859_1_CHARSET));
 				
 				md.update((byte) ':');
-				md.update(cnonce.getBytes(StringUtil.__ISO_8859_1));
+				md.update(cnonce.getBytes(StringUtil.__ISO_8859_1_CHARSET));
 				md.update((byte) ':');
-				md.update(_digest._qop.getBytes(StringUtil.__ISO_8859_1));
+				md.update(_digest._qop.getBytes(StringUtil.__ISO_8859_1_CHARSET));
 				md.update((byte) ':');
 			}
-			md.update(TypeUtil.toString(ha2, 16).getBytes(StringUtil.__ISO_8859_1));
+			md.update(TypeUtil.toString(ha2, 16).getBytes(StringUtil.__ISO_8859_1_CHARSET));
 			
 			byte[] response = md.digest();
 			
@@ -111,6 +112,11 @@ public class Authentication
 		}
 	}
 	
+	public String getRealm()
+	{
+		return _digest.getRealm();
+	}
+	
 	private static final String __padding[] = { "0000000", "000000", "00000", "0000", "000", "00", "0" };
 	
 	public static String toHex8(int i)
@@ -122,6 +128,16 @@ public class Authentication
 			s = __padding[l-1] + s;
 		}
 		return s;
+	}
+	
+	public boolean isProxyAuthentication()
+	{
+		return _proxyAuthentication;
+	}
+
+	public void setProxyAuthentication(boolean proxyAuthentication)
+	{
+		_proxyAuthentication = proxyAuthentication;
 	}
 	
 	public static Digest getDigest(String authenticate) throws ServletException
@@ -195,5 +211,12 @@ public class Authentication
 		{
 			return _nonce;
 		}
+
+		public String getRealm()
+		{
+			return _realm;
+		}
 	}
+
+
 }

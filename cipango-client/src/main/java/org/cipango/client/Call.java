@@ -22,7 +22,7 @@ public class Call extends AbstractDialog
 	
 	public SipServletRequest createAck()
 	{
-		if (_session != null)
+		if (_session == null)
 			return null;
 		
 		return getFactory().createRequest(_session.getApplicationSession(),
@@ -32,7 +32,7 @@ public class Call extends AbstractDialog
 	
 	public SipServletRequest createBye()
 	{
-		if (_session != null)
+		if (_session == null)
 			return null;
 		
 		return getFactory().createRequest(_session.getApplicationSession(),
@@ -42,6 +42,9 @@ public class Call extends AbstractDialog
 	
 	public void cancel()
 	{
+		if (_session == null)
+			return;
+
 		// TODO
 	}
 }

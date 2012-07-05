@@ -12,6 +12,7 @@ import javax.servlet.sip.SipFactory;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipURI;
+import javax.servlet.sip.URI;
 
 public class UserAgent 
 {
@@ -102,10 +103,16 @@ public class UserAgent
 			_registration.unregister();
 	}
 		
-//	Call call(URI remote)
-//	{
-//
-//	}
+	Call createCall(URI remote) throws IOException, ServletException
+	{
+		Call call = new Call();
+		call.setFactory(_factory);
+		call.setCredentials(_credentials);
+		call.setTimeout(_timeout);
+		call.start(call.createInitialRequest(_aor.getURI(), remote));
+
+		return call;
+	}
 	
 	public SipServletRequest createRequest(String method, String to) throws ServletParseException
 	{

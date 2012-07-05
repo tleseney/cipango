@@ -6,6 +6,7 @@ import java.util.List;
 import javax.servlet.ServletException;
 import javax.servlet.sip.SipFactory;
 import javax.servlet.sip.SipServletRequest;
+import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipSession;
 import javax.servlet.sip.URI;
 
@@ -56,33 +57,36 @@ public abstract class AbstractDialog
 	}	
 
 	/**
-	 * Synchronously starts this dialog.
+	 * Starts this dialog.
 	 * 
-	 * This method returns either when success, failure or request timeout is
-	 * encountered. Authentication is handled automatically if credentials were
-	 * provided to this <code>AbstractDialog</code>.
+	 * The dialog is configured and the given request is sent. The method
+	 * returns immediately after the request is sent. The caller then should
+	 * Call <code>waitForResponse</code> or <code>waitForFinalResponse</code> on
+	 * this dialog and react accordingly so as to finish the dialog
+	 * establishment.
 	 * 
 	 * @param request
 	 *            The request that will be sent to open the dialog. Ideally,
 	 *            this request was created with
-	 *            <code>createInitialRequest</code> and eventually updated
-	 *            afterwards.
-	 * @return <code>true</code> if dialog was successfully created,
-	 *         <code>false</code> otherwise.
+	 *            <code>createInitialRequest</code> and eventually tweaked as
+	 *            desired afterwards.
 	 * @throws IOException
 	 * @throws ServletException
 	 */
-	public boolean start(SipServletRequest request) throws IOException, ServletException
+	public void start(SipServletRequest request) throws IOException, ServletException
 	{
 		if (_session != null)
 			throw new ServletException("Dialog already started");
 
-		_session = request.getSession();
+		SessionHandler handler = new SessionHandler();
 
-		// TODO: set SessionHandler, set creds and timeout
+		_session = request.getSession();
+		_session.setAttribute(MessageHandler.class.getName(), handler);
+
+		handler.setTimeout(_timeout);
+		// handler.setCredentials(_credentials);
 		// handler.send();
-		//
-		return false;
+		request.send();
 	}
 	
 	/**
@@ -95,34 +99,61 @@ public abstract class AbstractDialog
 	{
 		if (_session == null)
 			return;
-		
+
+		SessionHandler handler = (SessionHandler) _session.getAttribute(MessageHandler.class.getName());
 		request.send();
-		
-		// TODO: handler.waitForFinalResponse();
+		handler.waitForFinalResponse();
 	}
 
 	/**
 	 * Creates the request that should initiate the dialog.
 	 * 
 	 * The initial request being dependent on the kind of dialog, this method is
-	 * to be implemented by the dialog specialization classes.
+	 * to be implemented by the dialog specialization classes. The caller is
+	 * autorized to complete it before providing it to <code>start</code>.
 	 * 
 	 * @param local
-	 *            the URI of the local <code>UserAgent</code>.
+	 *            the URI of the local user agent, the one which is creating
+	 *            this dialog.
 	 * @param remote
 	 *            the URI of the remote agent in the dialog.
-	 * @return
+	 * @return The brand new request, associated to this dialog.
 	 */
 	public abstract SipServletRequest createInitialRequest(URI local, URI remote);
 
 	public SipServletRequest createRequest(String method)
 	{
+		if (_session == null)
+			return null;
+
 		return _factory.createRequest(_session.getApplicationSession(), method,
 				_session.getLocalParty(), _session.getRemoteParty());
 	}
-	
-	public void send(SipServletRequest request)
+
+	public SipServletRequest waitForRequest()
 	{
-		
+		if (_session == null)
+			return null;
+
+		SessionHandler handler = (SessionHandler) _session.getAttribute(MessageHandler.class.getName());
+		return handler.waitForRequest();
+	}
+	
+	public SipServletResponse waitForResponse()
+	{
+		if (_session == null)
+			return null;
+
+		SessionHandler handler = (SessionHandler) _session.getAttribute(MessageHandler.class.getName());
+		return handler.waitForResponse();
+	}
+	
+	public SipServletResponse waitForFinalResponse()
+	{
+		if (_session == null)
+			return null;
+
+		SessionHandler handler = (SessionHandler) _session.getAttribute(MessageHandler.class.getName());
+		return handler.waitForFinalResponse();
 	}
 }

@@ -37,6 +37,8 @@ public class AuthHelper implements SipSessionListener
 					SipHeaders.CONTACT, SipHeaders.FROM, SipHeaders.MAX_FORWARDS, SipHeaders.TO,
 					SipHeaders.CSEQ, SipHeaders.VIA, SipHeaders.ROUTE, SipHeaders.RECORD_ROUTE,
 					SipHeaders.CONTENT_TYPE, SipHeaders.CONTENT_LENGTH);
+	private static final List<String> AUTH_HEADERS = 
+			Arrays.asList(SipHeaders.AUTHORIZATION, SipHeaders.PROXY_AUTHORIZATION);
   
 	
 	private ConcurrentMap<String, List<Authentication>> _authentications = new ConcurrentHashMap<String, List<Authentication>>();
@@ -108,7 +110,7 @@ public class AuthHelper implements SipSessionListener
 		
 		if (handled)
 		{
-			SipServletRequest request = copy(response.getRequest());
+			SipServletRequest request = copy(response.getRequest(), true);
 			addAuthentication(request);
 			request.send();
 			return true;
@@ -116,7 +118,7 @@ public class AuthHelper implements SipSessionListener
 		return false;
 	}
 	
-	public SipServletRequest copy(SipServletRequest orig) throws IOException, ServletParseException
+	public SipServletRequest copy(SipServletRequest orig, boolean excludeAuthHeader) throws IOException, ServletParseException
 	{
 		SipServletRequest request = orig.getSession().createRequest(orig.getMethod());
 		Iterator<String> it = orig.getHeaderNames();
@@ -124,7 +126,8 @@ public class AuthHelper implements SipSessionListener
 		{
 			String header = (String) it.next();
 			if (!SYSTEM_HEADERS.contains(header)
-					|| (SipMethods.REGISTER.equals(request.getMethod()) && SipHeaders.CONTACT.equals(header)))
+					|| (SipMethods.REGISTER.equals(request.getMethod()) && SipHeaders.CONTACT.equals(header))
+					|| (excludeAuthHeader && !AUTH_HEADERS.contains(header)))
 			{
 				for (Iterator<?> headers = orig.getHeaders(header); headers.hasNext(); ) 
 				{

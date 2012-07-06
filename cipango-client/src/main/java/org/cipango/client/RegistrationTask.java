@@ -17,7 +17,6 @@ public class RegistrationTask implements Registration.Listener, Runnable
 {
 	private Logger _log = Log.getLogger(RegistrationTask.class);
 	private Registration _registration;
-	private Registration.Listener _listener;
 	private Address _contact;
 	int _expires;
 	
@@ -25,12 +24,12 @@ public class RegistrationTask implements Registration.Listener, Runnable
 	{
 		_contact = contact;
 		_registration = registration;
-		_registration.setListener(this);
+		_registration.addListener(this);
 	}
 	
 	public void setListener(Listener listener)
 	{
-		_listener = listener;
+		_registration.addListener(listener);
 	}
 	
 	public Registration getRegistration()
@@ -43,25 +42,18 @@ public class RegistrationTask implements Registration.Listener, Runnable
 			List<Address> contacts)
 	{
 		_expires = expires;
-		if (_listener != null)
-			_listener.onRegistered(contact, expires, contacts);
 	}
 
 	@Override
 	public void onUnregistered(Address contact)
 	{
-		if (_listener != null)
-			_listener.onUnregistered(contact);
-		
 		// TODO: what should be the behaviour of this task in this case?
 	}
 
 	@Override
 	public void onRegistrationFailed(int status)
 	{
-		if (_listener != null)
-			_listener.onRegistrationFailed(status);
-		
+		// TODO: what should be the behaviour of this task in this case?
 	}
 	
 	@Override

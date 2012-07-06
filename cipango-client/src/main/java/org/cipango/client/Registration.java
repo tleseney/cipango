@@ -34,12 +34,11 @@ import javax.servlet.sip.URI;
  */
 public class Registration 
 {
-	private Listener _listener;
+	private List<Listener> _listeners = new ArrayList<Listener>();
 	private List<Credentials> _credentials;
 	private SipFactory _factory;
 	private SipSession _session;
 	private SipURI _uri;
-	private URI _contact;
 	private long _timeout;
 	private boolean _registered;
 
@@ -90,11 +89,22 @@ public class Registration
 		return _uri;
 	}
 	
-	public void setListener(Listener listener)
+	public List<Listener> getListeners()
 	{
-		_listener = listener;
+		return _listeners;
+	}
+	
+	public void addListener(Listener listener)
+	{
+		if (listener != null && !_listeners.contains(listener))
+			_listeners.add(listener);
 	}
 
+	public void removeListener(Listener listener)
+	{
+		_listeners.remove(listener);
+	}
+	
 	public SipServletRequest createRegister(URI contact, int expires)
 	{
 		SipServletRequest register;
@@ -141,8 +151,6 @@ public class Registration
 	{
 		RequestHandler handler = new RequestHandler(createRegister(contact, expires), _timeout);
 
-		_contact = contact;
-
 		handler.setCredentials(_credentials);
 		handler.send();
 		processResponse(handler.waitFinalResponse());
@@ -164,35 +172,26 @@ public class Registration
 	 */
 	public boolean unregister(URI contact) throws IOException, ServletException
 	{
-		RequestHandler handler = new RequestHandler(createRegister(_contact, 0), _timeout);
-
-		handler.send();
-		processResponse(handler.waitFinalResponse());
-		
-		return !_registered;
+		return !register(contact, 0);
 	}
 	
 	protected void registrationDone(Address contact, int expires, List<Address> contacts)
 	{
-		if (_listener != null)
+		_registered = (expires == 0) ? false: true;
+
+		for (Listener l : _listeners)
 		{
-			if (expires == 0)
-			{
-				_registered = false;
-				_listener.onUnregistered(contact);
-			}
+			if (_registered)
+				l.onRegistered(contact, expires, contacts);
 			else
-			{
-				_registered = true;
-				_listener.onRegistered(contact, expires, contacts);
-			}
+				l.onUnregistered(contact);
 		}
 	}
 	
 	protected void registrationFailed(int status)
 	{
-		if (_listener != null)
-			_listener.onRegistrationFailed(status);
+		for (Listener l : _listeners)
+			l.onRegistrationFailed(status);
 	}
 	
 	protected void processResponse(SipServletResponse response) throws ServletException, IOException 

@@ -78,6 +78,62 @@ public class RegistrationTest
 	}
 
 	@Test
+	public void testAddListener()
+	{
+		final Registration.Listener listener = _context.mock(Registration.Listener.class);
+		Registration r = new Registration(_uri);
+		r.addListener(listener);
+		assertThat(r.getListeners().size(), is(1));
+		assertThat(r.getListeners(), hasItem(listener));
+	}
+	
+	@Test
+	public void testAddListenerWithNullListener()
+	{
+		Registration r = new Registration(_uri);
+		r.addListener(null);
+		assertThat(r.getListeners().size(), is(0));
+	}
+	
+	@Test
+	public void testRemoveListener()
+	{
+		final Registration.Listener listener = _context.mock(Registration.Listener.class);
+		Registration r = new Registration(_uri);
+		r.addListener(listener);
+		r.removeListener(listener);
+		assertThat(r.getListeners().size(), is(0));
+	}
+
+	@Test
+	public void testRemoveListenerWithEmptyList()
+	{
+		final Registration.Listener listener = _context.mock(Registration.Listener.class);
+		Registration r = new Registration(_uri);
+		r.removeListener(listener);
+		assertThat(r.getListeners().size(), is(0));
+	}
+
+	@Test
+	public void testRemoveListenerWithNullListenerAndEmptyList()
+	{
+		Registration r = new Registration(_uri);
+		r.removeListener(null);
+		assertThat(r.getListeners().size(), is(0));
+	}
+
+	@Test
+	public void testRemoveListenerWithNullListener()
+	{
+		final Registration.Listener listener = _context.mock(Registration.Listener.class);
+		Registration r = new Registration(_uri);
+		r.addListener(listener);
+		r.removeListener(null);
+		assertThat(r.getListeners().size(), is(1));
+		assertThat(r.getListeners(), hasItem(listener));
+	}
+
+	@Test
 	public void testCreateRegister() throws ServletParseException
 	{
 		final SipApplicationSession appSession = _context.mock(SipApplicationSession.class);

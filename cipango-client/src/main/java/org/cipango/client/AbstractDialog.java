@@ -20,6 +20,7 @@ public abstract class AbstractDialog
 	private long _timeout;
 
 	protected SipSession _session;
+	private SessionHandler _sessionHandler;
 	
 	public SipFactory getFactory()
 	{
@@ -78,12 +79,12 @@ public abstract class AbstractDialog
 		if (_session != null)
 			throw new ServletException("Dialog already started");
 
-		SessionHandler handler = new SessionHandler();
+		_sessionHandler = new SessionHandler();
 
 		_session = request.getSession();
-		_session.setAttribute(MessageHandler.class.getName(), handler);
+		_session.setAttribute(MessageHandler.class.getName(), _sessionHandler);
 
-		handler.setTimeout(_timeout);
+		_sessionHandler.setTimeout(_timeout);
 		// handler.setCredentials(_credentials);
 		// handler.send();
 		request.send();
@@ -100,9 +101,8 @@ public abstract class AbstractDialog
 		if (_session == null)
 			return;
 
-		SessionHandler handler = (SessionHandler) _session.getAttribute(MessageHandler.class.getName());
 		request.send();
-		handler.waitForFinalResponse();
+		_sessionHandler.waitForFinalResponse();
 	}
 
 	/**
@@ -126,8 +126,7 @@ public abstract class AbstractDialog
 		if (_session == null)
 			return null;
 
-		return _factory.createRequest(_session.getApplicationSession(), method,
-				_session.getLocalParty(), _session.getRemoteParty());
+		return _session.createRequest(method);
 	}
 
 	public SipServletRequest waitForRequest()
@@ -135,8 +134,7 @@ public abstract class AbstractDialog
 		if (_session == null)
 			return null;
 
-		SessionHandler handler = (SessionHandler) _session.getAttribute(MessageHandler.class.getName());
-		return handler.waitForRequest();
+		return _sessionHandler.waitForRequest();
 	}
 	
 	public SipServletResponse waitForResponse()
@@ -144,16 +142,19 @@ public abstract class AbstractDialog
 		if (_session == null)
 			return null;
 
-		SessionHandler handler = (SessionHandler) _session.getAttribute(MessageHandler.class.getName());
-		return handler.waitForResponse();
+		return _sessionHandler.waitForResponse();
 	}
 	
 	public SipServletResponse waitForFinalResponse()
 	{
 		if (_session == null)
 			return null;
-
-		SessionHandler handler = (SessionHandler) _session.getAttribute(MessageHandler.class.getName());
-		return handler.waitForFinalResponse();
+		return _sessionHandler.waitForFinalResponse();
 	}
+
+	public SessionHandler getSessionHandler()
+	{
+		return _sessionHandler;
+	}
+
 }

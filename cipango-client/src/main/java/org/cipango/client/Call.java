@@ -2,6 +2,7 @@ package org.cipango.client;
 
 import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipServletRequest;
+import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.URI;
 
 /**
@@ -14,30 +15,28 @@ public class Call extends AbstractDialog
 	public SipServletRequest createInitialRequest(URI local, URI remote)
 	{
 		if (_session != null)
-			return null;
-		
+			throw new IllegalStateException("Session already created");
 		SipApplicationSession appSession = getFactory().createApplicationSession();
-		return getFactory().createRequest(appSession, SipMethods.INVITE, local, remote);
+		SipServletRequest request = getFactory().createRequest(appSession, SipMethods.INVITE, local, remote);
+		_session = request.getSession();
+		return request;
 	}
 	
 	public SipServletRequest createAck()
 	{
-		if (_session == null)
-			return null;
-		
-		return getFactory().createRequest(_session.getApplicationSession(),
-				SipMethods.ACK, _session.getLocalParty(),
-				_session.getRemoteParty());
+		for (SipServletResponse response : getSessionHandler().getResponses())
+		{
+			if (response.getStatus() >= 200 && response.getStatus() < 300 && !response.isCommitted())
+			{
+				return response.createAck();
+			}
+		}
+		return null;
 	}
 	
 	public SipServletRequest createBye()
 	{
-		if (_session == null)
-			return null;
-		
-		return getFactory().createRequest(_session.getApplicationSession(),
-				SipMethods.BYE, _session.getLocalParty(),
-				_session.getRemoteParty());
+		return createRequest(SipMethods.BYE);
 	}
 	
 	public void cancel()

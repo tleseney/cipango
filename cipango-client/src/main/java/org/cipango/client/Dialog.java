@@ -15,7 +15,7 @@ import javax.servlet.sip.URI;
 /**
  * A SIP Dialog abstraction.
  */
-public class AbstractDialog
+public class Dialog
 {
 	private SipFactory _factory;
 	private List<Credentials> _credentials; 
@@ -72,8 +72,9 @@ public class AbstractDialog
 	 * @param request
 	 *            The request that will be sent to open the dialog. Ideally,
 	 *            this request was created with
-	 *            <code>createInitialRequest</code> and eventually tweaked as
-	 *            desired afterwards.
+	 *            <code>createInitialRequest</code>, or with a specialized
+	 *            method in child classes and eventually tweaked as desired
+	 *            afterwards.
 	 * @throws IOException
 	 * @throws ServletException
 	 */
@@ -88,8 +89,8 @@ public class AbstractDialog
 		_session.setAttribute(MessageHandler.class.getName(), _sessionHandler);
 
 		_sessionHandler.setTimeout(_timeout);
-		// handler.setCredentials(_credentials);
-		// handler.send();
+		// _sessionHandler.setCredentials(_credentials);
+		// _sessionHandler.send();
 		request.send();
 	}
 	
@@ -126,6 +127,7 @@ public class AbstractDialog
 	{
 		if (_session != null)
 			throw new IllegalStateException("Session already created");
+		
 		SipApplicationSession appSession = getFactory().createApplicationSession();
 		SipServletRequest request = getFactory().createRequest(appSession, method, local, remote);
 		if (_outboundProxy != null)

@@ -1,6 +1,5 @@
 package org.cipango.client;
 
-import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.URI;
@@ -8,7 +7,7 @@ import javax.servlet.sip.URI;
 /**
  * A SIP Call abstraction.
  */
-public class Call extends AbstractDialog
+public class Call extends Dialog
 {
 
 	public SipServletRequest createInitialInvite(URI local, URI remote)

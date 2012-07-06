@@ -113,7 +113,7 @@ public class UserAgent
 		return call;
 	}
 	
-	public AbstractDialog customize(AbstractDialog dialog)
+	public Dialog customize(Dialog dialog)
 	{
 		dialog.setFactory(_factory);
 		dialog.setCredentials(_credentials);

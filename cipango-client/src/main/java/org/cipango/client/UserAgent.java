@@ -23,6 +23,7 @@ public class UserAgent
 	private Registration _registration;
 	private Registration.Listener _registrationListener;
 	private long _timeout;
+	private Address _outboundProxy;
 
 	public UserAgent(Address aor)
 	{
@@ -103,15 +104,22 @@ public class UserAgent
 			_registration.unregister();
 	}
 		
-	Call createCall(URI remote) throws IOException, ServletException
+	public Call createCall(URI remote) throws IOException, ServletException
 	{
 		Call call = new Call();
-		call.setFactory(_factory);
-		call.setCredentials(_credentials);
-		call.setTimeout(_timeout);
-		call.start(call.createInitialRequest(_aor.getURI(), remote));
+		customize(call);
+		call.start(call.createInitialInvite(_aor.getURI(), remote));
 
 		return call;
+	}
+	
+	public AbstractDialog customize(AbstractDialog dialog)
+	{
+		dialog.setFactory(_factory);
+		dialog.setCredentials(_credentials);
+		dialog.setTimeout(_timeout);
+		dialog.setOutboundProxy(_outboundProxy);
+		return dialog;
 	}
 	
 	public SipServletRequest createRequest(String method, String to) throws ServletParseException

@@ -11,15 +11,9 @@ import javax.servlet.sip.URI;
 public class Call extends AbstractDialog
 {
 
-	@Override
-	public SipServletRequest createInitialRequest(URI local, URI remote)
+	public SipServletRequest createInitialInvite(URI local, URI remote)
 	{
-		if (_session != null)
-			throw new IllegalStateException("Session already created");
-		SipApplicationSession appSession = getFactory().createApplicationSession();
-		SipServletRequest request = getFactory().createRequest(appSession, SipMethods.INVITE, local, remote);
-		_session = request.getSession();
-		return request;
+		return createInitialRequest(SipMethods.INVITE, local, remote);
 	}
 	
 	public SipServletRequest createAck()

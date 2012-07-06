@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.List;
 
 import javax.servlet.ServletException;
+import javax.servlet.sip.Address;
+import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipFactory;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
@@ -13,7 +15,7 @@ import javax.servlet.sip.URI;
 /**
  * A SIP Dialog abstraction.
  */
-public abstract class AbstractDialog
+public class AbstractDialog
 {
 	private SipFactory _factory;
 	private List<Credentials> _credentials; 
@@ -21,6 +23,7 @@ public abstract class AbstractDialog
 
 	protected SipSession _session;
 	private SessionHandler _sessionHandler;
+	private Address _outboundProxy;
 	
 	public SipFactory getFactory()
 	{
@@ -110,7 +113,7 @@ public abstract class AbstractDialog
 	 * 
 	 * The initial request being dependent on the kind of dialog, this method is
 	 * to be implemented by the dialog specialization classes. The caller is
-	 * autorized to complete it before providing it to <code>start</code>.
+	 * authorized to complete it before providing it to <code>start</code>.
 	 * 
 	 * @param local
 	 *            the URI of the local user agent, the one which is creating
@@ -119,12 +122,22 @@ public abstract class AbstractDialog
 	 *            the URI of the remote agent in the dialog.
 	 * @return The brand new request, associated to this dialog.
 	 */
-	public abstract SipServletRequest createInitialRequest(URI local, URI remote);
+	public SipServletRequest createInitialRequest(String method, URI local, URI remote)
+	{
+		if (_session != null)
+			throw new IllegalStateException("Session already created");
+		SipApplicationSession appSession = getFactory().createApplicationSession();
+		SipServletRequest request = getFactory().createRequest(appSession, method, local, remote);
+		if (_outboundProxy != null)
+			request.pushRoute(_outboundProxy);
+		return request;
+		
+	}
 
 	public SipServletRequest createRequest(String method)
 	{
 		if (_session == null)
-			return null;
+			throw new IllegalStateException("Session not created");
 
 		return _session.createRequest(method);
 	}
@@ -155,6 +168,16 @@ public abstract class AbstractDialog
 	public SessionHandler getSessionHandler()
 	{
 		return _sessionHandler;
+	}
+
+	public Address getOutboundProxy()
+	{
+		return _outboundProxy;
+	}
+
+	public void setOutboundProxy(Address outboundProxy)
+	{
+		_outboundProxy = outboundProxy;
 	}
 
 }

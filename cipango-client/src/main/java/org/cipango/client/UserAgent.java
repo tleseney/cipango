@@ -192,9 +192,9 @@ public class UserAgent
 	 */
 	public SipServletResponse sendSynchronous(SipServletRequest request) throws IOException, ServletException
 	{
-		RequestHandler handler = new RequestHandler(request, this);
+		RequestHandler handler = new RequestHandler(request, getTimeout());
 		handler.send();
-		return handler.waitFinalResponse();
+		return handler.waitForFinalResponse();
 	}
 	
 	/**
@@ -206,7 +206,7 @@ public class UserAgent
 	 */
 	public RequestHandler send(SipServletRequest request) throws IOException, ServletException
 	{
-		RequestHandler handler = new RequestHandler(request, this);
+		RequestHandler handler = new RequestHandler(request, getTimeout());
 		handler.send();
 		return handler;
 	}

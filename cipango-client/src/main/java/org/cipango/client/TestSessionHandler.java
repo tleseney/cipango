@@ -41,7 +41,7 @@ public class TestSessionHandler extends SessionHandler
 				if (timeout <= 0)
 					fail("No request received");
 				
-				doWait(timeout, true);
+				doWait(_requests, timeout);
 				request = getUnreadRequest();
 				if (request == null)
 					fail("No request received");

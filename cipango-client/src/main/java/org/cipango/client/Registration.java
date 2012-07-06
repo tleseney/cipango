@@ -153,7 +153,7 @@ public class Registration
 
 		handler.setCredentials(_credentials);
 		handler.send();
-		processResponse(handler.waitFinalResponse());
+		processResponse(handler.waitForFinalResponse());
 
 		return _registered;
 	}

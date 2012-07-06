@@ -20,6 +20,17 @@ import javax.servlet.sip.SipSessionListener;
 
 public class AuthHelper implements SipSessionListener
 {
+	/**
+	 * Attribute of the SipServletRequest used to find from an authenticated request
+	 * the original request from wich the request has been created.
+	 */
+	public static final String ORIGINAL_REQUEST = AuthHelper.class.getPackage().toString() + ".originalRequest";
+	
+	/**
+	 * Attribute of the SipServletRequest used to find from an original request
+	 * the authenticated request.
+	 */
+	public static final String AUTHENTICATED_REQUEST = AuthHelper.class.getPackage().toString() + ".authenticatedRequest";
 
 	private static final List<String> SYSTEM_HEADERS = 
 			Arrays.asList(SipHeaders.CALL_ID,
@@ -133,6 +144,12 @@ public class AuthHelper implements SipSessionListener
 		if (content != null)
 			request.setContent(content, orig.getHeader(SipHeaders.CONTENT_TYPE));
 				
+		SipServletRequest request2 = (SipServletRequest) orig.getAttribute(ORIGINAL_REQUEST);
+		if (request2 == null)
+			request2 = orig;
+		request.setAttribute(ORIGINAL_REQUEST, request2);
+		request2.setAttribute(AUTHENTICATED_REQUEST, request);
+		
 		return request;
 	}
 	
@@ -194,6 +211,32 @@ public class AuthHelper implements SipSessionListener
 		if (credentials == null)
 			credentials = _credentials.get("");
 		return credentials;
+	}
+	
+	/**
+	 * Returns the original request from a request that may have been authentified.
+	 * If the request has not been copied, it returns <code>request</code>.
+	 * @see #ORIGINAL_REQUEST
+	 */
+	public SipServletRequest getOriginalRequest(SipServletRequest request)
+	{
+		SipServletRequest orig = (SipServletRequest) request.getAttribute(ORIGINAL_REQUEST);
+		if (orig == null)
+			return request;
+		return orig;
+	}
+	
+	/**
+	 * Returns the authenticated request from a request.
+	 * If the request has not been copied, it returns <code>request</code>.
+	 * @see #AUTHENTICATED_REQUEST
+	 */
+	public SipServletRequest getAuthenticatedRequest(SipServletRequest request)
+	{
+		SipServletRequest authenticated = (SipServletRequest) request.getAttribute(AUTHENTICATED_REQUEST);
+		if (authenticated == null)
+			return request;
+		return authenticated;
 	}
 	
 	

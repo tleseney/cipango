@@ -20,11 +20,23 @@ import javax.servlet.ServletException;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
+/**
+ * MessageHandler is the minimal API to be implemented by an object which is to
+ * be aware of SIP messages. It is more efficiently used in conjunction with
+ * {@link SipClient}, in which case an object implementing this interface must
+ * be stored as the attribute named <code>MessageHandler.class.getName()</code>
+ * either in the sent requests, or in the established SIP sessions.
+ * <p>
+ * When handling SIP messages, {@link SipClient} first checks for a
+ * MessageHandler instance in the received request (or in the request associated
+ * to the received response), and then in the message's session if unsuccessful.
+ * Received initial requests, which normally do not have any handler defined,
+ * are handled directly by the concerned {@link UserAgent} if any. If no handler
+ * or user agent can be found, messages are dropped.
+ */
 public interface MessageHandler 
 {
 	void handleRequest(SipServletRequest request) throws IOException, ServletException;
 
 	void handleResponse(SipServletResponse response) throws IOException, ServletException;
-
-	void handleAuthentication(SipServletResponse response) throws IOException, ServletException;
 }

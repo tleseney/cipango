@@ -184,11 +184,16 @@ public class SipClient extends AbstractLifeCycle
 
 			if (handler != null)
 			{
+				boolean process = true;
+				
 				if (response.getStatus() == SipServletResponse.SC_UNAUTHORIZED
 						|| response.getStatus() == SipServletResponse.SC_PROXY_AUTHENTICATION_REQUIRED)
-					handler.handleAuthentication(response);
+				{
+					if (handler instanceof ChallengedMessageHandler)
+						process = ((ChallengedMessageHandler) handler).handleAuthentication(response);
+				}
 
-				if (response.getAttribute(RequestHandler.HANDLED_ATTRIBUTE) == null)
+				if (process)
 					handler.handleResponse(response);
 			}
 			else

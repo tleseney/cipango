@@ -20,7 +20,7 @@ import javax.servlet.sip.SipSession;
  * propagated to the user, but are recorded in the request responses list
  * anyway.
  */
-public class RequestHandler implements MessageHandler
+public class RequestHandler implements ChallengedMessageHandler
 {
 	private static final List<String> SYSTEM_HEADERS = Arrays.asList(SipHeaders.CALL_ID,
 			SipHeaders.CONTACT, SipHeaders.FROM, SipHeaders.MAX_FORWARDS, SipHeaders.TO,
@@ -93,7 +93,7 @@ public class RequestHandler implements MessageHandler
 	}
 
 	@Override
-	public void handleAuthentication(SipServletResponse response)
+	public boolean handleAuthentication(SipServletResponse response)
 			throws IOException, ServletException
 	{
 		if (_credentials != null && !_credentials.isEmpty())
@@ -103,7 +103,7 @@ public class RequestHandler implements MessageHandler
 			Authentication.Digest digest = Authentication.getDigest(authenticate);
 
 			if (authorization != null && !digest.isStale())
-				return;
+				return true;
 
 			for (Credentials creds : _credentials)
 			{
@@ -116,6 +116,7 @@ public class RequestHandler implements MessageHandler
 				}
 			}
 		}
+		return false;
 	}
 		
 	public SipServletResponse getNextResponse()

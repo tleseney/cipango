@@ -9,7 +9,7 @@ import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
-public class SessionHandler extends DefaultChallengedMessageHandler
+public class SessionHandler extends AbstractChallengedMessageHandler
 {
 	protected List<ReadableMessage<SipServletRequest>> _requests;
 	protected List<ReadableMessage<SipServletResponse>> _responses;
@@ -32,6 +32,25 @@ public class SessionHandler extends DefaultChallengedMessageHandler
 			_responses.add(new ReadableMessage<SipServletResponse>(response));
 			_responses.notifyAll();
 		}
+	}
+	
+	@Override
+	public boolean handleAuthentication(SipServletResponse response)
+			throws IOException, ServletException
+	{
+		boolean result = super.handleAuthentication(response);
+		if (!result)
+			_responses.add(new ReadableMessage<SipServletResponse>(response));
+		return result;
+	}
+	
+	public void send(SipServletRequest request) throws IOException, ServletException
+	{
+		AuthenticationHelper helper = getAuthenticationHelper(request);
+		if (helper != null)
+			helper.addAuthentication(request);
+
+		request.send();
 	}
 	
 	public SipServletRequest waitForRequest()

@@ -17,7 +17,7 @@ import javax.servlet.sip.SipServletResponse;
  * by the helper are not directly propagated to the user, but are recorded in
  * the request responses list anyway.
  */
-public class RequestHandler extends DefaultChallengedMessageHandler
+public class RequestHandler extends AbstractChallengedMessageHandler
 {
 	private List<SipServletResponse> _responses = new ArrayList<SipServletResponse>();
 

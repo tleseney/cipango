@@ -10,7 +10,7 @@ import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
 /**
- * This class is the lightest possible implementation of
+ * This class sets the minimum implementation for a
  * {@link ChallengedMessageHandler}. It simply handles messages as they come and
  * notifies all the threads waiting for this. It stores neither handled requests
  * nor responses.
@@ -23,7 +23,7 @@ import javax.servlet.sip.SipServletResponse;
  * {@link AuthenticationHelper#addAuthentication(SipServletRequest)} on any new
  * request belonging to the same session request before sending it.
  */
-public class DefaultChallengedMessageHandler implements
+public abstract class AbstractChallengedMessageHandler implements
 		ChallengedMessageHandler
 {
 	public static final String HANDLED_ATTRIBUTE = "Challenge-Handled";
@@ -57,26 +57,6 @@ public class DefaultChallengedMessageHandler implements
 	public void setTimeout(long timeout)
 	{
 		_timeout = timeout;
-	}
-	
-	@Override
-	public void handleRequest(SipServletRequest request) throws IOException,
-			ServletException
-	{
-		synchronized (this)
-		{
-			notifyAll();
-		}
-	}
-
-	@Override
-	public void handleResponse(SipServletResponse response) throws IOException,
-			ServletException
-	{
-		synchronized (this)
-		{
-			notifyAll();
-		}
 	}
 
 	@Override

@@ -100,8 +100,7 @@ public class Dialog
 	public void start(SipServletRequest request) throws IOException, ServletException
 	{
 		initialize(request);
-		// _sessionHandler.send();
-		request.send();
+		_sessionHandler.send(request);
 	}
 	
 	/**
@@ -202,7 +201,7 @@ public class Dialog
 		_session.setAttribute(MessageHandler.class.getName(), _sessionHandler);
 
 		_sessionHandler.setTimeout(_timeout);
-		// _sessionHandler.setCredentials(_credentials);
+		_sessionHandler.setCredentials(_credentials);
 	}
 
 }

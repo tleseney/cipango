@@ -1,5 +1,7 @@
 package org.cipango.client;
 
+import java.io.IOException;
+
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.URI;
@@ -27,16 +29,35 @@ public class Call extends Dialog
 		return null;
 	}
 	
+	public SipServletRequest createPrack()
+	{
+		return null; // TODO
+	}
+	
 	public SipServletRequest createBye()
 	{
 		return createRequest(SipMethods.BYE);
 	}
 	
-	public void cancel()
+	public void cancel() throws IOException
 	{
-		if (_session == null)
-			return;
-
-		// TODO
+		if (_session != null)
+		{
+			SipServletResponse response = getSessionHandler().getLastResponse();
+			if (response != null && response.getStatus() < SipServletResponse.SC_OK)
+			{
+				response.getRequest().createCancel().send();
+			}
+		}
+	}
+	
+	/**
+	 * Proceed to an unattended transfer towards <code>remote</code>.
+	 * 
+	 * @param remote
+	 */
+	public void transfer(URI remote)
+	{
+		// TODO: See RFC3515.
 	}
 }

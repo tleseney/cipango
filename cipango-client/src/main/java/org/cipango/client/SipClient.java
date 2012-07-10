@@ -22,7 +22,6 @@ import javax.servlet.ServletException;
 import javax.servlet.sip.Address;
 import javax.servlet.sip.SipFactory;
 import javax.servlet.sip.SipServlet;
-import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipURI;
@@ -173,6 +172,7 @@ public class SipClient extends AbstractLifeCycle
 		{
 			MessageHandler handler = getHandler(response);
 			SipServletRequest request = response.getRequest();
+			@SuppressWarnings("unchecked")
 			List<SipServletResponse> l = (List<SipServletResponse>) request.getAttribute(SipServletResponse.class.getName());
 			if (l==null)
 			{

@@ -16,6 +16,7 @@ import javax.servlet.sip.URI;
 
 public class UserAgent 
 {
+	private MessageHandler _handler = new DefaultMessageHandler();
 	private Address _aor;
 	private Address _contact;
 	private List<Credentials> _credentials = new ArrayList<Credentials>();
@@ -68,11 +69,19 @@ public class UserAgent
 		return _contact;
 	}
 	
-	public void handleInitialRequest(SipServletRequest request)
+	public void handleInitialRequest(SipServletRequest request) throws IOException, ServletException
 	{
-		// TODO
+		if (_handler != null)
+		{
+			_handler.handleRequest(request);
+		}
 	}
-		
+
+	public void setDefaultHandler(MessageHandler handler)
+	{
+		_handler = handler;
+	}
+
 	/**
 	 * Synchronous registers this <code>UserAgent</code>.
 	 * 

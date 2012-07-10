@@ -17,13 +17,15 @@ import javax.servlet.sip.URI;
  */
 public class Dialog
 {
+	public static final String INITIAL_REQUEST_ATTRIBUTE = "INITIAL_REQUEST";
+	
 	private SipFactory _factory;
 	private List<Credentials> _credentials; 
+	private SessionHandler _sessionHandler;
+	private Address _outboundProxy;
 	private long _timeout;
 
 	protected SipSession _session;
-	private SessionHandler _sessionHandler;
-	private Address _outboundProxy;
 	
 	public SipFactory getFactory()
 	{
@@ -61,8 +63,25 @@ public class Dialog
 	}	
 
 	/**
-	 * Starts this dialog.
+	 * Opens a dialog with an incoming request.
+	 * <p>
+	 * The dialog is configured with the given request. The method returns
+	 * immediately and the caller should then prepare and send its response. so
+	 * as to finish the dialog establishment.
 	 * 
+	 * @param request
+	 *            The request that was received and which opens this dialog.
+	 * @throws ServletException
+	 */
+	public void accept(SipServletRequest request) throws ServletException
+	{
+		initialize(request);
+		_session.setAttribute(INITIAL_REQUEST_ATTRIBUTE, request);
+	}
+
+	/**
+	 * Starts this dialog.
+	 * <p>
 	 * The dialog is configured and the given request is sent. The method
 	 * returns immediately after the request is sent. The caller then should
 	 * Call <code>waitForResponse</code> or <code>waitForFinalResponse</code> on
@@ -70,7 +89,7 @@ public class Dialog
 	 * establishment.
 	 * 
 	 * @param request
-	 *            The request that will be sent to open the dialog. Ideally,
+	 *            The request that will be sent to open this dialog. Ideally,
 	 *            this request was created with
 	 *            <code>createInitialRequest</code>, or with a specialized
 	 *            method in child classes and eventually tweaked as desired
@@ -80,16 +99,7 @@ public class Dialog
 	 */
 	public void start(SipServletRequest request) throws IOException, ServletException
 	{
-		if (_session != null)
-			throw new ServletException("Dialog already started");
-
-		_sessionHandler = new SessionHandler();
-
-		_session = request.getSession();
-		_session.setAttribute(MessageHandler.class.getName(), _sessionHandler);
-
-		_sessionHandler.setTimeout(_timeout);
-		// _sessionHandler.setCredentials(_credentials);
+		initialize(request);
 		// _sessionHandler.send();
 		request.send();
 	}
@@ -111,7 +121,7 @@ public class Dialog
 
 	/**
 	 * Creates the request that should initiate the dialog.
-	 * 
+	 * <p>
 	 * The initial request being dependent on the kind of dialog, this method is
 	 * to be implemented by the dialog specialization classes. The caller is
 	 * authorized to complete it before providing it to <code>start</code>.
@@ -180,6 +190,19 @@ public class Dialog
 	public void setOutboundProxy(Address outboundProxy)
 	{
 		_outboundProxy = outboundProxy;
+	}
+	
+	private void initialize(SipServletRequest request) throws ServletException
+	{
+		if (_session != null)
+			throw new ServletException("Dialog already started");
+
+		_sessionHandler = new SessionHandler();
+		_session = request.getSession();
+		_session.setAttribute(MessageHandler.class.getName(), _sessionHandler);
+
+		_sessionHandler.setTimeout(_timeout);
+		// _sessionHandler.setCredentials(_credentials);
 	}
 
 }

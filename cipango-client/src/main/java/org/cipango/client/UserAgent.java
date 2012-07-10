@@ -12,9 +12,11 @@ import javax.servlet.sip.SipFactory;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipURI;
+import javax.servlet.sip.URI;
 
 public class UserAgent 
 {
+	private MessageHandler _handler = new DefaultMessageHandler();
 	private Address _aor;
 	private Address _contact;
 	private List<Credentials> _credentials = new ArrayList<Credentials>();
@@ -23,6 +25,7 @@ public class UserAgent
 	private RegistrationTask _registrationTask;
 	private Registration.Listener _registrationListener;
 	private long _timeout;
+	private Address _outboundProxy;
 
 	public UserAgent(Address aor)
 	{
@@ -70,11 +73,19 @@ public class UserAgent
 		return _contact;
 	}
 	
-	public void handleInitialRequest(SipServletRequest request)
+	public void handleInitialRequest(SipServletRequest request) throws IOException, ServletException
 	{
-		// TODO
+		if (_handler != null)
+		{
+			_handler.handleRequest(request);
+		}
 	}
-		
+
+	public void setDefaultHandler(MessageHandler handler)
+	{
+		_handler = handler;
+	}
+
 	/**
 	 * Synchronously registers this <code>UserAgent</code>'s contact with the
 	 * given expiration value.
@@ -145,10 +156,23 @@ public class UserAgent
 		return false;
 	}
 		
-//	Call call(URI remote)
-//	{
-//
-//	}
+	public Call createCall(URI remote) throws IOException, ServletException
+	{
+		Call call = new Call();
+		customize(call);
+		call.start(call.createInitialInvite(_aor.getURI(), remote));
+
+		return call;
+	}
+	
+	public Dialog customize(Dialog dialog)
+	{
+		dialog.setFactory(_factory);
+		dialog.setCredentials(_credentials);
+		dialog.setTimeout(_timeout);
+		dialog.setOutboundProxy(_outboundProxy);
+		return dialog;
+	}
 	
 	public SipServletRequest createRequest(String method, String to) throws ServletParseException
 	{

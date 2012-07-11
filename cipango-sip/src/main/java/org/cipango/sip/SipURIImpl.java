@@ -157,6 +157,7 @@ public class SipURIImpl implements SipURI
 		
 		String key = null;
 		String value = null;
+		boolean ipv6Host = false;
 		
 		if (uri.indexOf('@') != -1)
 			state = State.USER;
@@ -210,7 +211,7 @@ public class SipURIImpl implements SipURI
 				
 				break;
 			case HOST:
-				if (c == ':')
+				if (c == ':' && !ipv6Host)
 				{
 					if (i-m>0)
 						_host = encoded ? UrlEncoded.decodeString(uri, m, i-m, null) : uri.substring(m, i);
@@ -245,6 +246,16 @@ public class SipURIImpl implements SipURI
 					else
 						throw new ParseException("missing host", i);
 					return;
+				}
+				else if (c == '[')
+				{
+					ipv6Host = true;
+				}
+				else if (c == ']')
+				{
+					if (!ipv6Host)
+						throw new ParseException("invalid host. Got ']' without '['", i);
+					ipv6Host = false;
 				}
 			
 				break;

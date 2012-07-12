@@ -3,6 +3,7 @@ package org.cipango.client;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -36,7 +37,7 @@ public class AuthenticationHelper
 		{
     		for (Credentials creds : _credentials)
     		{
-    			if (creds.getRealm() == realm)
+    			if (creds.getRealm().equals(realm))
     				return creds;
     		}
 		}
@@ -68,9 +69,9 @@ public class AuthenticationHelper
     		SipServletRequest request = copy(response.getRequest());
     		addAuthentication(request);
     		request.send();
-    		return true;
     	}
-    	return false;
+
+    	return handled;
 	}
 
 	public void addAuthentication(SipServletRequest request) throws ServletException
@@ -154,6 +155,13 @@ public class AuthenticationHelper
 				}
 			}
 		}
+		
+		for (Enumeration<String> e = request.getAttributeNames(); e.hasMoreElements();)
+		{
+			String name = e.nextElement();
+		       newRequest.setAttribute(name, request.getAttribute(name));
+		}
+		
 		if (request.isInitial())
 		{
 			Iterator<Address> routes = request.getAddressHeaders(SipHeaders.ROUTE);

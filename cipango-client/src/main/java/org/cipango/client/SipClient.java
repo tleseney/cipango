@@ -149,7 +149,10 @@ public class SipClient extends AbstractLifeCycle
 		{
 			MessageHandler handler = getHandler(request);
 			if (handler != null)
+			{
 				handler.handleRequest(request);
+				return;
+			}
 			
 			if (request.isInitial())
 			{

@@ -469,7 +469,10 @@ public class SipURIImpl implements SipURI
 	
 	public void setHost(String host) 
 	{
-		_host = host;
+		if (host.contains(":") && !host.contains("["))
+    		_host = "[" + host + "]";
+    	else
+            _host = host;
 	}
 	
 
@@ -596,6 +599,26 @@ public class SipURIImpl implements SipURI
 					buffer.append(value);
 				}
 			}
+		}
+		
+		Iterator<String> it2 = getHeaderNames();
+		boolean first = true;
+		while (it2.hasNext()) 
+		{
+			String name = it2.next();
+			String value = getHeader(name);
+			if (first) 
+			{
+				first = false;
+				buffer.append('?');
+			} 
+			else 
+			{
+				buffer.append('&');
+			}
+			buffer.append(StringUtil.encode(name, StringUtil.HEADER_BS));
+			buffer.append('=');
+			buffer.append(StringUtil.encode(value, StringUtil.HEADER_BS));
 		}
 		
 		return buffer.toString();

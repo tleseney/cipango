@@ -65,6 +65,10 @@ public class StringUtil extends org.eclipse.jetty.util.StringUtil
 	public static final String UNRESERVED = ALPHA + DIGITS + MARK;
 	public static final String USER_UNRESERVED = "&=+$,;?/";
 	
+	public static final BitSet PARAM_BS = toBitSet(UNRESERVED + PARAM_UNRESERVED);
+	public static final BitSet TOKEN_BS = toBitSet(TOKEN); 
+	public static final BitSet HEADER_BS = toBitSet(UNRESERVED + HNV_UNRESERVED);
+	
 	public static String quoteIfNeeded(String s, BitSet bs)
 	{
 		if (s == null) return null;
@@ -82,7 +86,23 @@ public class StringUtil extends org.eclipse.jetty.util.StringUtil
 		}
 		return s;
 	}
+	
+	public static final boolean isToken(String s) 
+	{
+		return contains(s, TOKEN_BS);
+	}
 		
+	public static final boolean contains(String s, BitSet bs) 
+	{
+		for (int i = 0; i < s.length(); i++) 
+		{
+			int c = s.charAt(i);
+			if (!bs.get(c))
+				return false;
+		}
+		return true;
+	}
+	
 	public static void quote(String s, Appendable buffer)
 	{
 		try
@@ -134,6 +154,40 @@ public class StringUtil extends org.eclipse.jetty.util.StringUtil
 			}
 		}
 		return escaped == null ? s : escaped.toString();
+	}
+	
+	public static String unescape(String s)
+	{
+		StringBuffer unescaped = null;
+		for (int i = 0; i < s.length(); i++)
+		{
+			int c = s.charAt(i);
+			if (c == '%')
+			{
+				int c2;
+				try
+				{
+					c2 = Integer.parseInt(s.substring(i+1, i+3), 16);
+				}
+				catch (Exception e)
+				{
+					throw new IllegalArgumentException("Invalid escaped char at " + i + "in [" + s + "]");
+				}
+				if (unescaped == null)
+				{
+					unescaped = new StringBuffer(s.length() - 2);
+					unescaped.append(s.substring(0, i));
+				}
+				unescaped.append((char) c2);
+				i += 2;
+			}
+			else 
+			{
+				if (unescaped != null)
+					unescaped.append((char) c);
+			}
+		}
+		return unescaped != null ? unescaped.toString() : s;
 	}
 	
 	public static final BitSet toBitSet(String s)

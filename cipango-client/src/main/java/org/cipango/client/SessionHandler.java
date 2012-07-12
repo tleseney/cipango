@@ -11,8 +11,8 @@ import javax.servlet.sip.SipServletResponse;
 
 public class SessionHandler extends AbstractChallengedMessageHandler
 {
-	protected List<ReadableMessage<SipServletRequest>> _requests;
-	protected List<ReadableMessage<SipServletResponse>> _responses;
+	protected List<ReadableMessage<SipServletRequest>> _requests = new ArrayList<ReadableMessage<SipServletRequest>>();
+	protected List<ReadableMessage<SipServletResponse>> _responses = new ArrayList<ReadableMessage<SipServletResponse>>();
 	
 	@Override
 	public void handleRequest(SipServletRequest request) throws IOException, ServletException

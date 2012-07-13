@@ -21,7 +21,29 @@ public class AuthenticationHelper
 			SipHeaders.CSEQ, SipHeaders.VIA, SipHeaders.ROUTE, SipHeaders.RECORD_ROUTE,
 			SipHeaders.CONTENT_TYPE, SipHeaders.CONTENT_LENGTH);
 
-	public static final String SESSION_ATTRIBUTE = AuthenticationHelper.class.getName();
+	private static final List<String> AUTHORIZATION_HEADERS = Arrays.asList(
+			SipHeaders.AUTHORIZATION, SipHeaders.PROXY_AUTHORIZATION);
+
+	/**
+	 * Attribute of the original <code>SipServletRequest</code> which holds the
+	 * authenticated request created from it.
+	 */
+	public static final String ORIGINAL_REQUEST = AuthenticationHelper.class
+			.getPackage().toString() + ".originalRequest";
+
+	/**
+	 * Attribute of the authenticated <code>SipServletRequest</code> which holds
+	 * the original request.
+	 */
+	public static final String AUTHENTICATED_REQUEST = AuthenticationHelper.class
+			.getPackage().toString() + ".authenticatedRequest";
+
+	/**
+	 * Attribute of a <code>SipServletRequest</code> which holds the
+	 * AuthenticationHelper instance used to handle it.
+	 */
+	public static final String AUTH_HELPER = AuthenticationHelper.class
+			.getPackage().getName();
 
 	protected List<AuthenticationHolder> _authentications = new ArrayList<AuthenticationHolder>();
 	protected List<Credentials> _credentials;
@@ -42,6 +64,37 @@ public class AuthenticationHelper
     		}
 		}
 		return null;
+	}
+
+	/**
+	 * Returns the original request from which <code>request</code> was built.
+	 * 
+	 * @param request
+	 *            a potentially authenticated request.
+	 * @return the original request, cloned to build the given one, or
+	 *         <code>request</code> if it was not built from another one.
+	 * @see #ORIGINAL_REQUEST
+	 */
+	public SipServletRequest getOriginalRequest(SipServletRequest request)
+	{
+		SipServletRequest orig = (SipServletRequest) request
+				.getAttribute(ORIGINAL_REQUEST);
+		return (orig == null) ? request : orig;
+	}
+
+	/**
+	 * Returns the authenticated request built from <code>request</code>.
+	 * 
+	 * @param request
+	 * @return the latest authenticated request built from <code>request</code>,
+	 *         or <code>request</code> if none was found.
+	 * @see #AUTHENTICATED_REQUEST
+	 */
+	public SipServletRequest getAuthenticatedRequest(SipServletRequest request)
+	{
+		SipServletRequest authenticated = (SipServletRequest) request
+				.getAttribute(AUTHENTICATED_REQUEST);
+		return (authenticated == null) ? request : authenticated;
 	}
 	
 	public boolean handleChallenge(SipServletResponse response) throws IOException, ServletException
@@ -145,6 +198,7 @@ public class AuthenticationHelper
 		{
 			String header = (String) it.next();
 			if (!SYSTEM_HEADERS.contains(header)
+					&& !AUTHORIZATION_HEADERS.contains(header)
 					|| (SipMethods.REGISTER.equals(request.getMethod())
 							&& SipHeaders.CONTACT.equals(header)))
 			{
@@ -161,13 +215,20 @@ public class AuthenticationHelper
 			String name = e.nextElement();
 		       newRequest.setAttribute(name, request.getAttribute(name));
 		}
-		
+		SipServletRequest origRequest = (SipServletRequest) request.getAttribute(ORIGINAL_REQUEST);
+		if (origRequest == null)
+			origRequest = request;
+		newRequest.setAttribute(ORIGINAL_REQUEST, origRequest);
+		origRequest.setAttribute(AUTHENTICATED_REQUEST, newRequest);
+
 		if (request.isInitial())
 		{
 			Iterator<Address> routes = request.getAddressHeaders(SipHeaders.ROUTE);
 			while (routes.hasNext())
 				newRequest.pushRoute(routes.next());
 		}
+
+		newRequest.setRequestURI(request.getRequestURI());
 
 		byte[] content = request.getRawContent();
 		if (content != null)

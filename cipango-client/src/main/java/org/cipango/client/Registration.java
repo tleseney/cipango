@@ -138,7 +138,7 @@ public class Registration
 	 * This method returns either when success, failure or request timeout is
 	 * encountered, and the listener, if any, is notified as well.
 	 * Authentication is handled automatically if credentials were provided to
-	 * this <code>UserAgent</code>.
+	 * this <code>Registration</code>.
 	 * 
 	 * @param contact
 	 * @param expires
@@ -150,8 +150,8 @@ public class Registration
 	public boolean register(URI contact, int expires) throws IOException, ServletException
 	{
 		RequestHandler handler = new RequestHandler(createRegister(contact, expires), _timeout);
-
 		handler.setCredentials(_credentials);
+
 		handler.send();
 		processResponse(handler.waitForFinalResponse());
 

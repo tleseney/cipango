@@ -79,7 +79,7 @@ public abstract class AbstractChallengedMessageHandler implements
 			SipServletMessage message)
 	{
 		return (AuthenticationHelper) message.getSession().getAttribute(
-				AuthenticationHelper.SESSION_ATTRIBUTE);
+				AuthenticationHelper.AUTH_HELPER);
 	}
 	
 	protected AuthenticationHelper getOrCreateAuthenticationHelper(SipServletMessage message)
@@ -88,7 +88,7 @@ public abstract class AbstractChallengedMessageHandler implements
 		if (helper == null)
 		{
 			helper = new AuthenticationHelper(_credentials);
-			message.getSession().setAttribute(AuthenticationHelper.SESSION_ATTRIBUTE, helper);
+			message.getSession().setAttribute(AuthenticationHelper.AUTH_HELPER, helper);
 		}
 		return helper;
 	}

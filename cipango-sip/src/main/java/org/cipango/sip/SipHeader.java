@@ -1,5 +1,6 @@
 package org.cipango.sip;
 
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -104,11 +105,41 @@ public enum SipHeader
 	WWW_AUTHENTICATE("WWW-Authenticate");
 	
 	public static final StringMap<SipHeader> CACHE = new StringMap<SipHeader>(true);
+	//public static final StringMap<SipHeader> COMPACT_CACHE = new StringMap<SipHeader>(true);
+	public static final Map<SipHeader, String> REVERSE_COMPACT_CACHE = new EnumMap<SipHeader, String>(SipHeader.class);
 	
 	static 
 	{
 		for (SipHeader header : SipHeader.values())
 			CACHE.put(header.toString(), header);
+		
+		REVERSE_COMPACT_CACHE.put(ACCEPT_CONTACT, "a");
+		REVERSE_COMPACT_CACHE.put(REFERRED_BY, "b");
+		REVERSE_COMPACT_CACHE.put(CONTENT_TYPE, "c");
+		REVERSE_COMPACT_CACHE.put(REQUEST_DISPOSITION, "d");
+		REVERSE_COMPACT_CACHE.put(CONTENT_ENCODING, "e");
+		REVERSE_COMPACT_CACHE.put(FROM, "f");
+		
+		REVERSE_COMPACT_CACHE.put(CALL_ID, "i");
+		REVERSE_COMPACT_CACHE.put(REJECT_CONTACT, "j");
+		REVERSE_COMPACT_CACHE.put(SUPPORTED, "k");
+		REVERSE_COMPACT_CACHE.put(CONTENT_LENGTH, "l");
+		REVERSE_COMPACT_CACHE.put(CONTACT, "m");
+		REVERSE_COMPACT_CACHE.put(IDENTITY, "n");
+		REVERSE_COMPACT_CACHE.put(EVENT, "o");
+		
+		REVERSE_COMPACT_CACHE.put(REFER_TO, "r");
+		REVERSE_COMPACT_CACHE.put(SUBJECT, "s");
+		REVERSE_COMPACT_CACHE.put(TO, "t");
+		REVERSE_COMPACT_CACHE.put(ALLOW_EVENTS, "u");
+		REVERSE_COMPACT_CACHE.put(VIA, "v");
+		
+		REVERSE_COMPACT_CACHE.put(SESSION_EXPIRES, "x");
+		REVERSE_COMPACT_CACHE.put(IDENTITY, "y");
+		
+		for (Map.Entry<SipHeader, String> entry : REVERSE_COMPACT_CACHE.entrySet())
+			CACHE.put(entry.getValue(), entry.getKey());
+		
 	}
 	
 	private Type _type;
@@ -220,5 +251,19 @@ public enum SipHeader
         }
         
         return header;
+	}
+	
+	public static String getFormattedName(String name)
+	{
+		
+		if (name.length() == 1)
+		{
+			SipHeader header = CACHE.get(name);
+			return header == null ? name : header.toString();
+		}
+		return name;
+			
+//		SipHeader header = CACHE.get(name);
+//		return header == null ? name : header.toString();
 	}
 }

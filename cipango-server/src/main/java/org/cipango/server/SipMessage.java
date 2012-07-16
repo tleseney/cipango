@@ -14,11 +14,15 @@ import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipSession;
+import javax.servlet.sip.SipServletMessage.HeaderForm;
 
 import org.cipango.server.session.Session;
 import org.cipango.server.transaction.Transaction;
+import org.cipango.server.util.ListIteratorProxy;
+import org.cipango.server.util.ReadOnlyAddress;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipFields;
+import org.cipango.sip.SipFields.Field;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.Via;
 
@@ -31,11 +35,13 @@ public abstract class SipMessage implements SipServletMessage
 	
 	private boolean _committed = false;
 	
+	private HeaderForm _headerForm = HeaderForm.DEFAULT;
+	
 	protected Session _session;
 	
 	protected boolean isSystemHeader(SipHeader header)
 	{
-		return (header.isSystem() || header == SipHeader.CONTACT && !canSetContact());
+		return header != null && (header.isSystem() || header == SipHeader.CONTACT && !canSetContact());
 	}
 	
 	public SipFields getFields()
@@ -89,12 +95,29 @@ public abstract class SipMessage implements SipServletMessage
 		
 	}
 
-	public void addAddressHeader(String arg0, Address arg1, boolean arg2) 
+	public void addAddressHeader(String name, Address address, boolean first) 
 	{
-		// TODO Auto-generated method stub
+		if (isCommitted())
+			throw new IllegalStateException("Message is committed");
 		
-	}
+		SipHeader header = SipHeader.CACHE.get(name);
+		if (header != null)
+		{
+			if (header.getType() != SipHeader.Type.ADDRESS && header.getType() != SipHeader.Type.STRING )
+				throw new IllegalArgumentException("Header: " + name + " is not of address type");
 	
+			if (isSystemHeader(header))
+				throw new IllegalArgumentException(name + " is a system header");
+			
+			name = header.asString();
+		}
+		
+		if (address == null || name == null) 
+			throw new NullPointerException("name or address is null");
+		
+		_fields.add(name, address, first);
+	}
+		
 	/**
 	 * @see SipServletMessage#addHeader(String, String)
 	 */
@@ -133,16 +156,43 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public Address getAddressHeader(String arg0) throws ServletParseException {
-		// TODO Auto-generated method stub
-		return null;
+	public Address getAddressHeader(String name) throws ServletParseException
+	{
+		SipHeader header = SipHeader.CACHE.get(name);
+		
+		if (header != null && (header.getType() != SipHeader.Type.ADDRESS && header.getType() != SipHeader.Type.STRING))
+			throw new ServletParseException("Header: " + name + " is not of address type");
+		
+		Field field;
+		if (header != null)
+			field = _fields.getField(header);
+		else
+			field = _fields.getField(name);
+		return field == null ? null : field.asAddress();
 	}
 
 	@Override
-	public ListIterator<Address> getAddressHeaders(String arg0)
-			throws ServletParseException {
-		// TODO Auto-generated method stub
-		return null;
+	public ListIterator<Address> getAddressHeaders(String name)
+			throws ServletParseException 
+	{
+		SipHeader header = SipHeader.CACHE.get(name);
+				
+		if (header != null && (header.getType() != SipHeader.Type.ADDRESS && header.getType() != SipHeader.Type.STRING))
+			throw new ServletParseException("Header: " + name + " is not of address type");
+		
+		ListIterator<Address> it = _fields.getAddressValues(header, name);
+		
+		if (header.isSystem() || isCommitted())
+		{
+			return new ListIteratorProxy<Address>(it)
+			{
+				@Override
+				public Address next() { return new ReadOnlyAddress(super.next()); }
+				@Override
+				public Address previous() { return new ReadOnlyAddress(super.previous()); }
+			};
+		}
+		return it;
 	}
 
 	@Override
@@ -152,13 +202,13 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public SipApplicationSession getApplicationSession(boolean arg0) {
+	public SipApplicationSession getApplicationSession(boolean create) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Object getAttribute(String arg0) {
+	public Object getAttribute(String name) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -232,9 +282,9 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public HeaderForm getHeaderForm() {
-		// TODO Auto-generated method stub
-		return null;
+	public HeaderForm getHeaderForm() 
+	{
+		return _headerForm;
 	}
 
 	@Override
@@ -244,9 +294,8 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public ListIterator<String> getHeaders(String arg0) {
-		// TODO Auto-generated method stub
-		return null;
+	public ListIterator<String> getHeaders(String name) {
+		return _fields.getValues(name);
 	}
 
 	@Override
@@ -398,9 +447,24 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public void removeHeader(String arg0) {
-		// TODO Auto-generated method stub
+	public void removeHeader(String name)
+	{
+		if (isCommitted())
+			throw new IllegalStateException("Message is committed");
 		
+		SipHeader header = SipHeader.CACHE.get(name);
+		if (header != null)
+		{
+			if (isSystemHeader(header))
+				throw new IllegalArgumentException(name + " is a system header");
+			
+			name = header.asString();
+		}
+		
+		if (name == null) 
+			throw new NullPointerException("name is null");
+		
+		_fields.remove(name);
 	}
 
 
@@ -411,9 +475,24 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public void setAddressHeader(String arg0, Address arg1) {
-		// TODO Auto-generated method stub
+	public void setAddressHeader(String name, Address address)
+	{
+		if (isCommitted())
+			throw new IllegalStateException("Message is committed");
 		
+		SipHeader header = SipHeader.CACHE.get(name);
+		if (header != null)
+		{
+			if (isSystemHeader(header))
+				throw new IllegalArgumentException(name + " is a system header");
+			
+			name = header.asString();
+		}
+		
+		if (name == null) 
+			throw new NullPointerException("name is null");
+		
+		_fields.set(name, address);
 	}
 
 	@Override
@@ -461,15 +540,27 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public void setHeader(String arg0, String arg1) {
-		// TODO Auto-generated method stub
+	public void setHeader(String name, String value) 
+	{
+		if (isCommitted())
+			throw new IllegalStateException("Message is committed");
 		
+		SipHeader header = SipHeader.CACHE.get(name);
+		if (isSystemHeader(header))
+			throw new IllegalArgumentException(name + " is a system header");
+		
+		if (value == null || name == null)
+			throw new NullPointerException("name or value is null");
+		
+		_fields.set(name, value);
 	}
 
 	@Override
-	public void setHeaderForm(HeaderForm arg0) {
-		// TODO Auto-generated method stub
-		
+	public void setHeaderForm(HeaderForm form)
+	{
+		if (form == null)
+			throw new NullPointerException("Null form");
+		_headerForm = form;
 	}
 
 	@Override

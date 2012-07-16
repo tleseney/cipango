@@ -265,6 +265,9 @@ public class SipURIImpl implements SipURI
 				{
 					if (port == -1) port = 0;
 					port = port*10 + (c-'0');
+
+					if (port > 65536)
+						throw new ParseException("invalid port. Got " + port, i);
 				}
 				else
 				{

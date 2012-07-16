@@ -39,6 +39,7 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	
 	private SipMethod _sipMethod;
 	private String _method;
+	private URI _requestUri;
 	
 	private Transaction _transaction;
 	
@@ -290,10 +291,11 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		return null;
 	}
 	@Override
-	public URI getRequestURI() {
-		// TODO Auto-generated method stub
-		return null;
+	public URI getRequestURI() 
+	{
+		return _requestUri;
 	}
+	
 	@Override
 	public SipApplicationRoutingDirective getRoutingDirective()
 			throws IllegalStateException {
@@ -390,6 +392,11 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	{
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	public void setRequestUri(URI requestUri)
+	{
+		_requestUri = requestUri;
 	}
 	
 	

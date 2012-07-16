@@ -70,7 +70,9 @@ public class AddressImpl extends Parameters implements Address
 
 	public void parse() throws ParseException
 	{
+		String s = _string;
 		parse(_string, true);
+		_string = s;
 	}
 	
 	
@@ -327,7 +329,7 @@ public class AddressImpl extends Parameters implements Address
 			appendParameters(buffer);
 			_string = buffer.toString();
 		}
-		//FIXME how detect that changes in URI
+		//FIXME how detect that URI has been modified
 		return _string;
 	}
 	

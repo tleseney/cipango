@@ -192,6 +192,19 @@ public class AddressTest
 		newAddress("<sip:user@192.168.1.1:45841;transport=tcp>;invalidN?ame");
 	}
 	
+	@Test
+	public void testInvalidAddr() throws ServletParseException
+	{
+		Address address = newAddress("Missing, Quotes <sip:a.g.bell@example.com>;tag=43");
+		//System.out.println(address);
+		// modify the address to ensure that original string is no more cached 
+		// FIXME the test should pass without this call
+		address.setParameter("tag", "43"); 
+		assertEquals("Missing, Quotes", address.getDisplayName());
+		assertEquals("\"Missing, Quotes\" <sip:a.g.bell@example.com>;tag=43", address.toString());
+	}
+	
+	
 	private Address newAddress(String string) throws ServletParseException
 	{
 		try

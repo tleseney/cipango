@@ -190,6 +190,19 @@ public class SipFields implements Iterable<SipFields.Field>
     		public String getValue() { return _f.getValue().toString(); }
     	};
 	}
+	
+	public long getLong(SipHeader header)
+	{
+		Field field = getField(header.asString());
+		if (field != null)
+			return Long.parseLong(field.getValue().toString());
+		return -1l;
+	}
+	
+    public Iterator<String> getNames()
+    {
+    	return _map.keySet().iterator();
+    }
 
     public ListIterator<Address> getAddressValues(SipHeader header, String name) throws ServletParseException
     {

@@ -9,14 +9,15 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.sip.Proxy;
 import javax.servlet.sip.ProxyBranch;
 import javax.servlet.sip.Rel100Exception;
+import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
-import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipFields;
 import org.cipango.sip.SipHeader;
+import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipStatus;
 
 public class SipResponse extends SipMessage implements SipServletResponse
@@ -113,7 +114,7 @@ public class SipResponse extends SipMessage implements SipServletResponse
 		 * a more generic setCharacterEncoding() method from the 
 		 * javax.servlet.ServletResponse. 
 		 */
-		//_characterEncoding = encoding;
+		_characterEncoding = encoding;
 	}
 	
 	public void setBufferSize(int size) 
@@ -122,39 +123,30 @@ public class SipResponse extends SipMessage implements SipServletResponse
 	}
 
 	@Override
-	public int getBufferSize() {
-		// TODO Auto-generated method stub
+	public int getBufferSize() 
+	{
 		return 0;
 	}
 
 	@Override
-	public void flushBuffer() throws IOException {
-		// TODO Auto-generated method stub
-		
+	public void flushBuffer() throws IOException
+	{
 	}
 
 	@Override
-	public void resetBuffer() {
-		// TODO Auto-generated method stub
-		
+	public void resetBuffer() 
+	{
 	}
 
 	@Override
-	public void reset() {
-		// TODO Auto-generated method stub
-		
+	public void reset() 
+	{
 	}
 
 	@Override
-	public void setLocale(Locale loc) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public Locale getLocale() {
-		// TODO Auto-generated method stub
-		return null;
+	public void setLocale(Locale locale) 
+	{
+		setContentLanguage(locale);
 	}
 
 	@Override
@@ -176,8 +168,8 @@ public class SipResponse extends SipMessage implements SipServletResponse
 	}
 
 	@Override
-	public ServletOutputStream getOutputStream() throws IOException {
-		// TODO Auto-generated method stub
+	public ServletOutputStream getOutputStream() throws IOException 
+	{
 		return null;
 	}
 
@@ -216,6 +208,11 @@ public class SipResponse extends SipMessage implements SipServletResponse
 	{
 		return _status;
 	}
+	
+	public Locale getLocale() 
+	{
+		return getContentLanguage();
+	}
 
 	/**
 	 * @see SipServletMessage#getMethod
@@ -226,8 +223,8 @@ public class SipResponse extends SipMessage implements SipServletResponse
 	}
 	
 	@Override
-	public PrintWriter getWriter() throws IOException {
-		// TODO Auto-generated method stub
+	public PrintWriter getWriter() throws IOException 
+	{
 		return null;
 	}
 
@@ -262,9 +259,12 @@ public class SipResponse extends SipMessage implements SipServletResponse
 	}
 
 	@Override
-	protected boolean canSetContact() {
-		// TODO Auto-generated method stub
-		return false;
+	protected boolean canSetContact() 
+	{
+		 return _request.isRegister() 
+        		||(getStatus() >= 300 && getStatus() < 400) 
+        		|| getStatus() == 485
+        		|| (getStatus() == 200 && _request.isMethod(SipMethod.OPTIONS));
 	}
 
 }

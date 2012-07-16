@@ -3,8 +3,11 @@ package org.cipango.server;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.Principal;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
 
@@ -14,7 +17,6 @@ import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipSession;
-import javax.servlet.sip.SipServletMessage.HeaderForm;
 
 import org.cipango.server.session.Session;
 import org.cipango.server.transaction.Transaction;
@@ -24,10 +26,17 @@ import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipFields;
 import org.cipango.sip.SipFields.Field;
 import org.cipango.sip.SipHeader;
+import org.cipango.sip.SipVersion;
 import org.cipango.sip.Via;
+import org.eclipse.jetty.http.HttpFields;
+import org.eclipse.jetty.util.LazyList;
+import org.eclipse.jetty.util.QuotedStringTokenizer;
+import org.eclipse.jetty.util.StringUtil;
 
 public abstract class SipMessage implements SipServletMessage
 {
+	private static final Collection<Locale> __defaultLocale = Collections.singleton(Locale.getDefault());
+	
 	protected SipFields _fields = new SipFields();
 	
 	private long _timeStamp;
@@ -36,8 +45,11 @@ public abstract class SipMessage implements SipServletMessage
 	private boolean _committed = false;
 	
 	private HeaderForm _headerForm = HeaderForm.DEFAULT;
+	  protected String _characterEncoding;
 	
 	protected Session _session;
+	
+	private byte[] _content;
 	
 	protected boolean isSystemHeader(SipHeader header)
 	{
@@ -90,9 +102,9 @@ public abstract class SipMessage implements SipServletMessage
 		return to.getTag();
 	}
 	
-	public void addAcceptLanguage(Locale arg0) {
-		// TODO Auto-generated method stub
-		
+	public void addAcceptLanguage(Locale locale) 
+	{
+		addHeader(SipHeader.ACCEPT_LANGUAGE.asString(), locale.toString().replace('_','-'));
 	}
 
 	public void addAddressHeader(String name, Address address, boolean first) 
@@ -137,22 +149,68 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public void addParameterableHeader(String arg0, Parameterable arg1,
-			boolean arg2) {
+	public void addParameterableHeader(String name, Parameterable parameterable,
+			boolean first) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
 	public Locale getAcceptLanguage() {
-		// TODO Auto-generated method stub
+		Iterator<Locale> it = getAcceptLanguages();
+		if (it.hasNext())
+			return it.next();
 		return null;
 	}
 
 	@Override
-	public Iterator<Locale> getAcceptLanguages() {
-		// TODO Auto-generated method stub
-		return null;
+	public Iterator<Locale> getAcceptLanguages() 
+	{
+        final Iterator<String> it = getFields().getValues(SipHeader.ACCEPT_LANGUAGE.asString());
+
+        if (!it.hasNext())
+            return __defaultLocale.iterator();
+
+        List<String> acceptLanguage = HttpFields.qualityList(
+        		new Enumeration<String>() 
+    			{
+					public boolean hasMoreElements()
+					{
+						return it.hasNext();
+					}
+
+					public String nextElement()
+					{
+						return it.next();
+					}
+    			});
+        
+        if (acceptLanguage.size() == 0)
+            return __defaultLocale.iterator();
+        
+        Object langs = null;
+        int size = acceptLanguage.size();
+        
+        for (int i = 0; i < size; i++)
+        {
+            String language = acceptLanguage.get(i);
+            language = HttpFields.valueParameters(language, null);
+            String country = "";
+            int dash = language.indexOf('-');
+            if (dash > -1)
+            {
+                country = language.substring(dash + 1).trim();
+                language = language.substring(0, dash).trim();
+            }
+            langs = LazyList.ensureSize(langs, size);
+            langs = LazyList.add(langs, new Locale(language, country));
+        }
+        
+        if (LazyList.size(langs) == 0)
+            return __defaultLocale.iterator();
+        
+        List<Locale> l = LazyList.getList(langs);
+        return l.iterator();
 	}
 
 	@Override
@@ -228,39 +286,91 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public String getCharacterEncoding() {
-		// TODO Auto-generated method stub
-		return null;
+	public String getCharacterEncoding() 
+	{
+		if (_characterEncoding != null)
+            return _characterEncoding;
+        String contentType = getContentType();
+        
+        if (contentType != null)
+        {
+            int i0 = contentType.indexOf(';');
+            if (i0 > 0)
+            {
+                int i1 = contentType.indexOf("charset=", i0 + 1);
+                if (i1 >= 0)
+                {
+                    int i8 = i1+8;
+                    int i2 = contentType.indexOf(';',i8);
+                    
+                    if (i2 > 0)
+                        _characterEncoding = QuotedStringTokenizer.unquote(contentType.substring(i8, i2));
+                    else 
+                        _characterEncoding = QuotedStringTokenizer.unquote(contentType.substring(i8));
+                }
+            }
+        }
+        return _characterEncoding; // TODO contentlanguage ?
 	}
 
 	@Override
-	public Object getContent() throws IOException, UnsupportedEncodingException {
-		// TODO Auto-generated method stub
-		return null;
+	public Object getContent() throws IOException, UnsupportedEncodingException
+	{
+		String contentType = getContentType();
+		if (_content != null
+				&& contentType != null
+				&& (StringUtil.startsWithIgnoreCase(contentType, "text") || contentType
+						.equalsIgnoreCase("application/sdp")))
+		{
+			String charset = getCharacterEncoding();
+			if (charset == null)
+				charset = StringUtil.__UTF8;
+
+			return new String(_content, charset);
+		}
+		else
+		{
+			return _content;
+		}
 	}
 
 	@Override
-	public Locale getContentLanguage() {
-		// TODO Auto-generated method stub
-		return null;
+	public Locale getContentLanguage() 
+	{
+		String s = getHeader(SipHeader.CONTENT_LANGUAGE.asString());
+		if (s == null) 
+			return null;
+		
+		return new Locale(s);
 	}
 
 	@Override
-	public int getContentLength() {
-		// TODO Auto-generated method stub
-		return 0;
+	public int getContentLength() 
+	{
+		int length = (int) _fields.getLong(SipHeader.CONTENT_LENGTH);
+		if (length == -1) 
+		{
+			if (_content == null) 
+				return 0;
+			else 
+				return _content.length;
+		} 
+		else 
+		{
+			return length;
+		}
 	}
 
 	@Override
-	public String getContentType() {
-		// TODO Auto-generated method stub
-		return null;
+	public String getContentType() 
+	{
+		return  getHeader(SipHeader.CONTENT_TYPE.asString()); // TODO parse;
 	}
 
 	@Override
-	public int getExpires() {
-		// TODO Auto-generated method stub
-		return 0;
+	public int getExpires() 
+	{
+		return (int) _fields.getLong(SipHeader.EXPIRES);
 	}
 
 	/**
@@ -268,7 +378,7 @@ public abstract class SipMessage implements SipServletMessage
 	 */
 	public Address getFrom() 
 	{
-		return (Address) _fields.get(SipHeader.FROM); // RO
+		return  new ReadOnlyAddress((Address) _fields.get(SipHeader.FROM));
 	}
 
 	/**
@@ -288,9 +398,9 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public Iterator<String> getHeaderNames() {
-		// TODO Auto-generated method stub
-		return null;
+	public Iterator<String> getHeaderNames() 
+	{
+		return _fields.getNames();
 	}
 
 	@Override
@@ -330,7 +440,7 @@ public abstract class SipMessage implements SipServletMessage
 
 
 	@Override
-	public Parameterable getParameterableHeader(String arg0)
+	public Parameterable getParameterableHeader(String name)
 			throws ServletParseException {
 		// TODO Auto-generated method stub
 		return null;
@@ -344,9 +454,9 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public String getProtocol() {
-		// TODO Auto-generated method stub
-		return null;
+	public String getProtocol() 
+	{
+		return SipVersion.SIP_2_0.asString();
 	}
 
 	@Override
@@ -396,7 +506,7 @@ public abstract class SipMessage implements SipServletMessage
 	@Override
 	public Address getTo() 
 	{
-		return (Address) _fields.get(SipHeader.TO);
+		return  new ReadOnlyAddress((Address) _fields.get(SipHeader.TO));
 	}
 
 	/**
@@ -469,9 +579,9 @@ public abstract class SipMessage implements SipServletMessage
 
 
 	@Override
-	public void setAcceptLanguage(Locale arg0) {
-		// TODO Auto-generated method stub
-		
+	public void setAcceptLanguage(Locale locale) 
+	{
+		setHeader(SipHeader.ACCEPT_LANGUAGE.asString(), locale.toString().replace('_', '-'));
 	}
 
 	@Override
@@ -502,41 +612,108 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public void setCharacterEncoding(String arg0)
-			throws UnsupportedEncodingException {
-		// TODO Auto-generated method stub
-		
+	public void setCharacterEncoding(String encoding)
+			throws UnsupportedEncodingException
+	{
+		"".getBytes(encoding);
+		_characterEncoding = encoding;
 	}
 
 	@Override
-	public void setContent(Object arg0, String arg1)
-			throws UnsupportedEncodingException {
-		// TODO Auto-generated method stub
-		
+	public void setContent(Object o, String type) throws UnsupportedEncodingException
+	{
+		// TODO add sdp, ...
+		if (isCommitted())
+			throw new IllegalStateException("Is committed");
+
+		if (o == null)
+		{
+			_content = null;
+			setContentLength(0);
+			setContentType(type);
+		}
+		else if (o instanceof byte[])
+		{
+			_content = (byte[]) o;
+			setContentLength(_content.length);
+			setContentType(type);
+		}
+		else if (o instanceof String)
+		{
+			String s = (String) o;
+			setContentType(type);
+			String charset = getCharacterEncoding();
+			if (charset == null)
+				charset = StringUtil.__UTF8;
+
+			_content = s.getBytes(charset);
+			setContentLength(_content.length);
+		}
+		else
+		{
+			throw new IllegalArgumentException("Unsupported object type");
+		}
 	}
 
 	@Override
-	public void setContentLanguage(Locale arg0) {
-		// TODO Auto-generated method stub
-		
+	public void setContentLanguage(Locale locale) 
+	{
+		if (locale == null)
+        {
+            removeHeader(SipHeader.CONTENT_LANGUAGE.asString());
+        }
+        else 
+        {
+            setHeader(SipHeader.CONTENT_LANGUAGE.asString(), locale.toString().replace('_','-'));
+// FIXME         if (_characterEncoding == null)
+//                _characterEncoding = _session.appSession().getContext().getLocaleEncoding(locale);
+        }
 	}
 
 	@Override
-	public void setContentLength(int arg0) {
-		// TODO Auto-generated method stub
+	public void setContentLength(int length) 
+	{
+		if (isCommitted())
+			throw new IllegalStateException("Message is committed");
 		
+		setHeader(SipHeader.CONTENT_LENGTH.asString(), Integer.toString(length));
 	}
 
 	@Override
-	public void setContentType(String arg0) {
-		// TODO Auto-generated method stub
-		
+	public void setContentType(String contentType) 
+	{
+		if (isCommitted())
+			throw new IllegalStateException("Message is committed");
+        if (contentType == null)
+            getFields().remove(SipHeader.CONTENT_TYPE.asString());      
+        else
+        {
+            int i0 = contentType.indexOf(';');
+            if (i0 > 0)
+            {
+                int i1 = contentType.indexOf("charset=", i0 + 1);
+                if (i1 >= 0)
+                {
+                    int i8 = i1+8;
+                    int i2 = contentType.indexOf(';',i8);
+                    
+                    if (i2 > 0)
+                        _characterEncoding = QuotedStringTokenizer.unquote(contentType.substring(i8, i2));
+                    else 
+                        _characterEncoding = QuotedStringTokenizer.unquote(contentType.substring(i8));
+                }
+            }
+            getFields().set(SipHeader.CONTENT_TYPE, contentType);	
+        }
 	}
 
 	@Override
-	public void setExpires(int arg0) {
-		// TODO Auto-generated method stub
-		
+	public void setExpires(int seconds) 
+	{
+		if (seconds < 0) 
+			removeHeader(SipHeader.EXPIRES.asString());
+		else 
+			setHeader(SipHeader.EXPIRES.asString(), Long.toString(seconds));
 	}
 
 	@Override
@@ -564,7 +741,7 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public void setParameterableHeader(String arg0, Parameterable arg1) {
+	public void setParameterableHeader(String name, Parameterable parameterable) {
 		// TODO Auto-generated method stub
 		
 	}

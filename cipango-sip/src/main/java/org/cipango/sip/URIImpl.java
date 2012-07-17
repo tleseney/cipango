@@ -16,6 +16,7 @@ package org.cipango.sip;
 
 import java.io.Serializable;
 import java.text.ParseException;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.StringTokenizer;
@@ -27,8 +28,11 @@ import org.cipango.util.StringUtil;
 
 public class URIImpl implements URI, Serializable 
 {	
-	 static final long serialVersionUID = -8927516108461106171L;
-	
+	static final long serialVersionUID = -8927516108461106171L;
+	private static final BitSet ALPHA_BS = StringUtil.toBitSet(StringUtil.ALPHA);
+	private static final BitSet SCHEME_BS = StringUtil.toBitSet(StringUtil.ALPHA + StringUtil.DIGITS + "+-.");
+
+		
 	private String _uri;
 	private String _scheme;
 	private String _file;
@@ -49,8 +53,8 @@ public class URIImpl implements URI, Serializable
 			throw new ParseException("Missing scheme in uri [" + _uri + "]", 0);
 		
 		_scheme = _uri.substring(0, indexScheme);
-// FIXME		if (!SipGrammar.isURIScheme(_scheme))
-//			throw new ServletParseException("Invalid scheme [" + _scheme + "] in uri [" + _uri + "]");
+		if (!isURIScheme(_scheme))
+			throw new ParseException("Invalid scheme [" + _scheme + "] in uri [" + _uri + "]", 0);
 		
 		int indexParam = _uri.indexOf(';', indexScheme);
 		if (indexParam < 0) 
@@ -63,6 +67,16 @@ public class URIImpl implements URI, Serializable
 			String sParams = _uri.substring(indexParam + 1);
 			parseParams(sParams);
 		}
+	}
+	
+	public static final boolean isURIScheme(String s)
+	{
+		if (s == null || s.length() == 0)
+			return false;
+		if (!ALPHA_BS.get(s.charAt(0))) return false;
+		
+		if (!StringUtil.contains(s, SCHEME_BS)) return false;
+		return true;
 	}
 	
 	

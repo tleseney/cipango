@@ -13,9 +13,11 @@
 // ========================================================================
 
 package org.cipango.sip;
-import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.*;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNull;
+
+import java.text.ParseException;
 
 import javax.servlet.sip.URI;
 
@@ -38,6 +40,11 @@ public class UriTest
 		{"http://www.nexcom.fr;param1=a", "http://www.nexcom.fr;param1=OtherValue"}
 	};
 	
+	public static final String[] INVALID = 
+		{
+			"<sip:alice@atlanta.com>"
+		};
+	
 	@Test
 	public void testEqual() throws Exception 
 	{
@@ -59,6 +66,21 @@ public class UriTest
 			URI uri2 = URIFactory.parseURI(DIFFERENT[i][1]);
 			assertFalse(uri1.equals(uri2));
 			assertFalse(uri2.equals(uri1));
+		}
+	}
+	
+	@Test
+	public void testInvalid() throws Exception 
+	{
+		for (int i = 0; i < INVALID.length; i++) 
+		{
+			try 
+			{ 
+				URIFactory.parseURI(INVALID[i]); 
+				fail("URI: " + INVALID[i] + " does not throw exception");
+			}
+			catch (ParseException e) {
+			}
 		}
 	}
 

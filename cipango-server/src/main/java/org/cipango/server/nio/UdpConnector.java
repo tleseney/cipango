@@ -7,6 +7,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.text.ParseException;
 
+import javax.servlet.sip.SipServletResponse;
+
 import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipConnector;
@@ -20,8 +22,8 @@ import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipParser;
 import org.cipango.sip.SipVersion;
+import org.cipango.sip.URIFactory;
 import org.cipango.sip.Via;
-
 import org.eclipse.jetty.io.ByteBufferPool;
 import org.eclipse.jetty.io.StandardByteBufferPool;
 import org.eclipse.jetty.util.BufferUtil;
@@ -186,18 +188,29 @@ public class UdpConnector extends AbstractSipConnector
 		}
 	}
 	
-	class MessageBuilder implements SipParser.SipMessageHandler
+	public static class MessageBuilder implements SipParser.SipMessageHandler
 	{
 		private SipMessage _message;
 		
-		public boolean startRequest(String method, String uri, SipVersion version)
+		public boolean startRequest(String method, String uri, SipVersion version) throws ParseException
 		{
 			SipRequest request = new SipRequest();
 			
 			SipMethod m = SipMethod.CACHE.get(method);
 			request.setMethod(m, method);
-			
+
 			_message = request;
+			request.setRequestURI(URIFactory.parseURI(uri));
+	
+			return false;
+		}
+
+		@Override
+		public boolean startResponse(SipVersion version, int status, String reason) throws ParseException
+		{
+			SipResponse response = new SipResponse();
+			response.setStatus(status, reason);
+			_message = response;
 			return false;
 		}
 
@@ -229,6 +242,10 @@ public class UdpConnector extends AbstractSipConnector
 				LOG.warn(e);
 				return true;
 			}
+			if (header != null)
+				name = header.asString();
+			if (o == null) // FIXME where this case should be handle
+				o = "";
 			_message.getFields().add(name, o, false);
 			return false;
 		}
@@ -246,6 +263,11 @@ public class UdpConnector extends AbstractSipConnector
 		public void badMessage(int status, String reason)
 		{
 			
+		}
+
+		public SipMessage getMessage()
+		{
+			return _message;
 		}
 	}
 	

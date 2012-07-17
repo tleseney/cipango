@@ -23,6 +23,7 @@ import org.cipango.server.transaction.Transaction;
 import org.cipango.server.util.ListIteratorProxy;
 import org.cipango.server.util.ReadOnlyAddress;
 import org.cipango.sip.AddressImpl;
+import org.cipango.sip.CSeq;
 import org.cipango.sip.SipFields;
 import org.cipango.sip.SipFields.Field;
 import org.cipango.sip.SipHeader;
@@ -95,6 +96,14 @@ public abstract class SipMessage implements SipServletMessage
 	{
 		return (Via) _fields.get(SipHeader.VIA);
 	}
+	
+	public CSeq getCSeq() throws ServletParseException
+    {
+    	String cseq = _fields.getString(SipHeader.CSEQ);
+    	if (cseq != null)
+    		return new CSeq(cseq);
+    	return null;
+    }
 	
 	public String getToTag()
 	{

@@ -1,0 +1,184 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <parent>
+    <groupId>org.cipango</groupId>
+    <artifactId>cipango-project</artifactId>
+    <version>3.0.0-SNAPSHOT</version>
+  </parent>
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>cipango-tests</artifactId>
+  <name>Cipango :: Tests</name>
+  <description>Cipango Functional Tests</description>
+  <packaging>war</packaging>
+  <properties>
+    <bundle-symbolic-name>${project.groupId}.plus</bundle-symbolic-name>
+    <hamcrest.version>1.3.RC2</hamcrest.version>
+    <jmock.version>2.5.1</jmock.version>
+  </properties>
+
+  <build>
+    <finalName>${project.artifactId}</finalName>
+    <plugins>
+
+      <plugin>
+	    <groupId>org.apache.maven.plugins</groupId>
+	    <artifactId>maven-compiler-plugin</artifactId>
+	    <configuration>
+		  <source>1.5</source>
+		  <target>1.5</target>
+	    </configuration>
+	  </plugin>
+
+	  <plugin>
+	    <groupId>org.cipango</groupId>
+	    <artifactId>cipango-maven-plugin</artifactId>
+	    <version>2.2-SNAPSHOT</version>
+	    <!-- <version>${project.version}</version> -->
+	    <configuration>
+		  <systemProperties>
+		    <systemProperty>
+			  <name>sip.host</name>
+			  <value>localhost</value>
+		    </systemProperty>
+		    <systemProperty>
+			  <name>sip.port</name>
+			  <value>5050</value>
+		    </systemProperty>
+		    <systemProperty>
+			  <name>jetty.port</name>
+			  <value>8077</value>
+		    </systemProperty>
+		    <systemProperty>
+			  <name>org.cipango.dar.routeOutgoingRequests</name>
+			  <value>false</value>
+		    </systemProperty>
+		    <systemProperty>
+			  <name>logback.configurationFile</name>
+			  <value>${project.baseUri}/resources/logback.xml</value>
+		    </systemProperty>
+		  </systemProperties>
+		  <webAppConfig>
+		    <contextPath>/${project.artifactId}</contextPath>
+		  </webAppConfig>
+		  <scanIntervalSeconds>0</scanIntervalSeconds>
+		  <annotationsEnabled>true</annotationsEnabled>
+		  <stopKey>foo</stopKey>
+		  <stopPort>9999</stopPort>
+	    </configuration>
+	    <dependencies>
+		  <dependency>
+		    <groupId>ch.qos.logback</groupId>
+		    <artifactId>logback-core</artifactId>
+		    <version>1.0.0</version>
+		  </dependency>
+		  <dependency>
+		    <groupId>ch.qos.logback</groupId>
+		    <artifactId>logback-classic</artifactId>
+		    <version>1.0.0</version>
+		  </dependency>
+        </dependencies>
+	    <executions>
+	      <execution>
+	        <id>start-cipango</id>
+	        <phase>pre-integration-test</phase>
+	        <goals>
+	          <goal>run</goal>
+	        </goals>
+	        <configuration>
+	          <daemon>true</daemon>
+	        </configuration>
+	      </execution>
+	      <execution>
+	        <id>stop-cipango</id>
+	        <phase>post-integration-test</phase>
+	        <goals>
+	          <goal>stop</goal>
+	        </goals>
+	      </execution>
+	    </executions>
+      </plugin>
+
+      <plugin>
+	    <artifactId>maven-surefire-plugin</artifactId>
+	    <configuration>
+	      <skipTests>true</skipTests>
+	    </configuration>
+	    <executions>
+	      <execution>
+	        <id>surefire-it</id>
+	        <phase>integration-test</phase>
+	        <goals>
+	          <goal>test</goal>
+	        </goals>
+	        <configuration>
+	          <skipTests>false</skipTests>
+	        </configuration>
+	      </execution>
+	    </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-report-plugin</artifactId>
+        <version>2.6</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jxr-plugin</artifactId>
+        <version>2.1</version>
+      </plugin>
+    </plugins>
+  </reporting>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>1.6.1</version>
+	  <scope>provided</scope>
+    </dependency>
+    <dependency>
+	  <groupId>ch.qos.logback</groupId>
+	  <artifactId>logback-core</artifactId>
+	  <version>1.0.0</version>
+	  <scope>test</scope>
+    </dependency>
+    <dependency>
+	  <groupId>ch.qos.logback</groupId>
+	  <artifactId>logback-classic</artifactId>
+	  <version>1.0.0</version>
+	  <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>1.2.14</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- <dependency> -->
+    <!--   <groupId>junit</groupId> -->
+    <!--   <artifactId>junit</artifactId> -->
+    <!--   <scope>test</scope> -->
+    <!-- </dependency> -->
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest-integration</artifactId>
+      <version>${hamcrest.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jmock</groupId>
+      <artifactId>jmock-junit4</artifactId>
+      <version>${jmock.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.cipango</groupId>
+      <artifactId>cipango-client</artifactId>
+      <version>3.0.0-SNAPSHOT</version>
+    </dependency>
+  </dependencies>
+
+</project>

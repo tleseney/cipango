@@ -73,6 +73,16 @@ public class UserAgent
 		return _contact;
 	}
 	
+	public Address getOutboundProxy()
+	{
+		return _outboundProxy;
+	}
+
+	public void setOutboundProxy(Address outboundProxy)
+	{
+		_outboundProxy = outboundProxy;
+	}
+
 	public void handleInitialRequest(SipServletRequest request) throws IOException, ServletException
 	{
 		if (_handler != null)
@@ -127,7 +137,7 @@ public class UserAgent
 				
 		result = _registrationTask.getRegistration().register(_contact.getURI(), expires);
 		if (result)
-			_registrationThread.run();
+			_registrationThread.start();
 		else
 			_registrationThread.interrupt();
 		
@@ -158,8 +168,7 @@ public class UserAgent
 		
 	public Call createCall(URI remote) throws IOException, ServletException
 	{
-		Call call = new Call();
-		customize(call);
+		Call call = (Call) customize(new Call());
 		call.start(call.createInitialInvite(_aor.getURI(), remote));
 
 		return call;
@@ -173,23 +182,31 @@ public class UserAgent
 		dialog.setOutboundProxy(_outboundProxy);
 		return dialog;
 	}
+
+	public SipServletRequest customize(SipServletRequest request)
+	{
+		if (_outboundProxy != null)
+			request.pushRoute(_outboundProxy);
+		return request;
+	}
 	
 	public SipServletRequest createRequest(String method, String to) throws ServletParseException
 	{
 		SipApplicationSession appSession = _factory.createApplicationSession();
-		return _factory.createRequest(appSession, method, getAor(), _factory.createAddress(to));
+		return customize(_factory.createRequest(appSession, method,
+				getAor(), _factory.createAddress(to)));
 	}
 	
 	public SipServletRequest createRequest(String method, Address to)
 	{
 		SipApplicationSession appSession = _factory.createApplicationSession();
-		return _factory.createRequest(appSession, method, getAor(), to);
+		return customize(_factory.createRequest(appSession, method, getAor(), to));
 	}
 	
 	public SipServletRequest createRequest(String method, UserAgent agent)
 	{
 		SipApplicationSession appSession = _factory.createApplicationSession();
-		return _factory.createRequest(appSession, method, getAor(), agent.getAor());
+		return customize(_factory.createRequest(appSession, method, getAor(), agent.getAor()));
 	}
 
 
@@ -217,6 +234,7 @@ public class UserAgent
 	public SipServletResponse sendSynchronous(SipServletRequest request) throws IOException, ServletException
 	{
 		RequestHandler handler = new RequestHandler(request, getTimeout());
+		handler.setCredentials(_credentials);
 		handler.send();
 		return handler.waitForFinalResponse();
 	}
@@ -231,6 +249,7 @@ public class UserAgent
 	public RequestHandler send(SipServletRequest request) throws IOException, ServletException
 	{
 		RequestHandler handler = new RequestHandler(request, getTimeout());
+		handler.setCredentials(_credentials);
 		handler.send();
 		return handler;
 	}

@@ -183,13 +183,13 @@ public class Authentication
 		}
 	}
 	
-	static class Digest
+	public static class Digest
 	{
-		private String _realm;
-		private String _qop;
-		private String _nonce;
-		private String _opaque;
-		private String _stale;
+		protected String _realm;
+		protected String _qop;
+		protected String _nonce;
+		protected String _opaque;
+		protected String _stale;
 		
 		public String getRealm()
 		{

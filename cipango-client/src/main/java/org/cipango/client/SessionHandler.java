@@ -39,7 +39,7 @@ public class SessionHandler extends AbstractChallengedMessageHandler
 			throws IOException, ServletException
 	{
 		boolean result = super.handleAuthentication(response);
-		if (!result)
+		if (result)
 			_responses.add(new ReadableMessage<SipServletResponse>(response));
 		return result;
 	}

@@ -1,7 +1,5 @@
 package org.cipango.client;
 
-import java.io.IOException;
-
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.URI;
@@ -39,16 +37,17 @@ public class Call extends Dialog
 		return createRequest(SipMethods.BYE);
 	}
 	
-	public void cancel() throws IOException
+	public SipServletRequest createCancel()
 	{
 		if (_session != null)
 		{
 			SipServletResponse response = getSessionHandler().getLastResponse();
 			if (response != null && response.getStatus() < SipServletResponse.SC_OK)
 			{
-				response.getRequest().createCancel().send();
+				return response.getRequest().createCancel();
 			}
 		}
+		return null;
 	}
 	
 	/**

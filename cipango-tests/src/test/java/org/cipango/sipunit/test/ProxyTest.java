@@ -19,8 +19,8 @@ import javax.servlet.ServletException;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
-import org.cipango.client.AsyncMessageHandler;
 import org.cipango.client.Call;
+import org.cipango.client.MessageHandler;
 import org.cipango.sipunit.UaRunnable;
 import org.cipango.sipunit.UaTestCase;
 import org.cipango.sipunit.UasScript;
@@ -226,13 +226,18 @@ public class ProxyTest extends UaTestCase
 	{
 		Call callA = (Call) _ua.customize(new Call());
 		
-		getBobUserAgent().setDefaultHandler(new AsyncMessageHandler() {
+		getBobUserAgent().setDefaultHandler(new MessageHandler() {
 			public void handleRequest(SipServletRequest request)
 					throws IOException, ServletException
 			{
 				assertTrue(request.getHeader("req-uri").toString().contains("tel:1234"));
 				getBobUserAgent().createResponse(request,
 						SipServletResponse.SC_DECLINE).send();
+			}
+
+			public void handleResponse(SipServletResponse response)
+					throws IOException, ServletException
+			{
 			}
 		});
 		

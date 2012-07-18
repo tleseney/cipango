@@ -44,9 +44,9 @@ public abstract class UasScript
 		public void doTest() throws Throwable
 		{
 			SipServletRequest request = waitForInitialRequest();
-			request.createResponse(SipServletResponse.SC_RINGING).send();
+			_ua.createResponse(request, SipServletResponse.SC_RINGING).send();
 			Thread.sleep(250);
-			request.createResponse(SipServletResponse.SC_FORBIDDEN).send();
+			_ua.createResponse(request, SipServletResponse.SC_FORBIDDEN).send();
 		}
 	};
 
@@ -74,9 +74,9 @@ public abstract class UasScript
 		public void doTest() throws Throwable
 		{
 			SipServletRequest request = waitForInitialRequest();
-			request.createResponse(SipServletResponse.SC_RINGING).send();
+			_ua.createResponse(request, SipServletResponse.SC_RINGING).send();
 			Thread.sleep(250);
-			request.createResponse(SipServletResponse.SC_NOT_FOUND).send();
+			_ua.createResponse(request, SipServletResponse.SC_NOT_FOUND).send();
 		}
 	};
 	
@@ -103,7 +103,7 @@ public abstract class UasScript
 		public void doTest() throws Throwable
 		{
 			SipServletRequest request = waitForInitialRequest();
-			request.createResponse(SipServletResponse.SC_NOT_FOUND).send();
+			_ua.createResponse(request, SipServletResponse.SC_NOT_FOUND).send();
 		}
 	};
 	
@@ -136,14 +136,14 @@ public abstract class UasScript
 		public void doTest() throws Throwable
 		{
 			SipServletRequest request = waitForInitialRequest();
-			request.createResponse(SipServletResponse.SC_RINGING).send();
+			_ua.createResponse(request, SipServletResponse.SC_RINGING).send();
 			Thread.sleep(500);
-			request.createResponse(SipServletResponse.SC_OK).send();
+			_ua.createResponse(request, SipServletResponse.SC_OK).send();
 			request = _dialog.waitForRequest();
 			assert request.getMethod().equals(SipMethods.ACK);
 			request = _dialog.waitForRequest();
 			assert request.getMethod().equals(SipMethods.BYE);
-			request.createResponse(SipServletResponse.SC_OK).send();
+			_ua.createResponse(request, SipServletResponse.SC_OK).send();
 		}
 	};
 

@@ -1,3 +1,16 @@
+// ========================================================================
+// Copyright 2012 NEXCOM Systems
+// ------------------------------------------------------------------------
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at 
+// http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ========================================================================
 package org.cipango.server;
 
 import java.io.BufferedReader;
@@ -188,9 +201,9 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		return null;
 	}
 	@Override
-	public String getScheme() {
-		// TODO Auto-generated method stub
-		return null;
+	public String getScheme() 
+	{
+		return _requestUri.getScheme();
 	}
 	@Override
 	public String getServerName() {
@@ -243,8 +256,8 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		throw new UnsupportedOperationException("Not Applicable");
 	}
 	@Override
-	public String getRealPath(String path) {
-		// TODO Auto-generated method stub
+	public String getRealPath(String path) 
+	{
 		return null;
 	}
 	@Override
@@ -253,12 +266,12 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		return null;
 	}
 	@Override
-	public void addAuthHeader(SipServletResponse arg0, AuthInfo arg1) {
+	public void addAuthHeader(SipServletResponse response, AuthInfo authInfo) {
 		// TODO Auto-generated method stub
 		
 	}
 	@Override
-	public void addAuthHeader(SipServletResponse arg0, String arg1, String arg2) {
+	public void addAuthHeader(SipServletResponse response, String username, String password) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -337,12 +350,12 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		
 	}
 	@Override
-	public void pushRoute(SipURI arg0) {
-		// TODO Auto-generated method stub
-		
+	public void pushRoute(SipURI route) 
+	{
+		pushRoute(new AddressImpl(route));
 	}
 	@Override
-	public void pushRoute(Address arg0) {
+	public void pushRoute(Address route) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -360,8 +373,8 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		_requestUri = uri;
 	}
 	@Override
-	public void setRoutingDirective(SipApplicationRoutingDirective arg0,
-			SipServletRequest arg1) throws IllegalStateException {
+	public void setRoutingDirective(SipApplicationRoutingDirective routingDirective,
+			SipServletRequest origRequest) throws IllegalStateException {
 		// TODO Auto-generated method stub
 		
 	}

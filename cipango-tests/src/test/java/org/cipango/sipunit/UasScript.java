@@ -20,6 +20,36 @@ import org.cipango.client.SipMethods;
 
 public abstract class UasScript
 {
+	public static class RingingForbidden extends UaRunnable
+	{
+		/**
+		 * <pre>
+		 * Remote                    Sip unit
+		 * | INVITE                     |
+		 * |--------------------------->|
+		 * |                        180 |
+		 * |<---------------------------|
+		 * |                        403 |
+		 * |<---------------------------|
+		 * | ACK                        |
+		 * |--------------------------->|
+		 * </pre>
+		 */
+		public RingingForbidden(TestAgent userAgent)
+		{
+			super(userAgent);
+		}
+
+		@Override
+		public void doTest() throws Throwable
+		{
+			SipServletRequest request = waitForInitialRequest();
+			request.createResponse(SipServletResponse.SC_RINGING).send();
+			Thread.sleep(250);
+			request.createResponse(SipServletResponse.SC_FORBIDDEN).send();
+		}
+	};
+
 	public static class RingingNotFound extends UaRunnable
 	{
 		/**
@@ -148,9 +178,6 @@ public abstract class UasScript
 			_ua.createResponse(invite, SipServletResponse.SC_RINGING).send();
 	        SipServletRequest cancel  = _dialog.waitForRequest();
 			assert cancel.getMethod().equals(SipMethods.CANCEL);
-			_ua.createResponse(cancel, SipServletResponse.SC_OK).send();
-	        _ua.createResponse(invite, SipServletResponse.SC_REQUEST_TERMINATED).send();
-	        
 		}
 	};
 	

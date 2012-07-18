@@ -129,7 +129,7 @@ public class AuthenticationTest extends UaTestCase
 		List<SipServletResponse> responses = (List<SipServletResponse>) response
 				.getRequest().getAttribute(SipServletResponse.class.getName());
 		assertEquals(2, responses.size());
-		assertValid(responses.get(0), 401);
+		assertValid(responses.get(0), SipServletResponse.SC_UNAUTHORIZED);
 		assertSame(response, responses.get(1));
 	}
 

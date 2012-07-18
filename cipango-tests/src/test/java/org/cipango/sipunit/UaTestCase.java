@@ -89,7 +89,7 @@ public abstract class UaTestCase extends TestCase
 
 	public String getFrom()
 	{
-		return "sip:sipUnit@" + _properties.getProperty("sipunit.test.domain");
+		return "sip:alice@" + _properties.getProperty("sipunit.test.domain");
 	}
 	
 	public String getBobUri()
@@ -99,7 +99,7 @@ public abstract class UaTestCase extends TestCase
 	
 	public Address getBobContact()
 	{
-		return getBobUserAgent().getAor();
+		return _ua.getFactory().createAddress(_sipClient.getContact());
 	}
 	
 	public String getCarolUri()
@@ -109,7 +109,7 @@ public abstract class UaTestCase extends TestCase
 	
 	public Address getCarolContact()
 	{
-		return getCarolUserAgent().getAor();
+		return _ua.getFactory().createAddress(_sipClient.getContact());
 	}
 
 	public String getTo()
@@ -240,7 +240,10 @@ public abstract class UaTestCase extends TestCase
 			Thread.sleep(50);
 
 			SipServletRequest request = _ua.createRequest(SipMethods.MESSAGE, getTo());
-	        assertValid(_ua.sendSynchronous(request));
+			request.removeHeader(TestAgent.METHOD_HEADER);
+			request.addHeader(TestAgent.METHOD_HEADER, "checkForFailure");
+			SipServletResponse response = _ua.sendSynchronous(request);
+			assertValid(response);
 		}
 		catch (Exception e)
 		{

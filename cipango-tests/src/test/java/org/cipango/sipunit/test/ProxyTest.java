@@ -13,9 +13,13 @@
 // ========================================================================
 package org.cipango.sipunit.test;
 
+import java.io.IOException;
+
+import javax.servlet.ServletException;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
+import org.cipango.client.AsyncMessageHandler;
 import org.cipango.client.Call;
 import org.cipango.sipunit.UaRunnable;
 import org.cipango.sipunit.UaTestCase;
@@ -72,6 +76,7 @@ public class ProxyTest extends UaTestCase
 		SipServletRequest request = callA.createInitialInvite(
 				_ua.getFactory().createURI(getFrom()),
 				_ua.getFactory().createURI(getBobUri()));
+		request.setRequestURI(getBobContact().getURI());
 		request.addHeader("proxy", getCarolContact().toString());
 		callA.start(request);
 
@@ -169,6 +174,7 @@ public class ProxyTest extends UaTestCase
 	 *    |<-----------|          |
 	 * </pre>
 	 */
+	@Test
 	public void testInvalidateBefore200() throws Exception
 	{
 		Call callA = (Call) _ua.customize(new Call());
@@ -181,8 +187,8 @@ public class ProxyTest extends UaTestCase
 				_ua.getFactory().createURI(getBobUri()));
 		request.setRequestURI(getBobContact().getURI());
 		callA.start(request);
-		
         assertValid(callA.waitForResponse());
+		callA.createAck().send();
         callA.createBye().send();
         
         SipServletResponse response = callA.waitForResponse();
@@ -215,10 +221,20 @@ public class ProxyTest extends UaTestCase
 	 *    |             |                 |--------->|
 	 * </pre>
 	 */
+	@Test
 	public void testTelUri() throws Exception
 	{
 		Call callA = (Call) _ua.customize(new Call());
-		Call callB = (Call) getBobUserAgent().customize(new Call());
+		
+		getBobUserAgent().setDefaultHandler(new AsyncMessageHandler() {
+			public void handleRequest(SipServletRequest request)
+					throws IOException, ServletException
+			{
+				assertTrue(request.getHeader("req-uri").toString().contains("tel:1234"));
+				getBobUserAgent().createResponse(request,
+						SipServletResponse.SC_DECLINE).send();
+			}
+		});
 		
 		SipServletRequest request = callA.createInitialInvite(
 				_ua.getFactory().createURI(getFrom()),
@@ -226,9 +242,6 @@ public class ProxyTest extends UaTestCase
 		request.setRequestURI(getBobContact().getURI());
 		callA.start(request);
 		
-		request = callB.waitForRequest();
-		assertTrue(request.getHeader("req-uri").toString().contains("tel:1234"));
-		getBobUserAgent().createResponse(request, SipServletResponse.SC_DECLINE).send();
         assertValid(callA.waitForResponse(), SipServletResponse.SC_DECLINE);
 	}
 }

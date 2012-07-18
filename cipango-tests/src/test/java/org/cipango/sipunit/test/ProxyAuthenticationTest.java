@@ -54,7 +54,7 @@ public class ProxyAuthenticationTest extends UaTestCase
 		List<SipServletResponse> responses = (List<SipServletResponse>) response
 				.getRequest().getAttribute(SipServletResponse.class.getName());
 		assertEquals(2, responses.size());
-		assertValid(responses.get(0), 407);
+		assertValid(responses.get(0), SipServletResponse.SC_PROXY_AUTHENTICATION_REQUIRED);
 		assertSame(response, responses.get(1));
 	}
 }

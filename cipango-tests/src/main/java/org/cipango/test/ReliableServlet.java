@@ -100,7 +100,7 @@ public class ReliableServlet extends AbstractServlet
 		request.createResponse(SipServletResponse.SC_OK).send();
 		request.getApplicationSession().invalidate();
 		
-		if ("MESSAGE".equals(method))
+		if ("REGISTER".equals(method))
 		{
 			Thread.sleep(200);	
 			

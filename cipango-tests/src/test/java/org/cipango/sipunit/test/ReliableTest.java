@@ -56,14 +56,10 @@ public class ReliableTest extends UaTestCase
 	@Test
 	public void test100Rel() throws Exception
 	{
-		Call call = (Call) _ua.customize(new Call());
-		
-		SipServletRequest request = call.createInitialInvite(
-				_ua.getFactory().createURI(getFrom()),
-				_ua.getFactory().createURI(getBobUri()));
+		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, getBobUri());
 		request.setRequestURI(getBobContact().getURI());
 		request.addHeader(SipHeaders.SUPPORTED, "100rel");
-		call.start(request); // 1
+		Call call = _ua.createCall(request); // 1
 	
 		SipServletResponse response = call.waitForResponse(); // 2
 		assertValid(response, SipServletResponse.SC_SESSION_PROGRESS);
@@ -107,14 +103,10 @@ public class ReliableTest extends UaTestCase
 	 */
 	public void testLatePrackAnswer() throws Exception
 	{
-		Call call = (Call) _ua.customize(new Call());
-		
-		SipServletRequest request = call.createInitialInvite(
-				_ua.getFactory().createURI(getFrom()),
-				_ua.getFactory().createURI(getBobUri()));
+		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, getBobUri());
 		request.setRequestURI(getBobContact().getURI());
 		request.addHeader(SipHeaders.SUPPORTED, "100rel");
-		call.start(request); // 1
+		Call call = _ua.createCall(request); // 1
 		
 		SipServletResponse response = call.waitForResponse(); // 2
 		assertValid(response, SipServletResponse.SC_SESSION_PROGRESS);
@@ -132,7 +124,7 @@ public class ReliableTest extends UaTestCase
 	/**
 	 *  SipUnit        Cipango
 	 *    |               |
-	 *    | MESSAGE       |
+	 *    | REGISTER      |
 	 *    |-------------->|
 	 *    |           200 |
 	 *    |<--------------|
@@ -163,7 +155,7 @@ public class ReliableTest extends UaTestCase
 	/**
 	 *  SipUnit        Cipango
 	 *    |               |
-	 *    | MESSAGE       |
+	 *    | REGISTER      |
 	 *    |-------------->|
 	 *    |           200 |
 	 *    |<--------------|
@@ -221,17 +213,16 @@ public class ReliableTest extends UaTestCase
 			}
 		};
 		
-		call.start();
-
 		try
 		{
-			sendAndAssertMessage();
-			call.join();
+			call.start();
+			startScenario();
+			call.join(2000);
+			call.assertDone();
 		}
-		catch (Throwable e)
+		catch (Throwable t)
 		{
-			e.printStackTrace();
-			fail();
+			throw new Exception(t);
 		}
 		finally
 		{

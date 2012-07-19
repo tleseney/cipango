@@ -21,6 +21,7 @@ import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.client.Call;
 import org.cipango.client.MessageHandler;
+import org.cipango.client.SipMethods;
 import org.cipango.sipunit.UaRunnable;
 import org.cipango.sipunit.UaTestCase;
 import org.cipango.sipunit.UasScript;
@@ -66,19 +67,17 @@ public class ProxyTest extends UaTestCase
 	@Test
 	public void testProxyDiameter() throws Throwable
 	{
-		Call callA = (Call) _ua.customize(new Call());
+		Call callA;
 		UaRunnable callB = new UasScript.NotFound(getBobUserAgent());
 		UaRunnable callC = new UasScript.OkBye(getCarolUserAgent());
 
 		callB.start();
 		callC.start();
 		
-		SipServletRequest request = callA.createInitialInvite(
-				_ua.getFactory().createURI(getFrom()),
-				_ua.getFactory().createURI(getBobUri()));
+		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, getBobUri());
 		request.setRequestURI(getBobContact().getURI());
 		request.addHeader("proxy", getCarolContact().toString());
-		callA.start(request);
+		callA = _ua.createCall(request);
 
 		try 
 		{			
@@ -124,16 +123,14 @@ public class ProxyTest extends UaTestCase
 	@Test
 	public void testVirtualBranch() throws Exception
 	{
-		Call callA = (Call) _ua.customize(new Call());
+		Call callA;
 		UaRunnable callB = new UasScript.RingingCanceled(getBobUserAgent());
 		
 		callB.start();
 		
-		SipServletRequest request = callA.createInitialInvite(
-				_ua.getFactory().createURI(getFrom()),
-				_ua.getFactory().createURI(getBobUri()));
+		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, getBobUri());
 		request.setRequestURI(getBobContact().getURI());
-		callA.start(request);
+		callA = _ua.createCall(request);
 
 		try 
 		{
@@ -177,16 +174,14 @@ public class ProxyTest extends UaTestCase
 	@Test
 	public void testInvalidateBefore200() throws Exception
 	{
-		Call callA = (Call) _ua.customize(new Call());
+		Call callA;
 		UaRunnable callB = new UasScript.OkBye(getBobUserAgent());
 
 		callB.start();
 		
-		SipServletRequest request = callA.createInitialInvite(
-				_ua.getFactory().createURI(getFrom()),
-				_ua.getFactory().createURI(getBobUri()));
+		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, getBobUri());
 		request.setRequestURI(getBobContact().getURI());
-		callA.start(request);
+		callA = _ua.createCall(request);
         assertValid(callA.waitForResponse());
 		callA.createAck().send();
         callA.createBye().send();
@@ -224,7 +219,7 @@ public class ProxyTest extends UaTestCase
 	@Test
 	public void testTelUri() throws Exception
 	{
-		Call callA = (Call) _ua.customize(new Call());
+		Call call;
 		
 		getBobUserAgent().setDefaultHandler(new MessageHandler() {
 			public void handleRequest(SipServletRequest request)
@@ -241,12 +236,10 @@ public class ProxyTest extends UaTestCase
 			}
 		});
 		
-		SipServletRequest request = callA.createInitialInvite(
-				_ua.getFactory().createURI(getFrom()),
-				_ua.getFactory().createURI(getBobUri()));
+		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, getBobUri());
 		request.setRequestURI(getBobContact().getURI());
-		callA.start(request);
+		call = _ua.createCall(request);
 		
-        assertValid(callA.waitForResponse(), SipServletResponse.SC_DECLINE);
+        assertValid(call.waitForResponse(), SipServletResponse.SC_DECLINE);
 	}
 }

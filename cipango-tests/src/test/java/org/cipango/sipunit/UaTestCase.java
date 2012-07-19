@@ -28,6 +28,7 @@ import javax.servlet.sip.SipURI;
 import junit.framework.TestCase;
 
 import org.cipango.client.SipClient;
+import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
 
 public abstract class UaTestCase extends TestCase
@@ -225,6 +226,13 @@ public abstract class UaTestCase extends TestCase
         assertValid(response);
 	}
 	
+	public void startScenario() throws IOException, ServletException
+	{
+		SipServletRequest request = _ua.createRequest(SipMethods.REGISTER, getTo());
+		request.addHeader(SipHeaders.CONTACT, _sipClient.getContact().toString());
+		SipServletResponse response = _ua.sendSynchronous(request);
+        assertValid(response);
+	}
 	
 	/**
 	 * Call the method checkForFailure on the AS.

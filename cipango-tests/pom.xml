@@ -134,6 +134,11 @@
   </reporting>
 
   <dependencies>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-client</artifactId>
+	    <scope>test</scope>
+      </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
@@ -158,11 +163,11 @@
       <version>1.2.14</version>
       <scope>test</scope>
     </dependency>
-    <!-- <dependency> -->
-    <!--   <groupId>junit</groupId> -->
-    <!--   <artifactId>junit</artifactId> -->
-    <!--   <scope>test</scope> -->
-    <!-- </dependency> -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest-integration</artifactId>

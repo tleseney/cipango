@@ -28,7 +28,7 @@ public class UacServlet extends AbstractServlet
 	public void testReInvite(SipServletRequest request) throws Throwable
 	{
 		String method = request.getMethod();
-		if ("MESSAGE".equals(method))
+		if ("REGISTER".equals(method))
 		{
 			request.createResponse(SipServletResponse.SC_OK).send();
 			Thread.sleep(200);
@@ -65,7 +65,7 @@ public class UacServlet extends AbstractServlet
 	public void testBigRequestFallback(SipServletRequest request) throws Throwable
 	{
 		String method = request.getMethod();
-		if ("MESSAGE".equals(method))
+		if ("REGISTER".equals(method))
 		{
 			request.createResponse(SipServletResponse.SC_OK).send();
 			Thread.sleep(20);

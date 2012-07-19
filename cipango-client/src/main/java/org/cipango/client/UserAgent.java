@@ -174,6 +174,14 @@ public class UserAgent
 		return call;
 	}
 	
+	public Call createCall(SipServletRequest request) throws IOException, ServletException
+	{
+		Call call = (Call) customize(new Call());
+		call.start(request);
+
+		return call;
+	}
+	
 	public Dialog customize(Dialog dialog)
 	{
 		dialog.setFactory(_factory);

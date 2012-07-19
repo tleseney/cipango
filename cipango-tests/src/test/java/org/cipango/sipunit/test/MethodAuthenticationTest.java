@@ -95,7 +95,7 @@ public class MethodAuthenticationTest extends UaTestCase
 	@Test
 	public void testRole() throws Exception
 	{		
-		_ua.addCredentials(new CredentialsImpl("Test", "manager", "invalidPassword"));
+		_ua.addCredentials(new CredentialsImpl("Test", "manager", "password"));
 
 		SipServletRequest request = _ua.createRequest("AUTH_METHOD", getTo());
 		SipServletResponse response = _ua.sendSynchronous(request);

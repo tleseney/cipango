@@ -37,12 +37,27 @@ public class Call extends Dialog
 		return createRequest(SipMethods.BYE);
 	}
 	
+	/**
+	 * Prepare a CANCEL request.
+	 * 
+	 * Note that it is possible to create a CANCEL is no response was received
+	 * by the session. This is permitted because the session cannot know if a
+	 * 100 response was received. As described in JSR 289 (11.1.9), it is the
+	 * responsibility of the container to check that sending this request is
+	 * appropriate and eventually to delay it.
+	 */
 	public SipServletRequest createCancel()
 	{
 		if (_session != null)
 		{
 			SipServletResponse response = getSessionHandler().getLastResponse();
-			if (response != null && response.getStatus() < SipServletResponse.SC_OK)
+			if (response == null)
+			{
+				SipServletRequest request = (SipServletRequest) _session
+						.getAttribute(INITIAL_REQUEST_ATTRIBUTE);
+				return request.createCancel();
+			}
+			else if (response.getStatus() < SipServletResponse.SC_OK)
 			{
 				return response.getRequest().createCancel();
 			}

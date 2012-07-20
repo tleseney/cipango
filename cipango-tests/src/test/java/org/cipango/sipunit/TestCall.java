@@ -7,6 +7,8 @@ import org.cipango.client.Call;
 
 public class TestCall extends Call
 {
+	private TestAgent _agent;
+	
 	public TestCall(Call call)
 	{
 		setFactory(call.getFactory());
@@ -15,27 +17,37 @@ public class TestCall extends Call
 		setTimeout(call.getTimeout());
 	}
 
+	public TestAgent getAgent()
+	{
+		return _agent;
+	}
+
+	public void setAgent(TestAgent agent)
+	{
+		_agent = agent;
+	}
+
 	@Override
 	public SipServletRequest createInitialRequest(String method, URI local, URI remote)
 	{
-		return TestAgent.decorate(super.createInitialRequest(method, local, remote));
+		return _agent.decorate(super.createInitialRequest(method, local, remote));
 	}
 
 	@Override
 	public SipServletRequest createAck()
 	{
-		return TestAgent.decorate(super.createAck());
+		return _agent.decorate(super.createAck());
 	}
 
 	@Override
 	public SipServletRequest createCancel()
 	{
-		return TestAgent.decorate(super.createCancel());
+		return _agent.decorate(super.createCancel());
 	}
 
 	@Override
 	public SipServletRequest createRequest(String method)
 	{
-		return TestAgent.decorate(super.createRequest(method));
+		return _agent.decorate(super.createRequest(method));
 	}
 }

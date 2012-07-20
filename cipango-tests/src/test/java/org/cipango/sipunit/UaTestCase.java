@@ -33,15 +33,13 @@ import org.cipango.client.SipMethods;
 
 public abstract class UaTestCase extends TestCase
 {
-	public static final String APP_NAME = "cipango-servlet-test";
-	
 	protected SipClient _sipClient;
 	protected TestAgent _ua;
 	private TestAgent _ub;
 	private TestAgent _uc;
 
 	protected Properties _properties;
-
+	
 	public UaTestCase()
 	{
 		_properties = new Properties();
@@ -62,6 +60,11 @@ public abstract class UaTestCase extends TestCase
 		return _properties.getProperty("sipunit.test.protocol");
 	}
 
+	public int getTimeout()
+	{
+		return getInt("sipunit.test.timeout");
+	}
+	
 	public int getInt(String property)
 	{
 		return Integer.parseInt(_properties.getProperty(property));
@@ -100,7 +103,9 @@ public abstract class UaTestCase extends TestCase
 	
 	public Address getBobContact()
 	{
-		return _ua.getFactory().createAddress(_sipClient.getContact());
+		SipURI contact = (SipURI) _sipClient.getContact().clone();
+		contact.setUser("bob");
+		return _ua.getFactory().createAddress(contact);
 	}
 	
 	public String getCarolUri()
@@ -110,7 +115,9 @@ public abstract class UaTestCase extends TestCase
 	
 	public Address getCarolContact()
 	{
-		return _ua.getFactory().createAddress(_sipClient.getContact());
+		SipURI contact = (SipURI) _sipClient.getContact().clone();
+		contact.setUser("carol");
+		return _ua.getFactory().createAddress(contact);
 	}
 
 	public String getTo()
@@ -118,6 +125,15 @@ public abstract class UaTestCase extends TestCase
 		return "sip:sipServlet@" + _properties.getProperty("sipunit.test.domain");
 	}
 
+	@Override
+	protected void runTest() throws Throwable {
+		_ua.setTestServlet(getClass().getName());
+		_ua.setTestMethod(getName());
+		
+		super.runTest();
+	}
+	
+	@Override
 	public void setUp() throws Exception
 	{
 		Properties properties = new Properties();
@@ -132,8 +148,10 @@ public abstract class UaTestCase extends TestCase
 		uri.setPort(Integer.parseInt(_properties.getProperty("sipunit.proxy.port")));
 		uri.setLrParam(true);
 		_ua.setOutboundProxy(_ua.getFactory().createAddress(uri));
+		_ua.setTimeout(getTimeout());
 	}
 
+	@Override
 	public void tearDown() throws Exception
 	{
 		_ua = _ub = _uc = null;
@@ -175,8 +193,10 @@ public abstract class UaTestCase extends TestCase
 				Properties properties = new Properties();
 				properties.putAll(_properties);
 				_ub = new TestAgent(_sipClient.getFactory().createAddress(getBobUri()));
+				_ub.setTimeout(getTimeout());
+				_ub.setTestServlet(getClass().getName());
+				_ub.setTestMethod(getName());
 				_sipClient.addUserAgent(_ub);
-				// TODO: Useless? _ub.getProxy().setUser(APP_NAME);
 			}
 			return _ub;
 		} catch (Exception e) {
@@ -192,8 +212,10 @@ public abstract class UaTestCase extends TestCase
 				Properties properties = new Properties();
 				properties.putAll(_properties);
 				_uc = new TestAgent(_sipClient.getFactory().createAddress(getCarolUri()));
+				_uc.setTimeout(getTimeout());
+				_uc.setTestServlet(getClass().getName());
+				_uc.setTestMethod(getName());
 				_sipClient.addUserAgent(_uc);
-				// TODO: Useless? _uc.getProxy().setUser(APP_NAME);
 			}
 			return _uc;
 		} catch (Exception e) {

@@ -23,6 +23,7 @@ import javax.servlet.sip.annotation.SipServlet;
 
 import org.cipango.test.common.AbstractServlet;
 
+@SuppressWarnings("serial")
 @SipServlet(name="org.cipango.sipunit.test.ReliableTest")
 public class ReliableServlet extends AbstractServlet
 {
@@ -124,5 +125,15 @@ public class ReliableServlet extends AbstractServlet
 			else // 200
 				response.createAck().send();
 		}
+	}
+
+	public void test100RelUacLatePrackAnswer(SipServletRequest request) throws Exception
+	{
+		test100RelUac(request);
+	}
+
+	public void test100RelUacLatePrackAnswer(SipServletResponse response) throws Exception
+	{
+		test100RelUac(response);
 	}
 }

@@ -65,7 +65,7 @@ public class B2bHelperTest extends UaTestCase
 	@Test
 	public void testCancel() throws Throwable
 	{
-		Call callA = (Call) _ua.customize(new Call());
+		Call callA;
 		UaRunnable callB = new UaRunnable(getBobUserAgent())
 		{
 			@Override
@@ -88,18 +88,16 @@ public class B2bHelperTest extends UaTestCase
 		
 		callB.start();
 		
-		SipServletRequest request = callA.createInitialInvite(
-				_ua.getFactory().createURI(getFrom()),
-				_ua.getFactory().createURI(getBobUri()));
+		SipServletRequest request = _ua.createRequest(SipMethods.INVITE,  getBobUri());
 		request.setRequestURI(getBobContact().getURI());
 		request.addHeader(SipHeaders.SUPPORTED, "100rel");
-		callA.start(request);
+		callA = _ua.createCall(request);
 
-		try 
+		try
 		{			
 			SipServletResponse response = callA.waitForResponse();
 	        assertValid(response, SipServletResponse.SC_SESSION_PROGRESS);
-	        response.createPrack().send();
+	        _ua.decorate(response.createPrack()).send();
 	        assertValid(callA.waitForResponse());
 			Thread.sleep(50);
 	        callA.createCancel().send();	        
@@ -144,7 +142,7 @@ public class B2bHelperTest extends UaTestCase
 	@Test
 	public void testEarlyCancel() throws Throwable
 	{
-		Call callA = (Call) _ua.customize(new Call());
+		Call callA;
 		UaRunnable callB = new UaRunnable(getBobUserAgent())
 		{
 			@Override
@@ -159,17 +157,14 @@ public class B2bHelperTest extends UaTestCase
 		
 		callB.start();
 		
-		SipServletRequest request = callA.createInitialInvite(
-				_ua.getFactory().createURI(getFrom()),
-				_ua.getFactory().createURI(getBobUri()));
+		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, getBobUri());
 		request.setRequestURI(getBobContact().getURI());
-		callA.start(request);
+		callA = _ua.createCall(request);
 
 		try 
-		{			
+		{
 			Thread.sleep(50);
 			callA.createCancel().send();
-	        assertValid(callA.waitForResponse(), SipServletResponse.SC_REQUEST_TIMEOUT);
 	        callB.assertDone();
 		}
 		finally

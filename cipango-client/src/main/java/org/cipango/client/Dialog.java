@@ -76,7 +76,6 @@ public class Dialog
 	public void accept(SipServletRequest request) throws ServletException
 	{
 		initialize(request);
-		_session.setAttribute(INITIAL_REQUEST_ATTRIBUTE, request);
 	}
 
 	/**
@@ -199,7 +198,8 @@ public class Dialog
 		_sessionHandler = new SessionHandler();
 		_session = request.getSession();
 		_session.setAttribute(MessageHandler.class.getName(), _sessionHandler);
-
+		_session.setAttribute(INITIAL_REQUEST_ATTRIBUTE, request);
+		
 		_sessionHandler.setTimeout(_timeout);
 		_sessionHandler.setCredentials(_credentials);
 	}

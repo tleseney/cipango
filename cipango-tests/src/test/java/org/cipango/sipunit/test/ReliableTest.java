@@ -19,7 +19,6 @@ import javax.servlet.sip.SipServletResponse;
 import org.cipango.client.Call;
 import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
-import org.cipango.sipunit.TestAgent;
 import org.cipango.sipunit.UaRunnable;
 import org.cipango.sipunit.UaTestCase;
 import org.junit.Test;
@@ -64,13 +63,13 @@ public class ReliableTest extends UaTestCase
 		SipServletResponse response = call.waitForResponse(); // 2
 		assertValid(response, SipServletResponse.SC_SESSION_PROGRESS);
 
-		TestAgent.decorate(response.createPrack()).send();  // 3
+		_ua.decorate(response.createPrack()).send();  // 3
 		assertValid(call.waitForResponse()); // 4
 		
 		response = call.waitForResponse(); // 5
 		assertValid(response, SipServletResponse.SC_SESSION_PROGRESS);
 
-		TestAgent.decorate(response.createPrack()).send();  // 6
+		_ua.decorate(response.createPrack()).send();  // 6
 		assertValid(call.waitForResponse()); // 7
 		
         assertValid(call.waitForResponse()); // 8
@@ -111,7 +110,7 @@ public class ReliableTest extends UaTestCase
 		SipServletResponse response = call.waitForResponse(); // 2
 		assertValid(response, SipServletResponse.SC_SESSION_PROGRESS);
 		
-		TestAgent.decorate(response.createPrack()).send();  // 3
+		_ua.decorate(response.createPrack()).send();  // 3
 		assertValid(call.waitForResponse()); // 4
 		call.createAck().send();  // 5
 

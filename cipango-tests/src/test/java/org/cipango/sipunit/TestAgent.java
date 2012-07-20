@@ -20,45 +20,68 @@ public class TestAgent extends UserAgent
 	private static final List<String> TEST_HEADERS = Arrays.asList(
 			SERVLET_HEADER, METHOD_HEADER);
 	
-	public static SipServletRequest decorate(SipServletRequest request)
+	private String _testServlet;
+	private String _testMethod;
+	
+	public TestAgent(Address aor)
+	{
+		super(aor);
+	}
+
+	public String getTestServlet()
+	{
+		return _testServlet;
+	}
+
+	public void setTestServlet(String testServlet)
+	{
+		_testServlet = testServlet;
+	}
+
+	public String getTestMethod()
+	{
+		return _testMethod;
+	}
+
+	public void setTestMethod(String testMethod)
+	{
+		_testMethod = testMethod;
+	}
+
+	public SipServletRequest decorate(SipServletRequest request)
 	{
 		if (request == null)
 			return null;
 		
-		Exception e = new Exception();
-		StackTraceElement[] stackTrace = e.getStackTrace();
-		for (StackTraceElement element : stackTrace)
-		{
-			if (element.getClassName().endsWith("Test")
-					&& element.getMethodName().startsWith("test"))
-			{
-				request.addHeader(SERVLET_HEADER, element.getClassName());
-				request.addHeader(METHOD_HEADER, element.getMethodName());
-				return request;
-			}
-		}
-		throw new IllegalStateException("Could not found test method");
-	}
-	
-	public static SipServletResponse decorate(SipServletResponse response)
-	{
-		SipServletRequest request = response.getRequest();
 		Iterator<String> it = request.getHeaderNames();
 		while (it.hasNext())
 		{
 			String header = (String) it.next();
 			if (TEST_HEADERS.contains(header))
-			{
-				for (Iterator<?> headers = request.getHeaders(header); headers.hasNext();)
-					response.addHeader(header, (String) headers.next());
-			}
+				request.removeHeader(header);
 		}
-		return response;
+		
+		request.addHeader(SERVLET_HEADER, _testServlet);
+		request.addHeader(METHOD_HEADER, _testMethod);
+		return request;
 	}
 	
-	public TestAgent(Address aor)
+	public SipServletResponse decorate(SipServletResponse response)
 	{
-		super(aor);
+		if (response == null)
+			return null;
+
+		Iterator<String> it = response.getHeaderNames();
+		while (it.hasNext())
+		{
+			String header = (String) it.next();
+			if (TEST_HEADERS.contains(header))
+				response.removeHeader(header);
+		}
+
+		response.addHeader(SERVLET_HEADER, _testServlet);
+		response.addHeader(METHOD_HEADER, _testMethod);
+		return response;
 	}
 
 	@Override
@@ -66,7 +89,11 @@ public class TestAgent extends UserAgent
 	{
 		Dialog dlg = null;
 		if (dialog instanceof Call)
-			dlg = new TestCall((Call) dialog);
+		{
+			TestCall call = new TestCall((Call) dialog);
+			call.setAgent(this);
+			dlg = call;
+		}
 		else
 			dlg = new TestDialog(dialog);
 		return super.customize(dlg); 

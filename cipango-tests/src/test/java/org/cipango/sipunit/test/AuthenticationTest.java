@@ -13,6 +13,10 @@
 // ========================================================================
 package org.cipango.sipunit.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.cipango.sipunit.test.matcher.SipMatchers.*;
+
 import java.util.List;
 
 import javax.servlet.sip.SipServletRequest;
@@ -69,15 +73,15 @@ public class AuthenticationTest extends UaTestCase
 
 		SipServletRequest request = _ua.createRequest(SipMethods.MESSAGE, getTo());
 		SipServletResponse response = _ua.sendSynchronous(request);
-        assertValid(response);
-        assertNotNull(response.getHeader("servlet"));
+		assertThat(response, isSuccess());
+		assertThat(response, hasHeader("servlet"));
         
 		@SuppressWarnings("unchecked")
 		List<SipServletResponse> responses = (List<SipServletResponse>) response
 				.getRequest().getAttribute(SipServletResponse.class.getName());
-		assertEquals(2, responses.size());
-		assertValid(responses.get(0), 401);
-		assertSame(response, responses.get(1));
+		assertThat(responses.size(), is(2));
+		assertThat(responses.get(0), hasStatus(SipServletResponse.SC_UNAUTHORIZED));
+		assertThat(responses.get(1), is(sameInstance(response)));
 	}
 	
 	/**
@@ -97,7 +101,7 @@ public class AuthenticationTest extends UaTestCase
 	{
 		SipServletRequest request = _ua.createRequest("FORBIDDEN_METHOD", getTo());
 		SipServletResponse response = _ua.sendSynchronous(request);
-        assertValid(response, SipServletResponse.SC_FORBIDDEN);
+        assertThat(response, hasStatus(SipServletResponse.SC_FORBIDDEN));
 	}
 	
 	/**
@@ -123,14 +127,14 @@ public class AuthenticationTest extends UaTestCase
 
 		SipServletRequest request = _ua.createRequest(SipMethods.MESSAGE, getTo());
 		SipServletResponse response = _ua.sendSynchronous(request);
-        assertValid(response, SipServletResponse.SC_FORBIDDEN);
+        assertThat(response, hasStatus(SipServletResponse.SC_FORBIDDEN));
         
 		@SuppressWarnings("unchecked")
 		List<SipServletResponse> responses = (List<SipServletResponse>) response
 				.getRequest().getAttribute(SipServletResponse.class.getName());
-		assertEquals(2, responses.size());
-		assertValid(responses.get(0), SipServletResponse.SC_UNAUTHORIZED);
-		assertSame(response, responses.get(1));
+		assertThat(responses.size(), is(2));
+		assertThat(responses.get(0), hasStatus(SipServletResponse.SC_UNAUTHORIZED));
+		assertThat(responses.get(1), is(sameInstance(response)));
 	}
 
 	/**
@@ -154,7 +158,7 @@ public class AuthenticationTest extends UaTestCase
 	{
 		SipServletRequest request = _ua.createRequest(SipMethods.MESSAGE, getTo());
 		SipServletResponse response = _ua.sendSynchronous(request);
-        assertValid(response, SipServletResponse.SC_UNAUTHORIZED);
+		assertThat(response, hasStatus(SipServletResponse.SC_UNAUTHORIZED));
         
 		MutableDigest digest = new MutableDigest(
 				Authentication.createDigest(response.getHeader(SipHeaders.WWW_AUTHENTICATE)));
@@ -166,9 +170,9 @@ public class AuthenticationTest extends UaTestCase
 				request.getMethod(), request.getRequestURI().toString(),
 				new CredentialsImpl("", "user", "password")));
         response = _ua.sendSynchronous(request);
-        assertValid(response, SipServletResponse.SC_UNAUTHORIZED);
-		assertTrue(Authentication.createDigest(
-				response.getHeader(SipHeaders.WWW_AUTHENTICATE)).isStale());
+		assertThat(response, hasStatus(SipServletResponse.SC_UNAUTHORIZED));
+		assertThat(Authentication.createDigest(
+				response.getHeader(SipHeaders.WWW_AUTHENTICATE)).isStale(), is(true));
 	}
 
 	/**
@@ -205,10 +209,10 @@ public class AuthenticationTest extends UaTestCase
 		_ua.addCredentials(new CredentialsImpl("Test", "user", "password"));
 		
 		Call call = _ua.createCall(_ua.getFactory().createURI(getTo()));
-        assertValid(call.waitForFinalResponse());
+        assertThat(call.waitForFinalResponse(), isSuccess());
         Thread.sleep(50);
 		call.createAck().send();
 		call.createRequest(SipMethods.BYE).send();
-        assertValid(call.waitForResponse());
+        assertThat(call.waitForResponse(), isSuccess());
 	}
 }

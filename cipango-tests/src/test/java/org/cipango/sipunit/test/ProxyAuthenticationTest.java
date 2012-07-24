@@ -13,6 +13,10 @@
 // ========================================================================
 package org.cipango.sipunit.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.cipango.sipunit.test.matcher.SipMatchers.*;
+
 import java.util.List;
 
 import javax.servlet.sip.SipServletRequest;
@@ -48,13 +52,13 @@ public class ProxyAuthenticationTest extends UaTestCase
 
 		SipServletRequest request = _ua.createRequest(SipMethods.MESSAGE, getTo());
 		SipServletResponse response = _ua.sendSynchronous(request);
-        assertValid(response);
+        assertThat(response, isSuccess());
         
 		@SuppressWarnings("unchecked")
 		List<SipServletResponse> responses = (List<SipServletResponse>) response
 				.getRequest().getAttribute(SipServletResponse.class.getName());
-		assertEquals(2, responses.size());
-		assertValid(responses.get(0), SipServletResponse.SC_PROXY_AUTHENTICATION_REQUIRED);
-		assertSame(response, responses.get(1));
+		assertThat(responses.size(), is(2));
+		assertThat(responses.get(0), hasStatus(SipServletResponse.SC_PROXY_AUTHENTICATION_REQUIRED));
+		assertThat(responses.get(1), is(sameInstance(response)));
 	}
 }

@@ -13,6 +13,10 @@
 // ========================================================================
 package org.cipango.sipunit.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.cipango.sipunit.test.matcher.SipMatchers.*;
+
 import java.util.Iterator;
 
 import javax.servlet.sip.Address;
@@ -43,19 +47,19 @@ public class DoubleRecordRouteTest extends UaTestCase
 			public void doTest() throws Throwable
 			{
 				SipServletRequest request = waitForInitialRequest();
-				assertEquals(SipMethods.INVITE, request.getMethod());
+				assertThat(request.getMethod(), is(equalTo(SipMethods.INVITE)));
 				Iterator<Address> it = request.getAddressHeaders(SipHeaders.RECORD_ROUTE);
 				Address addr = it.next();
-				assertEquals("tcp", ((SipURI) addr.getURI()).getTransportParam());
-				assertTrue(it.hasNext());
+				assertThat(((SipURI) addr.getURI()).getTransportParam(), is(equalTo("tcp")));
+				assertThat(it.hasNext(), is(true));
 				addr = it.next();
-				assertNull(((SipURI) addr.getURI()).getTransportParam());
-				assertFalse(it.hasNext());
+				assertThat(((SipURI) addr.getURI()).getTransportParam(), is(nullValue()));
+				assertThat(it.hasNext(), is(false));
 		        
 				_ua.createResponse(request, SipServletResponse.SC_OK).send();
-				assertEquals(SipMethods.ACK, _dialog.waitForRequest().getMethod());
+				assertThat(_dialog.waitForRequest().getMethod(), is(equalTo(SipMethods.ACK)));
 				request = _dialog.waitForRequest();
-				assertEquals(SipMethods.BYE, request.getMethod());
+				assertThat(request.getMethod(), is(equalTo(SipMethods.BYE)));
 				_ua.createResponse(request, SipServletResponse.SC_OK).send();
 			}
 		};
@@ -69,16 +73,16 @@ public class DoubleRecordRouteTest extends UaTestCase
 			callA = _ua.createCall(request);
 
 			SipServletResponse response = callA.waitForResponse();
-	        assertValid(response);
+	        assertThat(response, isSuccess());
 	        Iterator<String> it = response.getHeaders("mode");
-	        assertTrue(it.hasNext());
+	        assertThat(it.hasNext(), is(true));
 	        it.next();
-	        assertFalse(it.hasNext());
+	        assertThat(it.hasNext(), is(false));
 	
 	        callA.createAck().send();
 	        Thread.sleep(200);
 	        callA.createBye().send();
-	        assertValid(callA.waitForResponse());
+	        assertThat(callA.waitForResponse(), isSuccess());
 			callB.assertDone();
 		}
 		catch (Throwable t)
@@ -100,16 +104,16 @@ public class DoubleRecordRouteTest extends UaTestCase
 			public void doTest() throws Throwable
 			{
 				SipServletRequest request = waitForInitialRequest();
-				assertEquals(SipMethods.INVITE, request.getMethod());
+				assertThat(request.getMethod(), is(equalTo(SipMethods.INVITE)));
 				Iterator<Address> it = request.getAddressHeaders(SipHeaders.RECORD_ROUTE);
 				Address addr = it.next();
-				assertNull(((SipURI) addr.getURI()).getTransportParam());
-				assertFalse(it.hasNext());
+				assertThat(((SipURI) addr.getURI()).getTransportParam(), is(nullValue()));
+				assertThat(it.hasNext(), is(false));
 		        
 				_ua.createResponse(request, SipServletResponse.SC_OK).send();
-				assertEquals(SipMethods.ACK, _dialog.waitForRequest().getMethod());
+				assertThat(_dialog.waitForRequest().getMethod(), is(equalTo(SipMethods.ACK)));
 				request = _dialog.waitForRequest();
-				assertEquals(SipMethods.BYE, request.getMethod());
+				assertThat(request.getMethod(), is(equalTo(SipMethods.BYE)));
 				_ua.createResponse(request, SipServletResponse.SC_OK).send();
 			}
 		};
@@ -122,11 +126,11 @@ public class DoubleRecordRouteTest extends UaTestCase
 			request.setRequestURI(getBobContact().getURI());
 			callA = _ua.createCall(request);
 
-	        assertValid(callA.waitForResponse());
+	        assertThat(callA.waitForResponse(), isSuccess());
 	        callA.createAck().send();
 	        Thread.sleep(200);
 	        callA.createBye().send();
-	        assertValid(callA.waitForResponse());
+	        assertThat(callA.waitForResponse(), isSuccess());
 			callB.assertDone();
 		}
 		catch (Throwable t)

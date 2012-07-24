@@ -13,6 +13,9 @@
 // ========================================================================
 package org.cipango.sipunit;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.cipango.sipunit.test.matcher.SipMatchers.*;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,12 +55,6 @@ public abstract class UaTestCase extends TestCase
 		{
 			throw new RuntimeException(e);
 		}
-	}
-
-	public String getProtocol()
-	{
-		// TODO: now useless?
-		return _properties.getProperty("sipunit.test.protocol");
 	}
 
 	public int getTimeout()
@@ -127,8 +124,7 @@ public abstract class UaTestCase extends TestCase
 
 	@Override
 	protected void runTest() throws Throwable {
-		_ua.setTestServlet(getClass().getName());
-		_ua.setTestMethod(getName());
+		decorate(_ua);
 		
 		super.runTest();
 	}
@@ -157,45 +153,14 @@ public abstract class UaTestCase extends TestCase
 		_ua = _ub = _uc = null;
 		_sipClient.stop();
 	}
-
-	public void assertValid(SipServletResponse response)
-	{
-		assertValid(response, SipServletResponse.SC_OK);
-	}
-	
-	public void assertValid(SipServletResponse response, int statusCode)
-	{
-		if (response == null)
-			fail("Does not received SIP response");
-		if (response.getStatus() != statusCode)
-		{
-			String error = "Test case fail on " + response.getStatus() + " "
-					+ response.getReasonPhrase();
-			try
-			{
-				if (response.getContentLength() > 0)
-					fail(error + "\n" + new String(response.getRawContent()));
-				else
-					fail(error);
-			}
-			catch (IOException e)
-			{
-				fail(error);
-			}
-		}
-	}
 	
 	public TestAgent getBobUserAgent()
 	{
 		try {
 			if (_ub == null)
 			{
-				Properties properties = new Properties();
-				properties.putAll(_properties);
-				_ub = new TestAgent(_sipClient.getFactory().createAddress(getBobUri()));
+				_ub = decorate(new TestAgent(_sipClient.getFactory().createAddress(getBobUri())));
 				_ub.setTimeout(getTimeout());
-				_ub.setTestServlet(getClass().getName());
-				_ub.setTestMethod(getName());
 				_sipClient.addUserAgent(_ub);
 			}
 			return _ub;
@@ -209,18 +174,22 @@ public abstract class UaTestCase extends TestCase
 		try {
 			if (_uc == null)
 			{
-				Properties properties = new Properties();
-				properties.putAll(_properties);
-				_uc = new TestAgent(_sipClient.getFactory().createAddress(getCarolUri()));
+				_uc = decorate(new TestAgent(_sipClient.getFactory().createAddress(getCarolUri())));
 				_uc.setTimeout(getTimeout());
-				_uc.setTestServlet(getClass().getName());
-				_uc.setTestMethod(getName());
 				_sipClient.addUserAgent(_uc);
 			}
 			return _uc;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	public TestAgent decorate(TestAgent agent)
+	{
+		agent.setTestServlet(getClass().getName());
+		agent.setTestMethod(getName());
+		
+		return agent;
 	}
 
 	public void assertValid(HttpURLConnection connection) throws Exception
@@ -245,7 +214,7 @@ public abstract class UaTestCase extends TestCase
 	{
 		SipServletRequest request = _ua.createRequest(SipMethods.MESSAGE, getTo());
 		SipServletResponse response = _ua.sendSynchronous(request);
-        assertValid(response);
+        assertThat(response, isSuccess());
 	}
 	
 	public void startScenario() throws IOException, ServletException
@@ -253,7 +222,7 @@ public abstract class UaTestCase extends TestCase
 		SipServletRequest request = _ua.createRequest(SipMethods.REGISTER, getTo());
 		request.addHeader(SipHeaders.CONTACT, _sipClient.getContact().toString());
 		SipServletResponse response = _ua.sendSynchronous(request);
-        assertValid(response);
+        assertThat(response, isSuccess());
 	}
 	
 	/**
@@ -273,7 +242,7 @@ public abstract class UaTestCase extends TestCase
 			request.removeHeader(TestAgent.METHOD_HEADER);
 			request.addHeader(TestAgent.METHOD_HEADER, "checkForFailure");
 			SipServletResponse response = _ua.sendSynchronous(request);
-			assertValid(response);
+			assertThat(response, isSuccess());
 		}
 		catch (Exception e)
 		{

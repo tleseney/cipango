@@ -13,6 +13,10 @@
 // ========================================================================
 package org.cipango.sipunit.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.cipango.sipunit.test.matcher.SipMatchers.*;
+
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
@@ -65,44 +69,46 @@ public class B2bHelperTest extends UaTestCase
 	@Test
 	public void testCancel() throws Throwable
 	{
-		Call callA;
 		UaRunnable callB = new UaRunnable(getBobUserAgent())
 		{
 			@Override
 			public void doTest() throws Throwable
 			{
 				SipServletRequest request = waitForInitialRequest();
+				assertThat(request.getMethod(), is(equalTo(SipMethods.INVITE)));
+				
 				SipServletResponse response = _ua.createResponse(
 						request, SipServletResponse.SC_SESSION_PROGRESS);
 				response.addHeader(SipHeaders.REQUIRE, "100rel");
 				response.send();
 				
 				request = _dialog.waitForRequest();
-				assert request.getMethod().equals(SipMethods.PRACK);
+				assertThat(request.getMethod(), is(equalTo(SipMethods.PRACK)));
 				_ua.createResponse(request, SipServletResponse.SC_OK);
 				
 				request = _dialog.waitForRequest();
-				assert request.getMethod().equals(SipMethods.CANCEL);
+				assertThat(request.getMethod(), is(equalTo(SipMethods.CANCEL)));
 			}
 		};
 		
-		callB.start();
-		
-		SipServletRequest request = _ua.createRequest(SipMethods.INVITE,  getBobUri());
-		request.setRequestURI(getBobContact().getURI());
-		request.addHeader(SipHeaders.SUPPORTED, "100rel");
-		callA = _ua.createCall(request);
-
 		try
 		{			
+			callB.start();
+			
+			SipServletRequest request = _ua.createRequest(SipMethods.INVITE,  getBobUri());
+			request.setRequestURI(getBobContact().getURI());
+			request.addHeader(SipHeaders.SUPPORTED, "100rel");
+			Call callA = _ua.createCall(request);
+
 			SipServletResponse response = callA.waitForResponse();
-	        assertValid(response, SipServletResponse.SC_SESSION_PROGRESS);
+	        assertThat(response, hasStatus(SipServletResponse.SC_SESSION_PROGRESS));
 	        _ua.decorate(response.createPrack()).send();
-	        assertValid(callA.waitForResponse());
+	        assertThat(callA.waitForResponse(), isSuccess());
 			Thread.sleep(50);
 	        callA.createCancel().send();	        
-	        assertValid(callA.waitForResponse(), SipServletResponse.SC_REQUEST_TERMINATED);
-	        callB.assertDone();
+	        assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_REQUEST_TERMINATED));
+			callB.join(2000);
+			callB.assertDone();
 		}
 		finally
 		{
@@ -142,29 +148,29 @@ public class B2bHelperTest extends UaTestCase
 	@Test
 	public void testEarlyCancel() throws Throwable
 	{
-		Call callA;
 		UaRunnable callB = new UaRunnable(getBobUserAgent())
 		{
 			@Override
 			public void doTest() throws Throwable
 			{
 				SipServletRequest request = waitForInitialRequest();
-				assert request.getMethod().equals(SipMethods.INVITE);
+				assertThat(request.getMethod(), is(equalTo(SipMethods.INVITE)));
 				request = _dialog.waitForRequest();
-				assert request.getMethod().equals(SipMethods.CANCEL);
+				assertThat(request.getMethod(), is(equalTo(SipMethods.CANCEL)));
 			}
 		};
 		
-		callB.start();
-		
-		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, getBobUri());
-		request.setRequestURI(getBobContact().getURI());
-		callA = _ua.createCall(request);
-
 		try 
 		{
+			callB.start();
+			
+			SipServletRequest request = _ua.createRequest(SipMethods.INVITE, getBobUri());
+			request.setRequestURI(getBobContact().getURI());
+			Call callA = _ua.createCall(request);
+
 			Thread.sleep(50);
 			callA.createCancel().send();
+			callB.join(2000);
 	        callB.assertDone();
 		}
 		finally

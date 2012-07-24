@@ -13,6 +13,10 @@
 // ========================================================================
 package org.cipango.sipunit.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.cipango.sipunit.test.matcher.SipMatchers.*;
+
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
@@ -51,7 +55,7 @@ public class SipApplicationKeyTest extends UaTestCase
 		request.addHeader("sipApplicationKey", "key1");
 		request.addHeader("mode", "create");
 		Call call1 = _ua.createCall(request);
-        assertValid(call1.waitForFinalResponse());
+        assertThat(call1.waitForFinalResponse(), isSuccess());
 		call1.createAck().send();
 
 		request = _ua.createRequest(SipMethods.INVITE, getTo());
@@ -60,11 +64,11 @@ public class SipApplicationKeyTest extends UaTestCase
 		Call call2 = _ua.createCall(request);
 		
 		request = call1.waitForRequest();
-		assertEquals(SipMethods.BYE, request.getMethod());
+		assertThat(request.getMethod(), is(equalTo(SipMethods.BYE)));
 		_ua.createResponse(_ua.decorate(request), SipServletResponse.SC_OK).send();
 		
 		// TODO: 480 keeps being emitted ?!
-        assertValid(call2.waitForResponse(), SipServletResponse.SC_TEMPORARLY_UNAVAILABLE);
+        assertThat(call2.waitForResponse(), hasStatus(SipServletResponse.SC_TEMPORARLY_UNAVAILABLE));
         
         // Sleep so as the final ACK can be correctly sent.
         Thread.sleep(200);
@@ -81,13 +85,13 @@ public class SipApplicationKeyTest extends UaTestCase
 		request.addHeader("sipApplicationKey", "key3");
 		request.addHeader("mode", "join");
 		Call call1 = _ua.createCall(request);
-		assertValid(call1.waitForResponse(), SipServletResponse.SC_TEMPORARLY_UNAVAILABLE);
+		assertThat(call1.waitForResponse(), hasStatus(SipServletResponse.SC_TEMPORARLY_UNAVAILABLE));
 
 		request = _ua.createRequest(SipMethods.INVITE, getTo());
 		request.addHeader("sipApplicationKey", "key4");
 		request.addHeader("mode", "join");
 		Call call2 = _ua.createCall(request);
-		assertValid(call2.waitForResponse(), SipServletResponse.SC_TEMPORARLY_UNAVAILABLE);
+		assertThat(call2.waitForResponse(), hasStatus(SipServletResponse.SC_TEMPORARLY_UNAVAILABLE));
 
         // Sleep so as the final ACK can be correctly sent.
 		Thread.sleep(200);
@@ -103,12 +107,12 @@ public class SipApplicationKeyTest extends UaTestCase
 		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, getTo());
 		request.addHeader("mode", "join");
 		Call call1 = _ua.createCall(request);
-		assertValid(call1.waitForResponse(), SipServletResponse.SC_TEMPORARLY_UNAVAILABLE);
+		assertThat(call1.waitForResponse(), hasStatus(SipServletResponse.SC_TEMPORARLY_UNAVAILABLE));
 
 		request = _ua.createRequest(SipMethods.INVITE, getTo());
 		request.addHeader("mode", "join");
 		Call call2 = _ua.createCall(request);
-		assertValid(call2.waitForResponse(), SipServletResponse.SC_TEMPORARLY_UNAVAILABLE);
+		assertThat(call2.waitForResponse(), hasStatus(SipServletResponse.SC_TEMPORARLY_UNAVAILABLE));
         
         // Sleep so as the final ACK can be correctly sent.
         Thread.sleep(200);
@@ -139,15 +143,15 @@ public class SipApplicationKeyTest extends UaTestCase
 		request.addHeader("sipApplicationKey", "key5");
 		request.addHeader("mode", "create");
 		Call call1 = _ua.createCall(request);
-		assertValid(call1.waitForResponse(), SipServletResponse.SC_RINGING);
+		assertThat(call1.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
 
 		request = _ua.createRequest(SipMethods.INVITE, getTo());
 		request.addHeader("sipApplicationKey", "key5");
 		request.addHeader("mode", "join");
 		Call call2 = _ua.createCall(request);
 
-		assertValid(call1.waitForResponse(), SipServletResponse.SC_TEMPORARLY_UNAVAILABLE);
-		assertValid(call2.waitForResponse(), SipServletResponse.SC_TEMPORARLY_UNAVAILABLE);
+		assertThat(call1.waitForResponse(), hasStatus(SipServletResponse.SC_TEMPORARLY_UNAVAILABLE));
+		assertThat(call2.waitForResponse(), hasStatus(SipServletResponse.SC_TEMPORARLY_UNAVAILABLE));
 		
         // Sleep so as the final ACK can be correctly sent.
         Thread.sleep(200);
@@ -193,8 +197,8 @@ public class SipApplicationKeyTest extends UaTestCase
 		Thread.sleep(100);
 
 		call2.createCancel().send();
-		assertValid(call2.waitForResponse(), SipServletResponse.SC_REQUEST_TERMINATED);
-		assertValid(call1.waitForResponse(), SipServletResponse.SC_TEMPORARLY_UNAVAILABLE);
+		assertThat(call2.waitForResponse(), hasStatus(SipServletResponse.SC_REQUEST_TERMINATED));
+		assertThat(call1.waitForResponse(), hasStatus(SipServletResponse.SC_TEMPORARLY_UNAVAILABLE));
 		
         // Sleep so as the final ACK can be correctly sent.
         Thread.sleep(200);
@@ -226,10 +230,10 @@ public class SipApplicationKeyTest extends UaTestCase
 		request.addHeader("sipApplicationKey", "key7");
 		request.addHeader("mode", "create");
 		Call call = _ua.createCall(request);
-		assertValid(call.waitForResponse(), SipServletResponse.SC_RINGING);
+		assertThat(call.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
 
 		call.createCancel().send();
-		assertValid(call.waitForResponse(), SipServletResponse.SC_REQUEST_TERMINATED);
+		assertThat(call.waitForResponse(), hasStatus(SipServletResponse.SC_REQUEST_TERMINATED));
 						
         // Sleep so as the final ACK can be correctly sent.
         Thread.sleep(200);

@@ -13,6 +13,10 @@
 // ========================================================================
 package org.cipango.sipunit.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.cipango.sipunit.test.matcher.SipMatchers.*;
+
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
@@ -77,7 +81,7 @@ public class SipApplicationSessionTest extends UaTestCase
 		call.start(request);
 
 		SipServletResponse response = call.waitForResponse(); 
-        assertValid(response);
+        assertThat(response, isSuccess());
 		call.createAck().send();
 
         String encodedUrl = response.getHeader(ENCODED_URL_HEADER).toString();
@@ -88,11 +92,11 @@ public class SipApplicationSessionTest extends UaTestCase
 		ContentExchange exchange = new ContentExchange(true);
 		exchange.setURL(encodedUrl);	 
 		client.send(exchange);
-		assertEquals(HttpExchange.STATUS_COMPLETED, exchange.waitForDone());
-		assertEquals(HttpStatus.OK_200, exchange.getResponseStatus());
+		assertThat(exchange.waitForDone(), is(HttpExchange.STATUS_COMPLETED));
+		assertThat(exchange.getResponseStatus(), is(HttpStatus.OK_200));
 
 		request = call.waitForRequest();
-		assertEquals(SipMethods.INFO, request.getMethod());
+		assertThat(request.getMethod(), is(equalTo(SipMethods.INFO)));
 		_ua.createResponse(request, SipServletResponse.SC_OK).send();
 		
 		String cookie = getCookie(exchange);
@@ -101,11 +105,11 @@ public class SipApplicationSessionTest extends UaTestCase
 		exchange.setURL(urlToEncode);
 		exchange.addRequestHeader(HttpHeaders.COOKIE, cookie);
 		client.send(exchange);
-		assertEquals(HttpExchange.STATUS_COMPLETED, exchange.waitForDone());
-		assertEquals(HttpStatus.OK_200, exchange.getResponseStatus());
+		assertThat(exchange.waitForDone(), is(HttpExchange.STATUS_COMPLETED));
+		assertThat(exchange.getResponseStatus(), is(HttpStatus.OK_200));
 		
 		request = call.waitForRequest();
-		assertEquals(SipMethods.BYE, request.getMethod());
+		assertThat(request.getMethod(), is(equalTo(SipMethods.BYE)));
 		_ua.createResponse(request, SipServletResponse.SC_OK).send();
 		
 		checkForFailure();

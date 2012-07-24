@@ -13,6 +13,10 @@
 // ========================================================================
 package org.cipango.sipunit.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.cipango.sipunit.test.matcher.SipMatchers.*;
+
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipURI;
@@ -62,20 +66,20 @@ public class UacTest extends UaTestCase
 			public void doTest() throws Throwable
 			{
 				SipServletRequest request = waitForInitialRequest();
-				assertEquals(SipMethods.INVITE, request.getMethod());
+				assertThat(request.getMethod(), is(equalTo(SipMethods.INVITE)));
 				_ua.createResponse(request, SipServletResponse.SC_RINGING).send();
 				Thread.sleep(200);
 				_ua.createResponse(request, SipServletResponse.SC_OK).send();
-				assertEquals(SipMethods.ACK, _dialog.waitForRequest().getMethod());
+				assertThat(_dialog.waitForRequest().getMethod(), is(equalTo(SipMethods.ACK)));
 				
 				request = _dialog.waitForRequest();
-				assertEquals(SipMethods.INVITE, request.getMethod());
+				assertThat(request.getMethod(), is(equalTo(SipMethods.INVITE)));
 				_ua.createResponse(request, SipServletResponse.SC_OK).send();
-				assertEquals(SipMethods.ACK, _dialog.waitForRequest().getMethod());
+				assertThat(_dialog.waitForRequest().getMethod(), is(equalTo(SipMethods.ACK)));
 				
 				Thread.sleep(200);
 				_dialog.createRequest(SipMethods.BYE).send();
-				assertValid(_dialog.waitForResponse());
+				assertThat(_dialog.waitForResponse(), isSuccess());
 			}
 		};
 		
@@ -130,18 +134,18 @@ public class UacTest extends UaTestCase
 			public void doTest() throws Throwable
 			{
 				SipServletRequest request = waitForInitialRequest();
-				assert request.getMethod().equals(SipMethods.INVITE);
+				assertThat(request.getMethod(), is(equalTo(SipMethods.INVITE)));
 		        SipURI uri = (SipURI) request.getRequestURI();
-		        assertNull(uri.getTransportParam());
+		        assertThat(uri.getTransportParam(), is(nullValue()));
 		        String via = request.getHeader(SipHeaders.VIA);
-		        assertEquals("UDP", via.substring(8, 11));
+		        assertThat(via.substring(8, 11), is(equalTo("UDP")));
 
 		        _ua.createResponse(request, SipServletResponse.SC_OK).send();
-				assert _dialog.waitForRequest().getMethod().equals(SipMethods.ACK);
-
+				assertThat(_dialog.waitForRequest().getMethod(), is(equalTo(SipMethods.ACK)));
+				
 				Thread.sleep(200);
 				_dialog.createRequest(SipMethods.BYE).send();
-				assertValid(_dialog.waitForResponse());
+				assertThat(_dialog.waitForResponse(), isSuccess());
 			}
 		};
 		

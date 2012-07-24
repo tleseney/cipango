@@ -13,6 +13,10 @@
 // ========================================================================
 package org.cipango.sipunit.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.cipango.sipunit.test.matcher.SipMatchers.*;
+
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
@@ -61,23 +65,23 @@ public class ReliableTest extends UaTestCase
 		Call call = _ua.createCall(request); // 1
 	
 		SipServletResponse response = call.waitForResponse(); // 2
-		assertValid(response, SipServletResponse.SC_SESSION_PROGRESS);
+		assertThat(response, hasStatus(SipServletResponse.SC_SESSION_PROGRESS));
 
 		_ua.decorate(response.createPrack()).send();  // 3
-		assertValid(call.waitForResponse()); // 4
+		assertThat(call.waitForResponse(), isSuccess()); // 4
 		
 		response = call.waitForResponse(); // 5
-		assertValid(response, SipServletResponse.SC_SESSION_PROGRESS);
+		assertThat(response, hasStatus(SipServletResponse.SC_SESSION_PROGRESS));
 
 		_ua.decorate(response.createPrack()).send();  // 6
-		assertValid(call.waitForResponse()); // 7
+		assertThat(call.waitForResponse(), isSuccess()); // 7
 		
-        assertValid(call.waitForResponse()); // 8
+        assertThat(call.waitForResponse(), isSuccess()); // 8
 		call.createAck().send();  // 9
 		
 		Thread.sleep(200);
 		call.createBye().send(); // 10
-        assertValid(call.waitForResponse()); // 11
+        assertThat(call.waitForResponse(), isSuccess()); // 11
 	}
 	
 	/**
@@ -108,16 +112,16 @@ public class ReliableTest extends UaTestCase
 		Call call = _ua.createCall(request); // 1
 		
 		SipServletResponse response = call.waitForResponse(); // 2
-		assertValid(response, SipServletResponse.SC_SESSION_PROGRESS);
+		assertThat(response, hasStatus(SipServletResponse.SC_SESSION_PROGRESS));
 		
 		_ua.decorate(response.createPrack()).send();  // 3
-		assertValid(call.waitForResponse()); // 4
+		assertThat(call.waitForResponse(), isSuccess()); // 4
 		call.createAck().send();  // 5
 
-		assertValid(call.waitForResponse()); // 6
+		assertThat(call.waitForResponse(), isSuccess()); // 6
 		Thread.sleep(200);
 		call.createBye().send(); // 7
-        assertValid(call.waitForResponse()); // 8
+        assertThat(call.waitForResponse(), isSuccess()); // 8
 	}
 	
 	/**
@@ -189,8 +193,8 @@ public class ReliableTest extends UaTestCase
 			public void doTest() throws Throwable
 			{
 				SipServletRequest invite = waitForInitialRequest();
-				assertEquals(SipMethods.INVITE, invite.getMethod());
-				assertEquals("100rel", invite.getHeader(SipHeaders.SUPPORTED));
+				assertThat(invite.getMethod(), is(equalTo(SipMethods.INVITE)));
+				assertThat(invite.getHeader(SipHeaders.SUPPORTED), is(equalTo("100rel")));
 				
 				SipServletResponse response = _ua.createResponse(invite,
 						SipServletResponse.SC_SESSION_PROGRESS);
@@ -204,11 +208,11 @@ public class ReliableTest extends UaTestCase
 				_ua.createResponse((latePrackAnswer) ? prack : invite,
 						SipServletResponse.SC_OK).send();
 				
-				assertEquals(SipMethods.ACK, _dialog.waitForRequest().getMethod());
+				assertThat(_dialog.waitForRequest().getMethod(), is(equalTo(SipMethods.ACK)));
 				
 				Thread.sleep(200);
 				_dialog.createRequest(SipMethods.BYE).send();
-				assertValid(_dialog.waitForResponse());
+				assertThat(_dialog.waitForResponse(), isSuccess());
 			}
 		};
 		

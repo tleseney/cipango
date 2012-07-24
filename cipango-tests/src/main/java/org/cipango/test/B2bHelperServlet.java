@@ -25,6 +25,7 @@ import javax.servlet.sip.annotation.SipServlet;
 
 import org.cipango.test.common.AbstractServlet;
 
+@SuppressWarnings("serial")
 @SipServlet (name="org.cipango.sipunit.test.B2bHelperTest")
 public class B2bHelperServlet extends AbstractServlet
 {
@@ -56,7 +57,7 @@ public class B2bHelperServlet extends AbstractServlet
 					}
 				}
 				if (newRequest == null)
-					fail("Could not found UAC response for PRACK in pending messages: " + l);
+					fail("Could not find UAC response for PRACK in pending messages: " + l);
 			}
 			else if ("CANCEL".equals(request.getMethod()))
 			{

@@ -21,6 +21,7 @@ import javax.servlet.sip.annotation.SipServlet;
 
 import org.cipango.test.common.AbstractServlet;
 
+@SuppressWarnings("serial")
 @SipServlet (name="org.cipango.sipunit.test.TcpTest")
 public class TcpServlet extends AbstractServlet
 {
@@ -28,7 +29,7 @@ public class TcpServlet extends AbstractServlet
 	public void testBigRequest(SipServletRequest request) throws Throwable
 	{
 		String method = request.getMethod();
-		if ("MESSAGE".equals(method))
+		if ("REGISTER".equals(method))
 		{
 			request.createResponse(SipServletResponse.SC_OK).send();
 			Thread.sleep(20);

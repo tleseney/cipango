@@ -21,7 +21,6 @@ import javax.servlet.sip.Proxy;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipSession;
-import javax.servlet.sip.SipURI;
 import javax.servlet.sip.SipSession.State;
 import javax.servlet.sip.SipSessionEvent;
 import javax.servlet.sip.SipSessionListener;
@@ -33,6 +32,7 @@ import javax.servlet.sip.annotation.SipServlet;
 import org.cipango.test.common.AbstractServlet;
 import org.cipango.test.common.MainServlet;
 
+@SuppressWarnings("serial")
 @SipListener
 @SipServlet (name="org.cipango.sipunit.test.InvalidateWhenReadyTest")
 public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSessionListener
@@ -131,7 +131,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		}
 	}
 	
-	public void testProxy(SipServletRequest request) throws TooManyHopsException, IOException
+	public void testProxyRecordRoute(SipServletRequest request) throws TooManyHopsException, IOException
 	{
 		String method = request.getMethod();
 		SipSession session = request.getSession();
@@ -157,7 +157,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 
 	}
 	
-	public void testProxy(SipServletResponse response) throws TooManyHopsException, IOException
+	public void testProxyRecordRoute(SipServletResponse response) throws TooManyHopsException, IOException
 	{
 		String method = response.getMethod();
 		SipSession session = response.getSession();
@@ -176,6 +176,16 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			assertTrue(session.getApplicationSession().isReadyToInvalidate());
 			assertEquals(State.TERMINATED, session.getState());
 		}
+	}
+
+	public void testProxyNoRecordRoute(SipServletRequest request) throws TooManyHopsException, IOException
+	{
+		testProxyRecordRoute(request);
+	}
+
+	public void testProxyNoRecordRoute(SipServletResponse response) throws TooManyHopsException, IOException
+	{
+		testProxyRecordRoute(response);
 	}
 	
 	public void testProxy4xx(SipServletRequest request) throws TooManyHopsException, IOException
@@ -381,7 +391,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		}
 	}
 	
-	public void testProxyCancel(SipServletRequest request) throws Exception
+	public void testProxyCancel1(SipServletRequest request) throws Exception
 	{
 		String method = request.getMethod();
 		SipSession session = request.getSession();
@@ -408,7 +418,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		}
 	}
 	
-	public void testProxyCancel(SipServletResponse response) throws Exception
+	public void testProxyCancel1(SipServletResponse response) throws Exception
 	{
 		String method = response.getMethod();
 		SipSession session = response.getSession();
@@ -436,6 +446,16 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			// to invalidate state.
 			assertEquals(State.TERMINATED, session.getState());
 		}
+	}
+	
+	public void testProxyCancel2(SipServletRequest request) throws Exception
+	{
+		testProxyCancel1(request);
+	}
+	
+	public void testProxyCancel2(SipServletResponse response) throws Exception
+	{
+		testProxyCancel1(response);
 	}
 	
 	public void testMessage(SipServletRequest request) throws Throwable 

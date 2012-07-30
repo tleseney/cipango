@@ -25,8 +25,6 @@ public interface SipConnector extends LifeCycle
 	 */
 	//InetAddress getAddress();
 	
-	Object getConnection();
-	
 	void setServer(SipServer server);
 }
 

@@ -20,7 +20,7 @@ public abstract class AbstractSipConnector extends AbstractLifeCycle implements 
 	private String _host;
 	private SipURI _uri;
 	
-	private int _acceptors = 8;
+	private int _acceptors = 1;
 	private Thread[] _acceptorThreads;
 	
 	private SipServer _server;
@@ -73,6 +73,11 @@ public abstract class AbstractSipConnector extends AbstractLifeCycle implements 
 	public int getAcceptors()
 	{
 		return _acceptors;
+	}
+	
+	public void setAcceptors(int acceptors)
+	{
+		_acceptors = acceptors;
 	}
 	
 	@Override
@@ -155,7 +160,7 @@ public abstract class AbstractSipConnector extends AbstractLifeCycle implements 
             
             try 
             {
-                while (isRunning() && getConnection() != null)
+                while (isRunning())
                 {
                     try 
                     {

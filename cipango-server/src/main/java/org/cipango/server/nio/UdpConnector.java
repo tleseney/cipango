@@ -76,11 +76,6 @@ public class UdpConnector extends AbstractSipConnector
 		return _localAddr;
 	}
 
-	public Object getConnection() 
-	{
-		return _channel;
-	}
-
 	protected void accept(int id) throws IOException 
 	{
 		ByteBuffer buffer = _inBuffers[id];

@@ -215,7 +215,7 @@ public class SipParser
 					break;
 			}
 		}
-		return false;
+		return returnFromParse;
 	}
 	
 	private boolean parseHeaders(ByteBuffer buffer)
@@ -435,7 +435,7 @@ public class SipParser
 					break;
 			}
 		}
-		return false;
+		return returnFromParse;
 	}
 	
 	public boolean parseNext(ByteBuffer buffer)

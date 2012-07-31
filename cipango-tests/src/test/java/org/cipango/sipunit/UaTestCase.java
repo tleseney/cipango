@@ -37,6 +37,7 @@ import org.cipango.client.SipMethods;
 public abstract class UaTestCase extends TestCase
 {
 	protected SipClient _sipClient;
+	protected SipClient _sipBobClient;
 	protected TestAgent _ua;
 	private TestAgent _ub;
 	private TestAgent _uc;
@@ -100,8 +101,9 @@ public abstract class UaTestCase extends TestCase
 	
 	public Address getBobContact()
 	{
-		SipURI contact = (SipURI) _sipClient.getContact().clone();
+		SipURI contact = (SipURI) _sipBobClient.getContact().clone();
 		contact.setUser("bob");
+		System.out.println("** Bob Contact: " + contact);
 		return _ua.getFactory().createAddress(contact);
 	}
 	
@@ -152,16 +154,27 @@ public abstract class UaTestCase extends TestCase
 	{
 		_ua = _ub = _uc = null;
 		_sipClient.stop();
+		if (_sipBobClient != null)
+			_sipBobClient.stop();
 	}
 	
 	public TestAgent getBobUserAgent()
 	{
+		return getBobUserAgent(SipClient.Protocol.UDP);
+	}
+	
+	public TestAgent getBobUserAgent(SipClient.Protocol protocol)
+	{
 		try {
-			if (_ub == null)
+			if (_sipBobClient == null)
 			{
-				_ub = decorate(new TestAgent(_sipClient.getFactory().createAddress(getBobUri())));
+				_sipBobClient = new SipClient();
+				_sipBobClient.addConnector(protocol, null, getLocalPort() + 1);
+				_sipBobClient.start();
+
+				_ub = decorate(new TestAgent(_sipBobClient.getFactory().createAddress(getBobUri())));
 				_ub.setTimeout(getTimeout());
-				_sipClient.addUserAgent(_ub);
+				_sipBobClient.addUserAgent(_ub);
 			}
 			return _ub;
 		} catch (Exception e) {

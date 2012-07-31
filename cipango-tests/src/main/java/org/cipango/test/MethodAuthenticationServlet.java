@@ -22,6 +22,7 @@ import javax.servlet.sip.annotation.SipServlet;
 
 import org.cipango.test.common.SipServletTestCase;
 
+@SuppressWarnings("serial")
 @SipServlet(name="org.cipango.sipunit.test.MethodAuthenticationTest")
 public class MethodAuthenticationServlet extends SipServletTestCase
 {

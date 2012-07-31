@@ -25,6 +25,7 @@ import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipURI;
 
 import org.cipango.client.Call;
+import org.cipango.client.SipClient;
 import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
 import org.cipango.sipunit.UaRunnable;
@@ -41,7 +42,7 @@ public class DoubleRecordRouteTest extends UaTestCase
 	public void testUdpToTcp() throws Throwable 
 	{
 		Call callA;
-		UaRunnable callB = new UaRunnable(getBobUserAgent())
+		UaRunnable callB = new UaRunnable(getBobUserAgent(SipClient.Protocol.TCP))
 		{
 			@Override
 			public void doTest() throws Throwable

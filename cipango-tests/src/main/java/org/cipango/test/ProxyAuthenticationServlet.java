@@ -18,12 +18,15 @@ import java.io.IOException;
 import javax.servlet.ServletException;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
+import javax.servlet.sip.annotation.SipServlet;
 
 import org.cipango.test.common.SipServletTestCase;
 
 /*
  * This servlet is declared using sip.xml
  */
+@SuppressWarnings("serial")
+@SipServlet (name="org.cipango.sipunit.test.ProxyAuthenticationServlet")
 public class ProxyAuthenticationServlet extends SipServletTestCase
 {
 

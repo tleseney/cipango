@@ -24,6 +24,7 @@ import javax.servlet.sip.annotation.SipServlet;
 
 import org.cipango.test.common.AbstractServlet;
 
+@SuppressWarnings("serial")
 @SipServlet (name="org.cipango.sipunit.test.DoubleRecordRouteTest")
 public class DoubleRecordRouteServlet extends AbstractServlet
 {

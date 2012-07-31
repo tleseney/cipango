@@ -27,7 +27,9 @@ import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
 
+import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.SipServer;
+import org.cipango.server.nio.TcpConnector;
 import org.cipango.server.nio.UdpConnector;
 import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.sipapp.SipAppContext;
@@ -43,16 +45,21 @@ public class SipClient extends AbstractLifeCycle
 	private SipServer _server;
 	private SipAppContext _context;
 	private List<UserAgent> _userAgents;
+
+	public enum Protocol
+	{
+		TCP,
+		UDP;
+	}
 	
-	public SipClient(String host, int port)
+	/**
+	 * Creates a new client with no connector.
+	 * 
+	 */
+	public SipClient()
 	{
 		_userAgents = new ArrayList<UserAgent>();
 		_server = new SipServer();
-		UdpConnector connector = new UdpConnector();
-		connector.setHost(host);
-		connector.setPort(port);
-		
-		_server.addConnector(connector);
 		
 		_context = new SipAppContext();
 		_context.setName(SipClient.class.getName());
@@ -65,6 +72,20 @@ public class SipClient extends AbstractLifeCycle
 		_context.getSipServletHandler().setMainServletName(ClientServlet.class.getName());
 		
 		_server.setHandler(_context);
+	}
+	
+	public SipClient(String host, int port)
+	{
+		this();
+		try
+		{
+			addConnector(Protocol.UDP, host, port);
+		}
+		catch(Exception e)
+		{
+			// That shall not happen.
+			e.printStackTrace();
+		}
 	}
 
 	public SipClient(int port)
@@ -101,6 +122,30 @@ public class SipClient extends AbstractLifeCycle
 		return agent;
 	}
 	
+	public void addConnector(Protocol protocol, String host, int port) throws Exception
+	{
+		if (_server == null || _server.isStarting() || _server.isStopping())
+			throw new IllegalStateException();
+
+		AbstractSipConnector connector = null;
+		switch(protocol)
+		{
+		case TCP:
+			connector = new TcpConnector();
+			connector.setTransportParam(true);
+			break;
+		case UDP:
+			connector = new UdpConnector();
+			break;
+		}
+		
+		connector.setHost(host);
+		connector.setPort(port);
+		
+        _server.addConnector(connector);
+        if (_server.isStarted())
+        	connector.start();
+	}
 
 	public void addUserAgent(UserAgent agent)
 	{

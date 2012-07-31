@@ -21,6 +21,7 @@ import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipURI;
 
+import org.cipango.client.SipClient;
 import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
 import org.cipango.sipunit.UaRunnable;
@@ -40,7 +41,7 @@ public class TcpTest extends UaTestCase
 	 * 
 	 * <pre>
 	 * Alice                          AS
-	 *   | MESSAGE                    |
+	 *   | REGISTER                   |
 	 *   |--------------------------->|
 	 *   |                        200 |
 	 *   |<---------------------------|
@@ -82,6 +83,8 @@ public class TcpTest extends UaTestCase
 		
 		try
 		{
+			_sipClient.addConnector(SipClient.Protocol.TCP, null, getLocalPort());
+
 			call.start();
 			startScenario();
 			call.join(2000);

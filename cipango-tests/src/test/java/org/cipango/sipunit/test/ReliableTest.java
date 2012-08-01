@@ -59,8 +59,8 @@ public class ReliableTest extends UaTestCase
 	@Test
 	public void test100Rel() throws Exception
 	{
-		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, getBobUri());
-		request.setRequestURI(getBobContact().getURI());
+		SipServletRequest request = _ua.createRequest(
+				SipMethods.INVITE, createEndpoint("bob").getUri());
 		request.addHeader(SipHeaders.SUPPORTED, "100rel");
 		Call call = _ua.createCall(request); // 1
 	
@@ -106,8 +106,8 @@ public class ReliableTest extends UaTestCase
 	 */
 	public void testLatePrackAnswer() throws Exception
 	{
-		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, getBobUri());
-		request.setRequestURI(getBobContact().getURI());
+		SipServletRequest request = _ua.createRequest(
+				SipMethods.INVITE, createEndpoint("bob").getUri());
 		request.addHeader(SipHeaders.SUPPORTED, "100rel");
 		Call call = _ua.createCall(request); // 1
 		

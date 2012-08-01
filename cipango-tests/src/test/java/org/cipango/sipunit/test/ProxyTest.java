@@ -35,7 +35,7 @@ public class ProxyTest extends UaTestCase
 {
 	/**
 	 * <pre>
-	 *  Alice        Proxy       Bob        Carol        HSS
+	 *  Alice        Proxy       Bob        Bob(2)       HSS
 	 * 1  | INVITE     |          |           |           |
 	 *    |----------->|          |           |           |
 	 * 2  |            | INVITE   |           |           |
@@ -71,17 +71,18 @@ public class ProxyTest extends UaTestCase
 	@Test
 	public void testProxyDiameter() throws Throwable
 	{
-		Call callA;
-		UaRunnable callB = new UasScript.NotFound(getBobUserAgent());
-		UaRunnable callC = new UasScript.OkBye(getCarolUserAgent());
+		Endpoint bob = createEndpoint("bob");
+		UaRunnable callB = new UasScript.NotFound(bob.getUserAgent());
+		Endpoint bob2 = createEndpoint("bob");
+		UaRunnable callC = new UasScript.OkBye(bob2.getUserAgent());
 
 		callB.start();
 		callC.start();
 		
-		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, getBobUri());
-		request.setRequestURI(getBobContact().getURI());
-		request.addHeader("proxy", getCarolContact().toString());
-		callA = _ua.createCall(request);
+		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, bob.getUri());
+		request.setRequestURI(bob.getContact().getURI());
+		request.addHeader("proxy", bob2.getContact().toString());
+		Call callA = _ua.createCall(request);
 
 		try 
 		{			
@@ -127,14 +128,14 @@ public class ProxyTest extends UaTestCase
 	@Test
 	public void testVirtualBranch() throws Exception
 	{
-		Call callA;
-		UaRunnable callB = new UasScript.RingingCanceled(getBobUserAgent());
+		Endpoint bob = createEndpoint("bob");
+		UaRunnable callB = new UasScript.RingingCanceled(bob.getUserAgent());
 		
 		callB.start();
 		
-		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, getBobUri());
-		request.setRequestURI(getBobContact().getURI());
-		callA = _ua.createCall(request);
+		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, bob.getUri());
+		request.setRequestURI(bob.getContact().getURI());
+		Call callA = _ua.createCall(request);
 
 		try 
 		{
@@ -178,14 +179,14 @@ public class ProxyTest extends UaTestCase
 	@Test
 	public void testInvalidateBefore200() throws Exception
 	{
-		Call callA;
-		UaRunnable callB = new UasScript.OkBye(getBobUserAgent());
+		Endpoint bob = createEndpoint("bob");
+		UaRunnable callB = new UasScript.OkBye(bob.getUserAgent());
 
 		callB.start();
 		
-		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, getBobUri());
-		request.setRequestURI(getBobContact().getURI());
-		callA = _ua.createCall(request);
+		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, bob.getUri());
+		request.setRequestURI(bob.getContact().getURI());
+		Call callA = _ua.createCall(request);
         assertThat(callA.waitForResponse(), isSuccess());
 		callA.createAck().send();
         callA.createBye().send();
@@ -221,14 +222,13 @@ public class ProxyTest extends UaTestCase
 	@Test
 	public void testTelUri() throws Exception
 	{
-		Call call;
-		
-		getBobUserAgent().setDefaultHandler(new MessageHandler() {
+		final Endpoint bob = createEndpoint("bob");
+		bob.getUserAgent().setDefaultHandler(new MessageHandler() {
 			public void handleRequest(SipServletRequest request)
 					throws IOException, ServletException
 			{
 				assertThat(request.getHeader("req-uri"), containsString("tel:1234"));
-				getBobUserAgent().createResponse(request,
+				bob.getUserAgent().createResponse(request,
 						SipServletResponse.SC_DECLINE).send();
 			}
 
@@ -238,9 +238,9 @@ public class ProxyTest extends UaTestCase
 			}
 		});
 		
-		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, getBobUri());
-		request.setRequestURI(getBobContact().getURI());
-		call = _ua.createCall(request);
+		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, bob.getUri());
+		request.setRequestURI(bob.getContact().getURI());
+		Call call = _ua.createCall(request);
 		assertThat(call.waitForResponse(), hasStatus(SipServletResponse.SC_DECLINE));
 	}
 }

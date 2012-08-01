@@ -31,6 +31,7 @@ public class CipangoTestSuite
 		suite.addTestSuite(org.cipango.sipunit.test.DoubleRecordRouteTest.class);
 		suite.addTestSuite(org.cipango.sipunit.test.InvalidateWhenReadyTest.class);
 		suite.addTestSuite(org.cipango.sipunit.test.MethodAuthenticationTest.class);
+		suite.addTestSuite(org.cipango.sipunit.test.ProxyAuthenticationTest.class);
 		suite.addTestSuite(org.cipango.sipunit.test.ProxyTest.class);
 		suite.addTestSuite(org.cipango.sipunit.test.ReliableTest.class);
 		suite.addTestSuite(org.cipango.sipunit.test.ServletContextListenerTest.class);

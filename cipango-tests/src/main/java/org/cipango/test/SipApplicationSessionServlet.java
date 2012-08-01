@@ -20,11 +20,11 @@ import javax.servlet.http.HttpSession;
 import javax.servlet.sip.ConvergedHttpSession;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
-import javax.servlet.sip.SipSession;
 import javax.servlet.sip.annotation.SipServlet;
 
 import org.cipango.test.common.AbstractServlet;
 
+@SuppressWarnings("serial")
 @SipServlet (name="org.cipango.sipunit.test.SipApplicationSessionTest")
 public class SipApplicationSessionServlet extends AbstractServlet
 {
@@ -50,13 +50,24 @@ public class SipApplicationSessionServlet extends AbstractServlet
 		}
 		response.send();
 	}
-	
+
+	public void testSetUriWithParam(SipServletRequest request) throws Exception
+	{
+		testSetUri(request);
+	}
+
 	public void testSetUri(SipServletResponse response) throws Exception
 	{
+		@SuppressWarnings("unchecked")
 		Iterator<HttpSession> it = (Iterator<HttpSession>) response.getApplicationSession().getSessions("HTTP");
 		assertTrue(it.hasNext());
 		HttpSession session = it.next();
 		assertTrue(session instanceof ConvergedHttpSession);
 		assertFalse(it.hasNext());
+	}
+
+	public void testSetUriWithParam(SipServletResponse response) throws Exception
+	{
+		testSetUri(response);
 	}
 }

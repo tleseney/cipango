@@ -41,7 +41,14 @@ public class SipApplicationSessionTest extends UaTestCase
 		testSetUri(baseUri);
 		testSetUri(baseUri + "?param=1");
 	}
-	
+
+	@Test
+	public void testSetUriWithParam() throws Throwable 
+	{
+		String baseUri = getHttpBaseUrl() + "/SipApplicationSession";
+		testSetUri(baseUri);
+		testSetUri(baseUri + "?param=1");
+	}
 	
 	/**
 	 * <pre>

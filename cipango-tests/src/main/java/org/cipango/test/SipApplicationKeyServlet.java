@@ -23,12 +23,10 @@ import javax.servlet.sip.annotation.SipServlet;
 
 import org.cipango.test.common.AbstractServlet;
 
+@SuppressWarnings("serial")
 @SipServlet (name="org.cipango.sipunit.test.SipApplicationKeyTest")
 public class SipApplicationKeyServlet extends AbstractServlet
 {
-	
-
-
 	@SipApplicationKey
 	public static String getApplicationKey(SipServletRequest request)
 	{

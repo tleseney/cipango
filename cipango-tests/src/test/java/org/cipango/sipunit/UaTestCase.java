@@ -20,10 +20,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import javax.servlet.ServletException;
 import javax.servlet.sip.Address;
+import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipURI;
@@ -33,15 +36,15 @@ import junit.framework.TestCase;
 import org.cipango.client.SipClient;
 import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
+import org.cipango.client.UserAgent;
 
 public abstract class UaTestCase extends TestCase
 {
+	private List<Endpoint> _endpoints = new ArrayList<Endpoint>();
+	private int _nextPort;
+	
 	protected SipClient _sipClient;
-	protected SipClient _sipBobClient;
 	protected TestAgent _ua;
-	private TestAgent _ub;
-	private TestAgent _uc;
-
 	protected Properties _properties;
 	
 	public UaTestCase()
@@ -51,6 +54,7 @@ public abstract class UaTestCase extends TestCase
 		{
 			_properties.load(getClass().getClassLoader()
 					.getResourceAsStream("commonTest.properties"));
+			_nextPort = getLocalPort() + 1;
 		}
 		catch (IOException e)
 		{
@@ -68,6 +72,11 @@ public abstract class UaTestCase extends TestCase
 		return Integer.parseInt(_properties.getProperty(property));
 	}
 
+	public String getDomain()
+	{
+		return _properties.getProperty("sipunit.test.domain");	
+	}
+	
 	public int getLocalPort()
 	{
 		return getInt("sipunit.test.port");
@@ -93,30 +102,12 @@ public abstract class UaTestCase extends TestCase
 	{
 		return "sip:alice@" + _properties.getProperty("sipunit.test.domain");
 	}
-	
-	public String getBobUri()
+
+	public Endpoint createEndpoint(String user)
 	{
-		return "sip:bob@" + _properties.getProperty("sipunit.test.domain");
-	}
-	
-	public Address getBobContact()
-	{
-		SipURI contact = (SipURI) _sipBobClient.getContact().clone();
-		contact.setUser("bob");
-		System.out.println("** Bob Contact: " + contact);
-		return _ua.getFactory().createAddress(contact);
-	}
-	
-	public String getCarolUri()
-	{
-		return "sip:carol@" + _properties.getProperty("sipunit.test.domain");
-	}
-	
-	public Address getCarolContact()
-	{
-		SipURI contact = (SipURI) _sipClient.getContact().clone();
-		contact.setUser("carol");
-		return _ua.getFactory().createAddress(contact);
+		Endpoint e = new Endpoint(user, getDomain(), _nextPort++);
+		_endpoints.add(e);
+		return e;
 	}
 
 	public String getTo()
@@ -152,49 +143,10 @@ public abstract class UaTestCase extends TestCase
 	@Override
 	public void tearDown() throws Exception
 	{
-		_ua = _ub = _uc = null;
+		_ua = null;
 		_sipClient.stop();
-		if (_sipBobClient != null)
-			_sipBobClient.stop();
-	}
-	
-	public TestAgent getBobUserAgent()
-	{
-		return getBobUserAgent(SipClient.Protocol.UDP);
-	}
-	
-	public TestAgent getBobUserAgent(SipClient.Protocol protocol)
-	{
-		try {
-			if (_sipBobClient == null)
-			{
-				_sipBobClient = new SipClient();
-				_sipBobClient.addConnector(protocol, null, getLocalPort() + 1);
-				_sipBobClient.start();
-
-				_ub = decorate(new TestAgent(_sipBobClient.getFactory().createAddress(getBobUri())));
-				_ub.setTimeout(getTimeout());
-				_sipBobClient.addUserAgent(_ub);
-			}
-			return _ub;
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-	
-	public TestAgent getCarolUserAgent()
-	{
-		try {
-			if (_uc == null)
-			{
-				_uc = decorate(new TestAgent(_sipClient.getFactory().createAddress(getCarolUri())));
-				_uc.setTimeout(getTimeout());
-				_sipClient.addUserAgent(_uc);
-			}
-			return _uc;
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+		for (Endpoint e: _endpoints)
+			e.stop();
 	}
 	
 	public TestAgent decorate(TestAgent agent)
@@ -260,6 +212,91 @@ public abstract class UaTestCase extends TestCase
 		catch (Exception e)
 		{
 			throw new IllegalStateException(e);
+		}
+	}
+	
+	public class Endpoint
+	{
+		private SipClient _client;
+		private String _user;
+		private String _uri;
+		private int _port;
+		
+		public Endpoint(String user, String domain, int port)
+		{
+			_user = user;
+			_uri = "sip:" + user + "@" + domain;
+			_port = port;
+		}
+		
+		public String getUri()
+		{
+			return _uri;
+		}
+		
+		public int getPort()
+		{
+			return _port;
+		}
+		
+		public void stop() throws Exception
+		{
+			if (_client != null)
+				_client.stop();
+		}
+
+		public Address getContact()
+		{
+			SipURI contact = (SipURI) getOrCreateClient().getContact().clone();
+			contact.setUser(_user);
+			return getUserAgent().getFactory().createAddress(contact);
+		}
+
+		public TestAgent getUserAgent()
+		{
+			return getUserAgent(SipClient.Protocol.UDP);
+		}
+		
+		public TestAgent getUserAgent(SipClient.Protocol protocol)
+		{
+			SipClient client = getOrCreateClient(protocol);
+
+			try
+			{
+				Address addr = client.getFactory().createAddress(_uri);
+				UserAgent ua = client.getUserAgent(addr.getURI()); 
+				if (ua == null)
+				{
+					ua = decorate(new TestAgent(addr));
+					ua.setTimeout(getTimeout());
+					client.addUserAgent(ua);
+				}
+				return (TestAgent) ua;
+
+			} catch (ServletParseException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		protected SipClient getOrCreateClient()
+		{
+			return getOrCreateClient(SipClient.Protocol.UDP);
+		}
+		
+		protected SipClient getOrCreateClient(SipClient.Protocol protocol)
+		{
+			if (_client == null)
+			{
+				try
+	    		{
+	    			_client = new SipClient();
+	    			_client.addConnector(protocol, null, _port);
+	    			_client.start();
+	    		} catch (Exception e) {
+	    			throw new RuntimeException(e);
+	    		}
+			}
+			return _client;
 		}
 	}
 }

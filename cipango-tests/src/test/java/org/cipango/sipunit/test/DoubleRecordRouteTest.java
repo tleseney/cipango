@@ -41,8 +41,8 @@ public class DoubleRecordRouteTest extends UaTestCase
 	@Test
 	public void testUdpToTcp() throws Throwable 
 	{
-		Call callA;
-		UaRunnable callB = new UaRunnable(getBobUserAgent(SipClient.Protocol.TCP))
+		Endpoint bob = createEndpoint("bob");
+		UaRunnable callB = new UaRunnable(bob.getUserAgent(SipClient.Protocol.TCP))
 		{
 			@Override
 			public void doTest() throws Throwable
@@ -69,9 +69,9 @@ public class DoubleRecordRouteTest extends UaTestCase
 		{
 			callB.start();
 			
-			SipServletRequest request = _ua.createRequest(SipMethods.INVITE, getBobUri());
-			request.setRequestURI(getBobContact().getURI());
-			callA = _ua.createCall(request);
+			SipServletRequest request = _ua.createRequest(SipMethods.INVITE, bob.getUri());
+			request.setRequestURI(bob.getContact().getURI());
+			Call callA = _ua.createCall(request);
 
 			SipServletResponse response = callA.waitForResponse();
 	        assertThat(response, isSuccess());
@@ -98,8 +98,8 @@ public class DoubleRecordRouteTest extends UaTestCase
 	@Test
 	public void testUdpToUdp() throws Throwable 
 	{
-		Call callA;
-		UaRunnable callB = new UaRunnable(getBobUserAgent())
+		Endpoint bob = createEndpoint("bob");
+		UaRunnable callB = new UaRunnable(bob.getUserAgent())
 		{
 			@Override
 			public void doTest() throws Throwable
@@ -123,9 +123,9 @@ public class DoubleRecordRouteTest extends UaTestCase
 		{
 			callB.start();
 			
-			SipServletRequest request = _ua.createRequest(SipMethods.INVITE, getBobUri());
-			request.setRequestURI(getBobContact().getURI());
-			callA = _ua.createCall(request);
+			SipServletRequest request = _ua.createRequest(SipMethods.INVITE, bob.getUri());
+			request.setRequestURI(bob.getContact().getURI());
+			Call callA = _ua.createCall(request);
 
 	        assertThat(callA.waitForResponse(), isSuccess());
 	        callA.createAck().send();

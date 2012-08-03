@@ -1,0 +1,6 @@
+#if($snmpManager.isRegistered())
+	#table($snmpManager.getConnectors())
+	#table($snmpManager.getTrapReceivers())
+#else
+	SNMP is not configured
+#end

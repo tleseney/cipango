@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<web-app 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xmlns="http://java.sun.com/xml/ns/javaee"
+    xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" 
+    xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+    version="2.5">
+
+  <display-name>Cipango Console</display-name>
+  
+	<servlet>
+		<servlet-name>velocity</servlet-name>
+		<servlet-class>org.cipango.console.VelocityConsoleServlet</servlet-class>
+	</servlet>
+	
+	<servlet>
+		<servlet-name>StatisticGraphServlet</servlet-name>
+		<servlet-class>org.cipango.console.StatisticGraphServlet</servlet-class>
+	</servlet>
+	
+	<servlet>
+		<servlet-name>SvgServlet</servlet-name>
+		<servlet-class>org.cipango.console.SvgServlet</servlet-class>
+	</servlet>
+	
+
+	<servlet-mapping>
+	  <servlet-name>velocity</servlet-name>
+	  <url-pattern>*.vm</url-pattern>
+	</servlet-mapping>
+
+	<servlet-mapping>
+	  <servlet-name>StatisticGraphServlet</servlet-name>
+	  <url-pattern>statistics/calls.png</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+	  <servlet-name>StatisticGraphServlet</servlet-name>
+	  <url-pattern>statistics/messages.png</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+	  <servlet-name>StatisticGraphServlet</servlet-name>
+	  <url-pattern>statistics/memory.png</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+	  <servlet-name>StatisticGraphServlet</servlet-name>
+	  <url-pattern>statistics/cpu.png</url-pattern>
+	</servlet-mapping>
+	
+	<servlet-mapping>
+	  <servlet-name>SvgServlet</servlet-name>
+	  <url-pattern>message.svg</url-pattern>
+	</servlet-mapping>
+	
+  <welcome-file-list>
+    <welcome-file>about.vm</welcome-file>
+  </welcome-file-list>
+	
+	<!---
+  <filter>
+    <filter-name>console</filter-name>
+    <filter-class>org.cipango.console.ConsoleFilter</filter-class>
+   </filter>
+    
+   <filter-mapping>
+     <filter-name>console</filter-name>
+     <url-pattern>/*</url-pattern>
+  </filter-mapping>
+      -->
+  <!-- 
+   A security constraint that restricts access to the Cipango console
+   to users with the role admin
+  <security-constraint>
+    <web-resource-collection>
+      <web-resource-name>Cipango console</web-resource-name>
+      <url-pattern>/</url-pattern>
+    </web-resource-collection>
+    <auth-constraint>
+      <role-name>user</role-name>
+    </auth-constraint>
+  </security-constraint>
+  <security-constraint>
+    <web-resource-collection>
+      <web-resource-name>No auth required</web-resource-name>
+      <url-pattern>/css/*</url-pattern> 
+    </web-resource-collection>
+  </security-constraint>
+
+  
+  <login-config>
+    <auth-method>FORM</auth-method>
+    <realm-name>Cipango console</realm-name>
+    <form-login-config>
+      <form-login-page>/login.jsp</form-login-page>
+      <form-error-page>/login.jsp?authFail=true</form-error-page>
+    </form-login-config>
+  </login-config>
+
+    -->
+</web-app>

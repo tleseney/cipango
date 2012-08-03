@@ -1,0 +1,88 @@
+<rrd_graph_def>
+     <span>
+         <start>${start}</start>
+         <end>${end}</end>
+     </span>
+     <options>
+         <title>SIP Messages</title>
+         <vertical_label>msg/s</vertical_label>
+         <image_format>png</image_format>
+         <width>717</width>
+         <height>300</height>
+         <min_value>-U</min_value>
+  
+     </options>
+     <datasources>
+         <def>
+             <name>incomingMessages</name>
+             <rrd>${rrd}</rrd>
+             <source>incomingMessages</source>
+             <cf>AVERAGE</cf>
+         </def>
+         <def>
+             <name>incoming-max</name>
+             <rrd>${rrd}</rrd>
+             <source>incomingMessages</source>
+             <cf>MAX</cf>
+         </def>
+         <def>
+             <name>outgoingMessages</name>
+             <rrd>${rrd}</rrd>
+             <source>outgoingMessages</source>
+             <cf>AVERAGE</cf>
+         </def>
+         <def>
+             <name>outgoing-max</name>
+             <rrd>${rrd}</rrd>
+             <source>outgoingMessages</source>
+             <cf>MAX</cf>
+         </def>
+         <cdef>
+             <name>sent</name>
+             <rpn>outgoingMessages,-1,*</rpn>
+         </cdef>
+     </datasources>
+     <graph>
+       <area>
+         <datasource>incomingMessages</datasource>
+         <color>#00CC00</color>
+         <legend>received sip messages</legend>
+       </area>
+       <gprint>
+		  <datasource>incoming-max</datasource>
+		  <cf>MAX</cf>
+		  <format>max = %7.2f msg/s</format>
+		</gprint>
+		<gprint>
+		  <datasource>incomingMessages</datasource>
+		  <cf>AVERAGE</cf>
+		  <format>avg = %7.2f msg/s</format>
+		</gprint>
+	    <gprint>
+	      <datasource>incomingMessages</datasource>
+	      <cf>LAST</cf>
+	      <format>current = %7.2f msg/s\r</format>
+	    </gprint>
+         
+	    <area>
+          <datasource>sent</datasource>
+          <color>#0000FF</color>
+          <legend>sent sip messages</legend>
+        </area>
+	    <gprint>
+          <datasource>outgoing-max</datasource>
+          <cf>MAX</cf>
+          <format>max = %7.2f msg/s</format>
+        </gprint>
+	    <gprint>
+	      <datasource>outgoingMessages</datasource>
+	      <cf>AVERAGE</cf>
+	      <format>avg = %7.2f msg/s</format>
+	    </gprint>
+        <gprint>
+          <datasource>outgoingMessages</datasource>
+          <cf>LAST</cf>
+          <format>current = %7.2f msg/s\r</format>
+        </gprint>
+     </graph>
+</rrd_graph_def>

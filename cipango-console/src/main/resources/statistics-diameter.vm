@@ -1,0 +1,18 @@
+#if($diameterManager.isRegistered())
+	#properties ($diameterManager.getSessionsStats() )
+	
+	#foreach ($properties in  $diameterManager.getMessageStats())
+		#properties ($properties)
+	#end
+	#table($diameterManager.getPendingStats())
+	<br/>
+	#if ($diameterManager.isStatsEnabled())
+		Statisitics are enabled since $diameterManager.getStatsDuration().<br/>
+		#action($field.in($diameterManager).DISABLE_STATS)
+		#action($field.in($diameterManager).RESET_STATS)
+	#else
+		#action($field.in($diameterManager).ENABLE_STATS)
+	#end
+#else
+	Diameter is not configured
+#end

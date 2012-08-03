@@ -1,0 +1,181 @@
+
+###############################################################################
+###                             Table                                      ####
+#macro( table $table )
+	<h2>$table.getTitle()</h2>
+
+	<table class="table table-striped">
+		<tr>
+			#foreach($header in $table.getHeaders())
+				<th>$header.getName()
+					#if ($header.getNote())
+						&nbsp;<img src="images/question.gif" title="$header.getNote()"/>
+					#end
+				</th>
+			#end
+		</tr>
+
+		#foreach ($row in $table)
+			<tr>
+				#foreach ($value in $row.getValues())
+					<td>#if ($value.getValue()) $value.getValue() #end </td>
+				#end
+			</tr>
+		#end
+	</table>
+#end
+
+###############################################################################
+###                        Properties                                      ####
+#macro( properties $properties )
+	<h2>$properties.getTitle()</h2>
+	<table class="table table-striped">
+		<tr>
+			<th>Name</th>
+			<th>Value</th>
+			#if($properties.hasNotes())
+				<th>Note</th>
+			#end
+		</tr>
+		#foreach( $property in $properties )
+			<tr>
+				<td>$property.name</td>
+				<td>$property.value</td>
+				#if ($properties.hasNotes())
+					<td>$property.note</td>
+				#end
+			</tr>
+		#end
+	</table>
+#end
+
+###############################################################################
+###                            Action                                      ####
+#macro( action $action )
+	<a id="$action.getParameter()" class="btn" href="?action=$action.getParameter()">$action.getDescription()</a>
+#end
+
+###############################################################################
+###                         Print graph                                    ####
+#macro( printGraph $title $type)
+	<h3>$title</h3>
+	<img src="statistics/${type}.png?time=$time"/>
+	<br/>
+#end
+
+
+###############################################################################
+###                          File logger                                   ####
+#macro( fileLogger $logger)
+	#if ($logger.isRegistered())
+		<h2>File Log</h2>
+		All incoming and outgoing messages 
+		#if ($logger.isEnabled())
+			are logged
+		#else
+			can be logged
+		#end
+		#if ($logger.Filename)
+			in the file $logger.Filename
+		#else
+			on the console
+		#end
+		. Traces are kept during at most $logger.RetainDays days.<br/>
+		#if ($logger.isEnabled())
+			#action($logger.getStopAction())
+		#else
+			#action($logger.getStartAction())
+		#end
+		#if ($logger.isDeletedSupported())
+			#action($logger.getDeleteAction())
+		#end
+	#end
+#end
+
+
+###############################################################################
+###                        To Filter link                                  ####
+#macro( toFilterLink $sb $index $name $value)
+	#set ($value = $value.toString())
+	#set ($link = "<a class='filter' href='?sipMessageFilter=${name}.equals(%27$esc.url($value)%27)'>$value</a>")
+	#set ($sb = $replace.replaceOnce($sb, $index, $value, $link))
+#end
+
+
+###############################################################################
+###                        Console logger                                  ####
+#macro( consoleLogger $logger)
+	#if ($logger.isRegistered())
+		<h2>Console Log</h2>
+		<div class="inline">
+			<form id="filterForm" method="get">
+				Show &nbsp;
+				<select id="maxMessages" name="maxMessages">
+					#set ($nbMessages = [4, 10, 20, 50, 200])
+					#foreach ($value in $nbMessages)
+						<option #if ($logger.MaxMessages == $value) selected="selected" #end >$value</option>
+					#end
+				</select>
+				#if ($logger.Filters)
+					&nbsp;last filtered messages.&nbsp;|&nbsp;
+					Filter:&nbsp;
+					<SELECT name="sipMessageFilter">
+						#if ($logger.MessageFilter && $logger.MessageFilter != "")
+							<option value="">Clear filter</option>
+						#else
+							#set ($selected = "true")
+							<option value="" selected="selected">Select a filter</option>
+						#end
+						#foreach ($filter in $logger.Filters.keySet())
+							<option value="$filter" #if ($logger.MessageFilter == $filter) selected="selected" #set ($selected = "true") #end >$logger.Filters.get($filter)</option>
+						#end
+						#if(!$selected)
+							<option value="$logger.MessageFilter" selected="selected">$logger.getFilterTitle()</option>
+						#end
+					</select>
+				#end
+				&nbsp;&nbsp;<input type="submit" name="submit" value="Apply"/>
+			</form>
+			#action($logger.getClearAction()) 
+			#action($logger.getStopAction()) 
+			<a href="rawMessage.vm?sipMessageFilter=$esc.url($logger.MessageFilter)&maxMessages=$logger.MaxMessages">Display as log file</a>
+			
+			<form method="get">
+				Server keeps in memory the 
+				<input type="text" name="maxSavedMessages" value="$logger.getMaxSavedMessages()" size="1" maxlength="5"/>
+				<input type="hidden" name="action" value="msg-in-memory"/>
+				last messages. 
+				<input type="submit" value="Apply"/>
+			</form>
+		</div>
+		
+		#if ($logger.Messages && $logger.Messages.size() > 0)
+			<div id="callflow">
+				#set ($height = 100 + $logger.Messages.size() * 25)
+				<embed src="message.svg?sipMessageFilter=$esc.url($logger.MessageFilter)&maxMessages=$logger.MaxMessages" width="790" height="$height" type="image/svg+xml" pluginspage="http://www.adobe.com/svg/viewer/install/"/>
+			</div>
+			
+			<div id="messageLog">
+				#foreach ($log in $logger.Messages)
+					<a name="msg-$foreach.count"></a>
+					<div class="msg-info">
+						#toFilterLink($replace.toStringBuilder($log.getInfoLine()), 0, "remote", $log.Remote)
+						$sb
+					</div>
+					#set ($sb = $replace.toStringBuilder($esc.html($log.Message)))
+					#toFilterLink($sb, $sb.indexOf("Via"), "message.topVia.branch", $log.Message.getTopVia().getBranch())
+					#toFilterLink($sb, $sb.indexOf("From"), "message.from.uRI.toString()", $log.Message.getFrom().getURI())
+					#toFilterLink($sb, $sb.indexOf("To"), "message.to.uRI.toString()", $log.Message.getTo().getURI())
+					#toFilterLink($sb, $sb.indexOf("Call-ID"), "message.callId", $log.Message.getCallId())
+					#if ($log.isRequest())
+						#toFilterLink($sb, 0, "message.requestURI != null and message.requestURI.toString()", $log.Message.getRequestURI())
+					#end
+					<pre class="message">$sb</pre>
+				#end
+			</div>
+		#end
+	#end
+#end
+
+
+

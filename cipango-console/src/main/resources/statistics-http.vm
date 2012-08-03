@@ -1,0 +1,13 @@
+
+#foreach( $properties in $jettyManager.getConnectorsStatistics() )
+	#properties($properties)
+#end
+
+#if ($jettyManager.isStatsEnabled())
+	Statisitics are enabled since $jettyManager.getStatsDuration().<br/>
+	#action($field.in($jettyManager).DISABLE_STATS)
+	&nbsp;&nbsp;&nbsp
+	#action($field.in($jettyManager).RESET_STATS)
+#else
+	#action($field.in($jettyManager).ENABLE_STATS)
+#end

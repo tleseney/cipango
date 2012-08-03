@@ -1,0 +1,10 @@
+<pre>
+	<table class="table table-striped">
+		#foreach( $entry in $envManager.getSystemProperties().entrySet() )
+			<tr>
+				<td>$entry.getKey()</td>
+				<td>$entry.getValue()</td>
+			</tr>
+		#end
+	</table>
+</pre>

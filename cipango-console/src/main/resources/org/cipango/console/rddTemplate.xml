@@ -1,0 +1,137 @@
+ <rrd_def>
+     <path>${path}</path>
+     <!-- not mandatory -->
+     <start>${start}</start>
+     <!-- not mandatory -->
+     <step>5</step>
+     <!-- at least one datasource must be supplied -->
+     <datasource>
+         <name>calls</name>
+         <type>GAUGE</type>
+         <heartbeat>10</heartbeat>
+         <min>0</min>
+         <max>U</max>
+     </datasource>
+     <datasource>
+         <name>maxMemory</name>
+         <type>GAUGE</type>
+         <heartbeat>10</heartbeat>
+         <min>0</min>
+         <max>U</max>
+     </datasource>
+     <datasource>
+         <name>usedMemory</name>
+         <type>GAUGE</type>
+         <heartbeat>10</heartbeat>
+         <min>0</min>
+         <max>U</max>
+     </datasource>
+     <datasource>
+         <name>totalMemory</name>
+         <type>GAUGE</type>
+         <heartbeat>10</heartbeat>
+         <min>0</min>
+         <max>U</max>
+     </datasource>
+     <datasource>
+         <name>incomingMessages</name>
+         <type>COUNTER</type>
+         <heartbeat>10</heartbeat>
+         <min>0</min>
+         <max>U</max>
+     </datasource>
+     <datasource>
+         <name>outgoingMessages</name>
+         <type>COUNTER</type>
+         <heartbeat>10</heartbeat>
+         <min>0</min>
+         <max>U</max>
+     </datasource>
+     <datasource>
+         <name>cpu</name>
+         <type>COUNTER</type>
+         <heartbeat>10</heartbeat>
+         <min>0</min>
+         <max>U</max>
+     </datasource>
+     <datasource>
+         <name>timeInGc</name>
+         <type>COUNTER</type>
+         <heartbeat>10</heartbeat>
+         <min>0</min>
+         <max>U</max>
+     </datasource>
+     <!-- at least one archive must be supplied -->
+     <archive>
+         <cf>AVERAGE</cf>
+         <xff>0.5</xff>
+         <!-- 5s -->
+         <steps>1</steps>
+         <!-- 1 hour -->
+         <rows>720</rows>
+     </archive>
+     <archive>
+         <cf>AVERAGE</cf>
+         <xff>0.5</xff>
+         <!-- 30s -->
+         <steps>6</steps>
+         <!-- 4 hours -->
+         <rows>480</rows>
+     </archive>
+     <archive>
+         <cf>AVERAGE</cf>
+         <xff>0.5</xff>
+         <!-- 5 minutes -->
+         <steps>60</steps>
+         <!-- two days -->
+         <rows>576</rows>
+     </archive>
+     <archive>
+         <cf>AVERAGE</cf>
+         <xff>0.5</xff>
+         <!-- 1 hour -->
+         <steps>720</steps>
+         <!-- two weeks -->
+         <rows>336</rows>
+     </archive>
+     <archive>
+         <cf>MAX</cf>
+         <xff>0.5</xff>
+         <!-- 10s -->
+         <steps>2</steps>
+         <!-- 15 minutes -->
+         <rows>90</rows>
+     </archive>
+     <archive>
+         <cf>MAX</cf>
+         <xff>0.5</xff>
+         <!-- 1 minute -->
+         <steps>12</steps>
+         <!-- 1 hour -->
+         <rows>60</rows>
+     </archive>
+     <archive>
+         <cf>MAX</cf>
+         <xff>0.5</xff>
+         <!-- 10 minutes -->
+         <steps>120</steps>
+         <!-- 4 hours -->
+         <rows>24</rows>
+     </archive>
+     <archive>
+         <cf>MAX</cf>
+         <xff>0.5</xff>
+         <!-- 1 hour -->
+         <steps>720</steps>
+         <!-- two days -->
+         <rows>48</rows>
+     </archive>
+     <archive>
+         <cf>MAX</cf>
+         <xff>0.5</xff>
+         <!-- 8 hours -->
+         <steps>5760</steps>
+         <!-- two weeks -->
+         <rows>42</rows>
+     </archive>
+ </rrd_def>

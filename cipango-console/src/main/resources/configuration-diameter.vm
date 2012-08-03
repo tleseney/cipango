@@ -1,0 +1,8 @@
+#if($diameterManager.isRegistered())
+	#properties ($diameterManager.getNodeConfig() )
+	#table($diameterManager.getConnectors())
+	#properties ($diameterManager.getTimers() )
+	#table($diameterManager.getPeers())
+#else
+	Diameter is not configured
+#end

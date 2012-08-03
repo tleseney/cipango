@@ -1,0 +1,68 @@
+#set( $layout = "TextLayout.vm" ) 
+$response.setContentType("text/plain")
+
+#header1("Server")
+#propertiesTxt ( $envManager.getVersion() )
+#propertiesTxt ($envManager.getEnvironment() )
+
+#header1("SIP")
+#tableTxt($sipManager.getConnectorsConfig())
+#propertiesTxt ($sipManager.getThreadPool() )
+#propertiesTxt ($sipManager.getTimers())
+#propertiesTxt($sipManager.getMessageStats())
+#propertiesTxt($sipManager.getCallStats())
+#tableTxt($sipManager.getAppSessionStats())
+
+#header1("HTTP")
+#tableTxt($jettyManager.getConnectorsConfig())
+#propertiesTxt ($jettyManager.getHttpThreadPool() )
+#foreach( $properties in $jettyManager.getConnectorsStatistics() )
+	#propertiesTxt($properties)
+#end
+
+#header2("System properties")
+#foreach( $entry in $envManager.getSystemProperties().entrySet() )
+$entry.getKey(): $entry.getValue()
+#end
+
+#header1("Dump")
+$jettyManager.dump()
+
+###############################################################################
+###                             header2                                    ####
+#macro( header2 $title )
+
+
+$replace.toFixedSize($title,80)
+-------------------------------------------------------------------------------
+#end
+
+###############################################################################
+###                               header1                                  ####
+#macro( header1 $title )
+
+===============================================================================
+=$replace.toFixedSize($title,78)=
+===============================================================================
+
+#end
+
+###############################################################################
+###                             TableTxt                                   ####
+#macro( tableTxt $table )
+#header2($table.getTitle())
+|#foreach($header in $table.getHeaders())$replace.toFixedSize($header.getName(), 25)| #end
+#foreach ($row in $table)
+
+|#foreach ($value in $row.getValues())$replace.toFixedSize($value.getValue(), 25)| #end
+#end
+#end
+
+###############################################################################
+###                        Properties Txt                                  ####
+#macro( propertiesTxt $properties )
+#header2($properties.getTitle())
+#foreach( $property in $properties )
+$property.name: $property.value
+#end
+#end

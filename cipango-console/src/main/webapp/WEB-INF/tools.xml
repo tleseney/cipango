@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tools>
+ <toolbox scope="application">
+	 <tool class="org.apache.velocity.tools.generic.FieldTool" include="org.cipango.console.JettyManager"/>
+	 <tool class="org.apache.velocity.tools.generic.EscapeTool"/>
+ </toolbox>
+</tools>

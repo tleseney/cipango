@@ -1,0 +1,84 @@
+#set ($table = $applicationManager.getSipContexts() )
+
+<h2>$table.getTitle()</h2>
+
+<table class="table table-striped">
+	<tr>
+		#foreach($header in $table.getHeaders())
+			<th>$header.getName()
+				#if ($header.getNote())
+					&nbsp;<img src="images/question.gif" title="$header.getNote()"/>
+				#end
+			</th>
+		#end
+		<th>Operations</th>
+	</tr>
+
+	
+	#set ($id = 1 )
+	#foreach ($row in $table)
+		<tr>
+			#foreach ($value in $row.getValues())
+				<td>#if ($value.getValue()) $value.getValue() #end </td>
+			#end
+			<td>
+				#foreach ($operation in $row.getOperations())
+					<div class="modal hide fade" id="modal-$id" style="display: none;">
+						<div class="modal-header">
+							<button data-dismiss="modal" class="close" type="button">&times;</button>
+							<h3>$operation.action.getDescription()</h3>
+						</div>
+						<div class="modal-body">
+							<p>Please confirm to $operation.action.getDescription() the servlet application with URI prefix $operation.applicationName</p>
+						 </div>
+						<div class="modal-footer">
+							<a data-dismiss="modal" class="btn" href="#">Cancel</a>
+							<a class="btn btn-primary" href="?action=$operation.action.getParameter()&objectName=$operation.objectName">Confirm</a>
+						</div>
+					</div>
+					<a class="btn btn-primary" href="#modal-$id" data-toggle="modal">$operation.action.getDescription()</a>
+					#set ($id = $id + 1 )
+				#end
+			</td>
+		</tr>
+	#end
+</table>
+
+<h2>Servlets</h2>
+#foreach ($context in $applicationManager.getSipMappings())
+	<h3>$context.name</h3>
+	#if ($context.mappings)
+		#table($context.mappings)
+	#elseif ($context.mainServlet)
+		Main servlet is $context.mainServlet
+	#else
+		No SIP servlets for this application
+	#end
+#end
+
+<script type="text/javascript">
+	function check() 
+	{
+		var ext = self.document.upload.fileInput.value;
+		index = ext.lastIndexOf('.');
+		ext = ext.substring(index,ext.length);
+		ext = ext.toLowerCase();
+		if(ext != '.war' && ext != '.sar' && ext != '.zip' && ext != '.ssar') 
+		{
+			alert('You selected a ' + ext +
+						' file; please select a .war or .sar file instead!');
+			return false; 
+		} 
+		else 
+		{
+			return true;
+		}
+	}
+</script>
+
+<h2>Upload a WAR file to install</h2>
+<form action="?action=deploy" method="post" enctype="multipart/form-data" class="well form-inline" name="upload" onsubmit="return check();">
+	<label for="fileInput" class="control-label">Select WAR file to upload</label>
+	<input type="file" name="fileInput" class="input-file"><br/>
+	<button class="btn" type="submit" name="action">Deploy</button>
+</form>

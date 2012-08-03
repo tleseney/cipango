@@ -1,0 +1,2 @@
+#properties ( $envManager.getVersion() )
+#properties ($envManager.getEnvironment() )

@@ -1,0 +1,115 @@
+<rrd_graph_def>
+     <span>
+         <start>${start}</start>
+         <end>${end}</end>
+     </span>
+     <options>
+         <title>JVM memory</title>
+         <vertical_label>bytes</vertical_label>
+         <image_format>png</image_format>
+         <min_value>0</min_value>
+         <width>717</width>
+         <height>300</height>
+     </options>
+     <datasources>
+         <def>
+             <name>max</name>
+             <rrd>${rrd}</rrd>
+             <source>maxMemory</source>
+             <cf>AVERAGE</cf>
+         </def>
+         <def>
+             <name>used</name>
+             <rrd>${rrd}</rrd>
+             <source>usedMemory</source>
+             <cf>AVERAGE</cf>
+         </def>
+         <def>
+             <name>total</name>
+             <rrd>${rrd}</rrd>
+             <source>totalMemory</source>
+             <cf>AVERAGE</cf>
+         </def>
+         <def>
+             <name>used-max</name>
+             <rrd>${rrd}</rrd>
+             <source>usedMemory</source>
+             <cf>MAX</cf>
+         </def>
+         <def>
+             <name>total-max</name>
+             <rrd>${rrd}</rrd>
+             <source>totalMemory</source>
+             <cf>MAX</cf>
+         </def>
+         <cdef>
+             <name>available</name>
+             <rpn>total,used,-</rpn>
+         </cdef>
+     </datasources>
+     <graph>
+       <area>
+          <datasource>used</datasource>
+          <color>#FFFFFF</color>
+          <legend/>
+       </area>
+       <stack>
+          <datasource>available</datasource>
+          <color>#99FF66</color>
+          <legend/>
+       </stack>
+       
+       <line>
+           <datasource>max</datasource>
+           <color>#0000FF</color>
+           <legend>max memory</legend>
+       </line>      
+       <gprint>
+          <datasource>max</datasource>
+           <cf>AVERAGE</cf>
+           <format> = %7.2f %Sb\r</format>
+       </gprint>
+         
+	   <line>
+           <datasource>used</datasource>
+           <color>#FF0000</color>
+           <legend>used memory</legend>
+       </line>
+       <gprint>
+           <datasource>used-max</datasource>
+           <cf>MAX</cf>
+           <format>max = %7.2f %Sb  </format>
+       </gprint>
+	   <gprint>
+	       <datasource>used</datasource>
+	       <cf>AVERAGE</cf>
+	       <format>avg = %7.2f %Sb</format>
+	   </gprint>
+	   <gprint>
+           <datasource>used</datasource>
+           <cf>LAST</cf>
+           <format>current = %7.2f %Sb\r</format>
+       </gprint>
+       
+	   <line>
+           <datasource>total</datasource>
+           <color>#006600</color>
+           <legend>total memory</legend>
+       </line>
+	   <gprint>
+	       <datasource>total-max</datasource>
+	       <cf>MAX</cf>
+	       <format>max = %7.2f %Sb</format>
+	   </gprint>
+	   <gprint>
+	       <datasource>total</datasource>
+	       <cf>AVERAGE</cf>
+	       <format>avg = %7.2f %Sb</format>
+	   </gprint>
+       <gprint>
+           <datasource>total</datasource>
+           <cf>LAST</cf>
+           <format>current = %7.2f %Sb\r</format>
+       </gprint>
+     </graph>
+</rrd_graph_def>

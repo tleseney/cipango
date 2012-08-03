@@ -1,0 +1,20 @@
+#table($sipManager.getConnectorsConfig())
+
+#properties ($sipManager.getThreadPool() )
+
+#set ($properties = $sipManager.getTimers())
+<h2>$properties.getTitle()</h2>
+<table class="table table-striped">
+	<tr>
+		<th>Name</th>
+		<th>Value</th>
+		<th>Default value</th>
+	</tr>
+	#foreach( $property in $properties )
+		<tr>
+			<td>$property.name</td>
+			<td>$property.value</td>
+			<td>$property.note</td>
+		</tr>
+	#end
+</table>

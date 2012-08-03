@@ -1,0 +1,11 @@
+#if ($applicationManager.isDarRegistered())
+	DAR configuration URI: $applicationManager.getDarUrl()
+	<br/>
+	#if($applicationManager.getDarDefaultApplication())
+		Default application router is routing all requests to the application: $applicationManager.getDarDefaultApplication()
+	#else
+		#table($applicationManager.getDarConfig())
+	#end
+#else
+	Default application router is not running.
+#end

@@ -1,0 +1,4 @@
+#fileLogger($sipManager.FileLogger)
+
+#consoleLogger($sipManager.getConsoleLogger($request))
+

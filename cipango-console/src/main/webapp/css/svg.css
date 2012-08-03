@@ -1,0 +1,47 @@
+
+.message-text {
+	font-family: Trebuchet MS,Helvetica, sans-serif;
+	font-size: 8pt;
+	stroke: none;
+	fill: black;
+}
+
+.message-header {
+	font-family: Trebuchet MS,Helvetica, sans-serif;
+	font-size: 8pt;
+	stroke: none;
+	fill: black;
+	font-style: italic;
+}
+
+.message-line {
+	stroke-width: 1pt; 
+	stroke:black; 
+	fill: white;
+}
+
+.arrowhead {
+	stroke-width: 0.5pt;
+	stroke:black;
+}
+
+.host-text { 
+	font-family: Trebuchet MS,Helvetica,sans-serif;
+	font-size: 10pt;
+	stroke:none;
+	fill: blue;
+	text-anchor: middle;
+	font-weight:bolder;
+}
+
+.host-line {
+	stroke-width: 0.5pt;
+	stroke: grey;
+}
+
+.msg-background {
+	fill: #f0f0f0;
+	stroke: black;
+	stroke-width: 1;
+}
+

@@ -2,7 +2,7 @@
 ###############################################################################
 ###                             Table                                      ####
 #macro( table $table )
-	<h2>$table.getTitle()</h2>
+	#if ($table.getTitle()) <h2>$table.getTitle()</h2> #end
 
 	<table class="table table-striped">
 		<tr>
@@ -110,7 +110,7 @@
 		<div class="inline">
 			<form id="filterForm" method="get">
 				Show &nbsp;
-				<select id="maxMessages" name="maxMessages">
+				<select id="maxMessages" name="maxMessages" class="span1">
 					#set ($nbMessages = [4, 10, 20, 50, 200])
 					#foreach ($value in $nbMessages)
 						<option #if ($logger.MaxMessages == $value) selected="selected" #end >$value</option>
@@ -119,7 +119,7 @@
 				#if ($logger.Filters)
 					&nbsp;last filtered messages.&nbsp;|&nbsp;
 					Filter:&nbsp;
-					<SELECT name="sipMessageFilter">
+					<SELECT name="sipMessageFilter" class="span3">
 						#if ($logger.MessageFilter && $logger.MessageFilter != "")
 							<option value="">Clear filter</option>
 						#else
@@ -134,18 +134,18 @@
 						#end
 					</select>
 				#end
-				&nbsp;&nbsp;<input type="submit" name="submit" value="Apply"/>
+				&nbsp;&nbsp;<input type="submit" class="btn" value="Apply"/>
 			</form>
 			#action($logger.getClearAction()) 
 			#action($logger.getStopAction()) 
-			<a href="rawMessage.vm?sipMessageFilter=$esc.url($logger.MessageFilter)&maxMessages=$logger.MaxMessages">Display as log file</a>
+			<a href="rawMessage.vm?sipMessageFilter=$esc.url($logger.MessageFilter)&maxMessages=$logger.MaxMessages" class="btn">Display as log file</a>
 			
 			<form method="get">
 				Server keeps in memory the 
-				<input type="text" name="maxSavedMessages" value="$logger.getMaxSavedMessages()" size="1" maxlength="5"/>
+				<input type="text" name="maxSavedMessages" value="$logger.getMaxSavedMessages()" class="input-mini" />
 				<input type="hidden" name="action" value="msg-in-memory"/>
 				last messages. 
-				<input type="submit" value="Apply"/>
+				<input type="submit" class="btn" value="Apply"/>
 			</form>
 		</div>
 		

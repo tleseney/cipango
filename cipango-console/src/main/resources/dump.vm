@@ -20,6 +20,19 @@ $response.setContentType("text/plain")
 	#propertiesTxt($properties)
 #end
 
+#if($diameterManager.isRegistered())
+#header1("Diameter")
+#propertiesTxt ($diameterManager.getNodeConfig() )
+#tableTxt($diameterManager.getConnectors())
+#propertiesTxt ($diameterManager.getTimers() )
+#tableTxt($diameterManager.getPeers())
+#propertiesTxt ($diameterManager.getSessionsStats() )
+#foreach ($properties in  $diameterManager.getMessageStats())
+	#propertiesTxt ($properties)
+#end
+#tableTxt($diameterManager.getPendingStats())
+#end
+
 #header2("System properties")
 #foreach( $entry in $envManager.getSystemProperties().entrySet() )
 $entry.getKey(): $entry.getValue()

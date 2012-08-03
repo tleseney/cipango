@@ -3,6 +3,7 @@ package org.cipango.console;
 import java.text.DecimalFormat;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 
@@ -227,5 +228,21 @@ public class SipManager
 			logger.setMessages(messagesLogs);
 		}
 		return logger;
+	}
+	
+	@SuppressWarnings("unchecked")
+	public List<String> getCallIds() throws Exception
+	{
+		ObjectName sessionManager = (ObjectName) _mbsc.getAttribute(JettyManager.SERVER, "sessionManager");
+		return (List<String>) _mbsc.getAttribute(sessionManager, "callIds");
+	}
+	
+	public String getCall(String callId) throws Exception
+	{
+		ObjectName sessionManager = (ObjectName) _mbsc.getAttribute(JettyManager.SERVER, "sessionManager");
+		return (String) _mbsc.invoke(sessionManager, 
+				"viewCall",
+				new Object[] { callId }, 
+				new String[] { "java.lang.String" });
 	}
 }

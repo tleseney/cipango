@@ -31,8 +31,21 @@
   <body>
 
    #parse( "components/menu.vm" )
-
+       
     <div class="container">
+      #if ($session.getAttribute("warn"))
+				 <div class="alert alert-error">$session.getAttribute("warn")</div>
+				 $session.removeAttribute("warn")
+			 #end
+			 
+			 #if ($session.getAttribute("info"))
+				<div class="alert alert-success">
+					<button class="close" data-dismiss="alert" type="button">&times;</button>
+					$session.getAttribute("info")
+				</div>
+				 $session.removeAttribute("info")
+			 #end
+		
       $screen_content
     </div> 
 

@@ -6,13 +6,13 @@ import java.net.InetAddress;
 import javax.servlet.sip.SipURI;
 
 import org.cipango.sip.SipURIImpl;
-import org.eclipse.jetty.util.component.AbstractLifeCycle;
+import org.eclipse.jetty.util.component.AggregateLifeCycle;
 import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.thread.ThreadPool;
 
-public abstract class AbstractSipConnector extends AbstractLifeCycle implements SipConnector
+public abstract class AbstractSipConnector extends AggregateLifeCycle implements SipConnector
 {
 	private static final Logger LOG = Log.getLogger(AbstractSipConnector.class);
 	
@@ -25,6 +25,16 @@ public abstract class AbstractSipConnector extends AbstractLifeCycle implements 
 	
 	private SipServer _server;
 	private ThreadPool _threadPool;
+
+	public AbstractSipConnector()
+	{
+		this((Runtime.getRuntime().availableProcessors() + 1) / 2);
+	}
+	
+	public AbstractSipConnector(int acceptors)
+	{
+		_acceptors = acceptors;
+	}
 	
 	public int getPort()
 	{
@@ -126,6 +136,7 @@ public abstract class AbstractSipConnector extends AbstractLifeCycle implements 
             }
         }
         
+        super.doStart();
         LOG.info("Started {}", this);
 	}
 	

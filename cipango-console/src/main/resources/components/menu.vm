@@ -37,7 +37,14 @@
 									#end
 								#end
 							#end
-            </ul>
+						</ul>
+						#if ($request.getUserPrincipal())
+							<ul class="nav pull-right">
+								<li><a href="#">Logged in as $request.getUserPrincipal().getName()</a></li>
+								<li class="divider-vertical"></li>
+								<li><a href="login.vm?logout=true" title="Log Out">Log Out</a></li>
+							</ul>
+						#end
           </div><!--/.nav-collapse -->
         </div>
       </div>

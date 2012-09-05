@@ -1,2 +1,1 @@
-$response.setContentType("text/plain")
 $screen_content

@@ -7,7 +7,7 @@ import javax.servlet.ServletException;
 import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.handler.AbstractSipHandler;
-import org.eclipse.jetty.util.LazyList;
+import org.eclipse.jetty.util.ArrayUtil;
 
 public class SipContextHandlerCollection extends AbstractSipHandler
 {
@@ -16,7 +16,7 @@ public class SipContextHandlerCollection extends AbstractSipHandler
 	@Override
 	protected void doStart()
 	{
-		_sipContexts = LazyList.addToArray(_sipContexts, new SipAppContext(), SipAppContext.class);
+		_sipContexts = ArrayUtil.addToArray(_sipContexts, new SipAppContext(), SipAppContext.class);
 	}
 	
 	public void handle(SipMessage message) throws IOException, ServletException 

@@ -15,8 +15,8 @@ import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.server.transaction.TransactionManager;
 import org.cipango.sip.SipGenerator;
 
+import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.BufferUtil;
-import org.eclipse.jetty.util.LazyList;
 import org.eclipse.jetty.util.MultiException;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.component.LifeCycle;
@@ -130,7 +130,7 @@ public class SipServer extends AbstractLifeCycle
 	
 	public void addConnector(SipConnector connector)
     {
-        setConnectors((SipConnector[])LazyList.addToArray(getConnectors(), connector, SipConnector.class));
+        setConnectors((SipConnector[])ArrayUtil.addToArray(getConnectors(), connector, SipConnector.class));
     }
 	
 	public void setConnectors(SipConnector[] connectors)

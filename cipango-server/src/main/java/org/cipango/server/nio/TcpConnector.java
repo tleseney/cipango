@@ -26,8 +26,8 @@ import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipParser;
 import org.cipango.sip.SipVersion;
 import org.cipango.sip.Via;
+import org.eclipse.jetty.io.ArrayByteBufferPool;
 import org.eclipse.jetty.io.ByteBufferPool;
-import org.eclipse.jetty.io.StandardByteBufferPool;
 import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
@@ -50,7 +50,7 @@ public class TcpConnector extends AbstractSipConnector
 	protected void doStart() throws Exception
 	{
 		_connections = new HashMap<String, TcpConnection>();
-		_outBuffers = new StandardByteBufferPool();
+		_outBuffers = new ArrayByteBufferPool();
 		_inBuffers = new ByteBuffer[getAcceptors()];
 		for (int i = _inBuffers.length; i-->0;)
 			_inBuffers[i] = BufferUtil.allocateDirect(MINIMAL_BUFFER_LENGTH);

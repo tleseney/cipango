@@ -45,6 +45,7 @@ import org.cipango.server.servlet.SipDispatcher;
 import org.cipango.server.servlet.SipServletHandler;
 import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.session.SessionHandler;
+import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.LazyList;
 import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.util.log.Log;
@@ -206,7 +207,7 @@ public class SipAppContext extends AbstractSipHandler
      */
     public void addEventListener(EventListener listener)
     {
-        setEventListeners((EventListener[])LazyList.addToArray(getEventListeners(), listener, EventListener.class));
+        setEventListeners((EventListener[])ArrayUtil.addToArray(getEventListeners(), listener, EventListener.class));
     }
 	
 	public EventListener[] getEventListeners()

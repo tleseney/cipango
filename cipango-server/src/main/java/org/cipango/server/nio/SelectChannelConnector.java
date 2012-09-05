@@ -7,22 +7,21 @@ import java.net.Socket;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 
 import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.Transport;
 import org.cipango.server.transaction.Transaction;
+import org.eclipse.jetty.io.ArrayByteBufferPool;
 import org.eclipse.jetty.io.ByteBufferPool;
 import org.eclipse.jetty.io.Connection;
 import org.eclipse.jetty.io.EndPoint;
 import org.eclipse.jetty.io.SelectChannelEndPoint;
 import org.eclipse.jetty.io.SelectorManager;
-import org.eclipse.jetty.io.StandardByteBufferPool;
 import org.eclipse.jetty.server.AbstractConnector;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
+import org.eclipse.jetty.util.thread.Scheduler;
+import org.eclipse.jetty.util.thread.TimerScheduler;
 
 public class SelectChannelConnector extends AbstractSipConnector
 {
@@ -30,7 +29,7 @@ public class SelectChannelConnector extends AbstractSipConnector
 
 	public static final int DEFAULT_SO_TIMEOUT = 2 * Transaction.__T1 * 64;
 
-    private ScheduledExecutorService _scheduler;
+    private Scheduler _scheduler;
     private final SelectorManager _manager;
 	private ServerSocketChannel _acceptChannel;
     private int _localPort = -1;
@@ -50,9 +49,12 @@ public class SelectChannelConnector extends AbstractSipConnector
     public SelectChannelConnector(int acceptors, int selectors)
     {
         super(acceptors);
-		_byteBufferPool = new StandardByteBufferPool();
+		_byteBufferPool = new ArrayByteBufferPool();
         _manager = new ConnectorSelectorManager(selectors);
+        _scheduler = new TimerScheduler();
+
         addBean(_manager, true);
+        addBean(_scheduler, true);
     }
     
     public int getLocalPort()
@@ -133,7 +135,7 @@ public class SelectChannelConnector extends AbstractSipConnector
         _soLingerTime = soLingerTime;
     }
     
-    public ScheduledExecutorService getScheduler()
+    public Scheduler getScheduler()
     {
         return _scheduler;
     }
@@ -142,25 +144,12 @@ public class SelectChannelConnector extends AbstractSipConnector
 	@Override
 	protected void doStart() throws Exception
 	{
-        if (_scheduler == null)
-        {
-            _scheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactory()
-            {
-                @Override
-                public Thread newThread(Runnable r)
-                {
-                    return new Thread(r, "Timer-" + getPort());
-                }
-            });
-        }
         super.doStart();
     }
 
     @Override
     protected void doStop() throws Exception
     {
-    	_scheduler.shutdownNow();
-        _scheduler = null;
         super.doStop();
     }
     

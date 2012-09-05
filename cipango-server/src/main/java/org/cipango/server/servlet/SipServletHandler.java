@@ -13,7 +13,7 @@ import org.cipango.server.SipRequest;
 import org.cipango.server.handler.AbstractSipHandler;
 
 import org.cipango.server.sipapp.SipServletMapping;
-import org.eclipse.jetty.util.LazyList;
+import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.MultiException;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
@@ -54,7 +54,7 @@ public class SipServletHandler extends AbstractSipHandler
 	{
 		SipServletHolder[] holders = getServlets();
 		
-		setServlets((SipServletHolder[]) LazyList.addToArray(holders, holder, SipServletHolder.class));
+		setServlets((SipServletHolder[]) ArrayUtil.addToArray(holders, holder, SipServletHolder.class));
 	}
 	
 	public SipServletHolder newSipServletHolder()
@@ -172,7 +172,7 @@ public class SipServletHandler extends AbstractSipHandler
 	
 	public void addServletMapping(SipServletMapping mapping) 
 	{		
-		setServletMappings((SipServletMapping[]) LazyList.addToArray(getServletMappings(), mapping,
+		setServletMappings((SipServletMapping[]) ArrayUtil.addToArray(getServletMappings(), mapping,
 				SipServletMapping.class));
 	}
 	

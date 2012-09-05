@@ -22,8 +22,8 @@ import org.cipango.sip.SipParser;
 import org.cipango.sip.SipVersion;
 import org.cipango.sip.Via;
 
+import org.eclipse.jetty.io.ArrayByteBufferPool;
 import org.eclipse.jetty.io.ByteBufferPool;
-import org.eclipse.jetty.io.StandardByteBufferPool;
 import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
@@ -53,7 +53,7 @@ public class UdpConnector extends AbstractSipConnector
 		for (int i = _inBuffers.length; i-->0;)
 			_inBuffers[i] = BufferUtil.allocateDirect(MAX_UDP_SIZE);
 		
-		_outBuffers = new StandardByteBufferPool();
+		_outBuffers = new ArrayByteBufferPool();
 		super.doStart();
 	}
 	

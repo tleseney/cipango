@@ -1,0 +1,5 @@
+#set( $layout = "TextLayout.vm" ) 
+#set ($logger=$diameterManager.getConsoleLogger($request))
+#foreach ($log in $logger.Messages)
+${log.getInfoLine()}${log.Message}
+#end

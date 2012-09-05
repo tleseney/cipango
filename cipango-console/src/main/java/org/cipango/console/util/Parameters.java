@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2010 NEXCOM Systems
+// Copyright 2010-2012 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ public class Parameters
 	
 	public static final String MAX_MESSAGES = "maxMessages";
 	public static final String MAX_SAVED_MESSAGES = "maxSavedMessages";
-	public static final String SIP_MESSAGE_FILTER = "sipMessageFilter";
-	public static final String DIAMETER_MESSAGE_FILTER = "diameterMessageFilter";
+	public static final String MESSAGE_FILTER = "messageFilter";
 	
 }

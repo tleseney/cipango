@@ -1,8 +1,6 @@
 package org.cipango.console;
 
 import java.text.DecimalFormat;
-import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -25,6 +23,7 @@ import org.cipango.console.data.PropertyList;
 import org.cipango.console.data.Row;
 import org.cipango.console.data.Row.Header;
 import org.cipango.console.data.Row.Value;
+import org.cipango.console.data.SipConsoleLogger;
 import org.cipango.console.data.Table;
 import org.cipango.console.menu.MenuImpl;
 import org.cipango.console.util.ConsoleUtil;
@@ -82,7 +81,7 @@ public class SipManager
 	});
 	
 	
-	public static final Map<String, String> FILTERS = new HashMap<String, String>();
+	public static final Map<String, String> FILTERS = ConsoleUtil.getFilters(ResourceBundle.getBundle("org.cipango.console.sip-filters"));
 		
 	static
 	{
@@ -109,22 +108,6 @@ public class SipManager
 			}	
 		});
 		Action.add(new MessageInMemoryAction(MenuImpl.SIP_LOGS, CONSOLE_LOGGER));
-		
-		ResourceBundle filters = ResourceBundle.getBundle("org.cipango.console.sip-filters");
-		
-		Enumeration<String> keys = filters.getKeys();
-		while (keys.hasMoreElements())
-		{
-			String key = keys.nextElement();
-			if (key.endsWith(".title"))
-			{
-				String title = filters.getString(key);
-				String prefix = key.substring(0, key.length()
-						- ".title".length());
-				String filter = filters.getString(prefix + ".filter").trim();
-				FILTERS.put(filter, title);
-			}
-		}
 	}
 		
 	
@@ -211,11 +194,11 @@ public class SipManager
 		return new FileLogger(_mbsc, MenuImpl.SIP_LOGS, FILE_MESSAGE_LOG, true);
 	}
 	
-	public ConsoleLogger getConsoleLogger(HttpServletRequest request) throws Exception
+	public SipConsoleLogger getConsoleLogger(HttpServletRequest request) throws Exception
 	{
 		
-		ConsoleLogger logger = new ConsoleLogger(_mbsc, MenuImpl.SIP_LOGS, CONSOLE_LOGGER, FILTERS);
-		logger.setMessageFilter(request.getParameter(Parameters.SIP_MESSAGE_FILTER));
+		SipConsoleLogger logger = new SipConsoleLogger(_mbsc, CONSOLE_LOGGER, FILTERS);
+		logger.setMessageFilter(request.getParameter(Parameters.MESSAGE_FILTER));
 		logger.setMaxMessages(ConsoleUtil.getParamValueAsInt(Parameters.MAX_MESSAGES, request, ConsoleLogger.DEFAULT_MAX_MESSAGES));
 
 

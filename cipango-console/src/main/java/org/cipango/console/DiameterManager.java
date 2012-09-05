@@ -3,6 +3,8 @@ package org.cipango.console;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.ResourceBundle;
 import java.util.Set;
 
 import javax.management.Attribute;
@@ -10,10 +12,23 @@ import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import javax.servlet.http.HttpServletRequest;
 
+import org.cipango.console.data.ConsoleLogger;
+import org.cipango.console.data.DiameterConsoleLogger;
+import org.cipango.console.data.FileLogger;
 import org.cipango.console.data.PropertyList;
+import org.cipango.console.data.SipConsoleLogger;
 import org.cipango.console.data.Table;
+import org.cipango.console.data.ConsoleLogger.ClearConsoleLoggerAction;
+import org.cipango.console.data.ConsoleLogger.MessageInMemoryAction;
+import org.cipango.console.data.ConsoleLogger.StartConsoleLoggerAction;
+import org.cipango.console.data.ConsoleLogger.StopConsoleLoggerAction;
+import org.cipango.console.data.FileLogger.DeleteLogsFilesAction;
+import org.cipango.console.data.FileLogger.StartFileLoggerAction;
+import org.cipango.console.data.FileLogger.StopFileLoggerAction;
 import org.cipango.console.menu.MenuImpl;
+import org.cipango.console.util.ConsoleUtil;
 import org.cipango.console.util.ObjectNameFactory;
+import org.cipango.console.util.Parameters;
 import org.cipango.console.util.PrinterUtil;
 
 public class DiameterManager
@@ -51,6 +66,33 @@ public class DiameterManager
 		}	
 	});
 	
+	public static final Map<String, String> FILTERS = ConsoleUtil.getFilters(ResourceBundle.getBundle("org.cipango.console.diameter-filters"));
+	
+	
+	static
+	{
+		Action.add(new StopFileLoggerAction(MenuImpl.DIAMETER_LOGS, FILE_LOG));
+		Action.add(new StartFileLoggerAction(MenuImpl.DIAMETER_LOGS, FILE_LOG));
+		Action.add(new DeleteLogsFilesAction(MenuImpl.DIAMETER_LOGS)
+		{
+			@Override
+			public void doProcess(HttpServletRequest request, MBeanServerConnection mbsc) throws Exception
+			{
+				mbsc.invoke(FILE_LOG, "deleteLogFiles", null, null);
+			}	
+		});
+		Action.add(new StopConsoleLoggerAction(MenuImpl.DIAMETER_LOGS, CONSOLE_LOG));
+		Action.add(new StartConsoleLoggerAction(MenuImpl.DIAMETER_LOGS, CONSOLE_LOG));
+		Action.add(new ClearConsoleLoggerAction(MenuImpl.DIAMETER_LOGS)
+		{
+			@Override
+			public void doProcess(HttpServletRequest request, MBeanServerConnection mbsc) throws Exception
+			{
+				mbsc.invoke(CONSOLE_LOG, "clear", null, null);
+			}	
+		});
+		Action.add(new MessageInMemoryAction(MenuImpl.DIAMETER_LOGS, CONSOLE_LOG));
+	}
 	
 	private MBeanServerConnection _mbsc;
 	
@@ -117,5 +159,28 @@ public class DiameterManager
 	public boolean isStatsEnabled() throws Exception
 	{
 		return  (Boolean) _mbsc.getAttribute(NODE, "statsOn");
+	}
+	
+	public FileLogger getFileLogger() throws Exception
+	{
+		return new FileLogger(_mbsc, MenuImpl.DIAMETER_LOGS, FILE_LOG, true);
+	}
+	
+	public DiameterConsoleLogger getConsoleLogger(HttpServletRequest request) throws Exception
+	{
+		DiameterConsoleLogger logger = new DiameterConsoleLogger(_mbsc, CONSOLE_LOG, FILTERS);
+		logger.setMessageFilter(request.getParameter(Parameters.MESSAGE_FILTER));
+		logger.setMaxMessages(ConsoleUtil.getParamValueAsInt(Parameters.MAX_MESSAGES, request, ConsoleLogger.DEFAULT_MAX_MESSAGES));
+
+
+		if (logger.isRegistered() && logger.isEnabled())
+		{
+			Object[] params = { new Integer(logger.getMaxMessages()), logger.getMessageFilter() };
+			Object[][] messagesLogs = (Object[][]) _mbsc.invoke(
+						CONSOLE_LOG, "getMessages", params,
+						new String[] { Integer.class.getName(), String.class.getName() });
+			logger.setMessages(messagesLogs);
+		}
+		return logger;
 	}
 }

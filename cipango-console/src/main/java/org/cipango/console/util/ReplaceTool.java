@@ -1,7 +1,5 @@
 package org.cipango.console.util;
 
-import java.io.IOException;
-import java.io.Writer;
 
 public class ReplaceTool
 {

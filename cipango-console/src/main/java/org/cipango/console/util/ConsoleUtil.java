@@ -13,6 +13,11 @@
 // ========================================================================
 package org.cipango.console.util;
 
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.ResourceBundle;
+
 import javax.servlet.http.HttpServletRequest;
 
 public class ConsoleUtil
@@ -47,5 +52,24 @@ public class ConsoleUtil
 		{
 			return defaultVal;
 		}
+	}
+	
+	public static Map<String, String> getFilters(ResourceBundle bundle)
+	{
+		Map<String, String> filters = new HashMap<String, String>();
+		Enumeration<String> keys = bundle.getKeys();
+		while (keys.hasMoreElements())
+		{
+			String key = keys.nextElement();
+			if (key.endsWith(".title"))
+			{
+				String title = bundle.getString(key);
+				String prefix = key.substring(0, key.length()
+						- ".title".length());
+				String filter = bundle.getString(prefix + ".filter").trim();
+				filters.put(filter, title);
+			}
+		}
+		return filters;
 	}
 }

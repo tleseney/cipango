@@ -1,5 +1,4 @@
 #set( $layout = "TextLayout.vm" ) 
-$response.setContentType("text/plain")
 
 #header1("Server")
 #propertiesTxt ( $envManager.getVersion() )

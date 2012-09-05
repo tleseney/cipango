@@ -1,0 +1,3 @@
+#set( $layout = "TextLayout.vm" ) 
+#set ($logger=$sipManager.getConsoleLogger($request))
+#foreach ($log in $logger.Messages)${log.getInfoLine()}${log.Message}#end

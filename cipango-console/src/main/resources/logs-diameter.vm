@@ -1,6 +1,6 @@
-#fileLogger($sipManager.FileLogger)
+#fileLogger($diameterManager.FileLogger)
 
-#set ($logger = $sipManager.getConsoleLogger($request))
+#set ($logger = $diameterManager.getConsoleLogger($request))
 
 #if ($logger.isRegistered())
 	<h2>Console Log</h2>
@@ -17,7 +17,7 @@
 				#if ($logger.Filters)
 					&nbsp;last filtered messages.&nbsp;|&nbsp;
 					Filter:&nbsp;
-					<SELECT name="sipMessageFilter" class="span3">
+					<SELECT name="messageFilter" class="span3">
 						#if ($logger.MessageFilter && $logger.MessageFilter != "")
 							<option value="">Clear filter</option>
 						#else
@@ -36,7 +36,7 @@
 			</form>
 			#action($logger.getClearAction()) 
 			#action($logger.getStopAction()) 
-			<a href="sipRawMessage.vm?messageFilter=$esc.url($logger.MessageFilter)&maxMessages=$logger.MaxMessages" class="btn">Display as log file</a>
+			<a href="diameterRawMessage.vm?messageFilter=$esc.url($logger.MessageFilter)&maxMessages=$logger.MaxMessages" class="btn">Display as log file</a>
 			
 			<form method="get">
 				Server keeps in memory the 
@@ -48,11 +48,6 @@
 		</div>
 		
 		#if ($logger.Messages && $logger.Messages.size() > 0)
-			<div id="callflow">
-				#set ($height = 100 + $logger.Messages.size() * 25)
-				<embed src="message.svg?messageFilter=$esc.url($logger.MessageFilter)&maxMessages=$logger.MaxMessages" width="790" height="$height" type="image/svg+xml" pluginspage="http://www.adobe.com/svg/viewer/install/"/>
-			</div>
-			
 			<div id="messageLog">
 				#foreach ($log in $logger.Messages)
 					<a name="msg-$foreach.count"></a>
@@ -60,15 +55,7 @@
 						#toFilterLink($replace.toStringBuilder($log.getInfoLine()), 0, "remote", $log.Remote)
 						$sb
 					</div>
-					#set ($sb = $replace.toStringBuilder($esc.html($log.Message)))
-					#toFilterLink($sb, $sb.indexOf("Via"), "message.topVia.branch", $log.Message.getTopVia().getBranch())
-					#toFilterLink($sb, $sb.indexOf("From"), "message.from.uRI.toString()", $log.Message.getFrom().getURI())
-					#toFilterLink($sb, $sb.indexOf("To"), "message.to.uRI.toString()", $log.Message.getTo().getURI())
-					#toFilterLink($sb, $sb.indexOf("Call-ID"), "message.callId", $log.Message.getCallId())
-					#if ($log.isRequest())
-						#toFilterLink($sb, 0, "message.requestURI != null and message.requestURI.toString()", $log.Message.getRequestURI())
-					#end
-					<pre class="message">$sb</pre>
+					<pre class="message">$esc.html($log.Message)</pre>
 				#end
 			</div>
 		#end

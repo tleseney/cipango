@@ -46,7 +46,7 @@ public class SvgServlet extends HttpServlet
 			int maxMessages = 
 				ConsoleUtil.getParamValueAsInt(Parameters.MAX_MESSAGES, request, ConsoleLogger.DEFAULT_MAX_MESSAGES);
 			
-			String msgFilter =request.getParameter(Parameters.SIP_MESSAGE_FILTER);
+			String msgFilter =request.getParameter(Parameters.MESSAGE_FILTER);
 			if (mbsc.isRegistered(SipManager.CONSOLE_LOGGER))
 			{
 				String userAgent = request.getHeader("User-Agent");

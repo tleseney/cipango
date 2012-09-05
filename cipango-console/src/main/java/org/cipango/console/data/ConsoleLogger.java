@@ -1,9 +1,6 @@
 package org.cipango.console.data;
 
 import java.io.IOException;
-import java.io.Writer;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Map;
 
 import javax.management.Attribute;
@@ -14,16 +11,12 @@ import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import javax.management.ReflectionException;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.sip.SipServletMessage;
-import javax.servlet.sip.SipServletRequest;
 
 import org.cipango.console.Action;
 import org.cipango.console.Action.StartAction;
 import org.cipango.console.Action.StopAction;
 import org.cipango.console.menu.Page;
 import org.cipango.console.util.Parameters;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.log.Logger;
 
 public class ConsoleLogger
 {
@@ -34,10 +27,8 @@ public class ConsoleLogger
 	private ObjectName _objectName;
 	private Page _page;
 	private Map<String, String> _filters;
-	private MessageLog[] _messages;
 	private int _maxMessages;
 	private String _messageFilter = "";
-	private static final Logger __logger = Log.getLogger("console");
 	
 	
 	public static final String 
@@ -91,18 +82,6 @@ public class ConsoleLogger
 			 return "Remote host is " + filterValue;
 		else
 			 return _messageFilter;
-	}
-
-	public MessageLog[] getMessages()
-	{
-		return _messages;
-	}
-
-	public void setMessages(Object[][] messagesLogs)
-	{
-		_messages = new MessageLog[messagesLogs.length];
-		for (int i = 0; i < _messages.length; i++)
-			_messages[i] = new MessageLog(messagesLogs[i]);
 	}
 
 	public int getMaxMessages()
@@ -197,38 +176,5 @@ public class ConsoleLogger
 				mbsc.setAttribute(_objectName, new Attribute("maxMessages", Integer.parseInt(maxMsg)));
 			}
 		}
-	}
-	
-	public static class MessageLog
-	{
-		private Object[] _array;
-
-		public MessageLog(Object[] array)
-		{
-			_array = array;
-		}
-
-		public String getInfoLine()
-		{
-			return _array[0].toString();
-		}
-
-		public SipServletMessage getMessage()
-		{
-			return (SipServletMessage) _array[1];
-		}
-		
-		public String getRemote()
-		{
-			return (String) _array[2];
-		}
-
-		public boolean isRequest()
-		{
-			return getMessage() instanceof SipServletRequest;
-		}
-	}
-
-
-	
+	}	
 }

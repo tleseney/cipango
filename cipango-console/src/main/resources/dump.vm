@@ -1,3 +1,4 @@
+$response.setContentType("text/plain")
 #set( $layout = "TextLayout.vm" ) 
 
 #header1("Server")
@@ -32,7 +33,7 @@
 #tableTxt($diameterManager.getPendingStats())
 #end
 
-#header2("System properties")
+#header1("System properties")
 #foreach( $entry in $envManager.getSystemProperties().entrySet() )
 $entry.getKey(): $entry.getValue()
 #end

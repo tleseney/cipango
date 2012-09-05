@@ -68,7 +68,8 @@
       -->
   <!-- 
    A security constraint that restricts access to the Cipango console
-   to users with the role admin
+   to users with the role admin 
+  -->
   <security-constraint>
     <web-resource-collection>
       <web-resource-name>Cipango console</web-resource-name>
@@ -81,7 +82,7 @@
   <security-constraint>
     <web-resource-collection>
       <web-resource-name>No auth required</web-resource-name>
-      <url-pattern>/css/*</url-pattern> 
+      <url-pattern>/assets/*</url-pattern> 
     </web-resource-collection>
   </security-constraint>
 
@@ -90,10 +91,9 @@
     <auth-method>FORM</auth-method>
     <realm-name>Cipango console</realm-name>
     <form-login-config>
-      <form-login-page>/login.jsp</form-login-page>
-      <form-error-page>/login.jsp?authFail=true</form-error-page>
+      <form-login-page>/login.vm</form-login-page>
+      <form-error-page>/login.vm?authFail=true</form-error-page>
     </form-login-config>
   </login-config>
 
-    -->
 </web-app>

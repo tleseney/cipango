@@ -17,7 +17,7 @@
 				#if ($logger.Filters)
 					&nbsp;last filtered messages.&nbsp;|&nbsp;
 					Filter:&nbsp;
-					<SELECT name="sipMessageFilter" class="span3">
+					<SELECT name="messageFilter" class="span3">
 						#if ($logger.MessageFilter && $logger.MessageFilter != "")
 							<option value="">Clear filter</option>
 						#else

@@ -1,6 +1,7 @@
 package org.cipango.console;
 
 import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Date;
@@ -35,14 +36,10 @@ public class EnvManager
 		return properties;
 	}
 
-	
-
-	public PropertyList getEnvironment()
+	public PropertyList getJava()
 	{
 		PropertyList env = new PropertyList();
-		env.setTitle("Environment");
-		env.add(new Property("OS / Hardware", System.getProperty("os.name") + " " + System.getProperty("os.version")
-				+ " - " + System.getProperty("os.arch")));
+		env.setTitle("Java");
 		env.add(new Property("Jetty Home", System.getProperty("jetty.home")));
 		env.add(new Property("Java Runtime", System.getProperty("java.runtime.name") + " " + System.getProperty("java.runtime.version")));
 		
@@ -53,12 +50,49 @@ public class EnvManager
 		String percentage = f.format(((float) usedMemory) / r.maxMemory());
 		env.add(new Property("Memory", (usedMemory >> 20) + " Mb of " + (r.maxMemory() >> 20) + " Mb (" +
 				percentage + ")"));
-		
-		env.add(new Property("Available processors", ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors()));
+
 		StringBuilder sb = new StringBuilder();
 		for (String arg : ManagementFactory.getRuntimeMXBean().getInputArguments())
 			sb.append(arg).append(' ');
 		env.add(new Property("VM arguments", sb.toString()));
+		
+		return env;
+	}
+
+	public PropertyList getHardware()
+	{
+		PropertyList env = new PropertyList();
+		env.setTitle("Hardware");
+		env.add(new Property("OS / Hardware", System.getProperty("os.name") + " " + System.getProperty("os.version")
+				+ " - " + System.getProperty("os.arch")));
+		
+		NumberFormat f = DecimalFormat.getPercentInstance();
+		f.setMinimumFractionDigits(1);
+		
+		OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
+		
+		double loadAvg = osBean.getSystemLoadAverage();
+		env.add(new Property("System load average", loadAvg < 0 ? "Not available" : loadAvg));
+		if (osBean instanceof com.sun.management.OperatingSystemMXBean)
+		{
+			com.sun.management.OperatingSystemMXBean osBean2 = (com.sun.management.OperatingSystemMXBean) osBean;
+			long totalMemory = osBean2.getTotalPhysicalMemorySize();
+			long usedMemory = totalMemory - osBean2.getFreePhysicalMemorySize();
+			String percentage = f.format(((float) usedMemory) / totalMemory);
+			env.add(new Property("Physical memory", (usedMemory >> 20) + " Mb used of "
+					+ (totalMemory >> 20) + " Mb (" + percentage + ")"));
+			
+			totalMemory = osBean2.getTotalSwapSpaceSize();
+			usedMemory = totalMemory - osBean2.getFreeSwapSpaceSize();
+			percentage = f.format(((float) usedMemory) / totalMemory);
+			env.add(new Property("Swap memory", (usedMemory >> 20) + " Mb used of "
+					+ (totalMemory >> 20) + " Mb (" + percentage + ")"));
+		}
+		
+		env.add(new Property("Available processors", osBean.getAvailableProcessors()));
+		StringBuilder sb = new StringBuilder();
+		for (String arg : ManagementFactory.getRuntimeMXBean().getInputArguments())
+			sb.append(arg).append(' ');
 		
 		return env;
 	}

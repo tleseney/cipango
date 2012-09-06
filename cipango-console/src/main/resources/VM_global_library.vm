@@ -97,7 +97,7 @@
 ###                        To Filter link                                  ####
 #macro( toFilterLink $sb $index $name $value)
 	#set ($value = $value.toString())
-	#set ($link = "<a class='filter' href='?sipMessageFilter=${name}.equals(%27$esc.url($value)%27)'>$value</a>")
+	#set ($link = "<a class='filter' href='?messageFilter=${name}.equals(%27$esc.url($value)%27)'>$value</a>")
 	#set ($sb = $replace.replaceOnce($sb, $index, $value, $link))
 #end
 

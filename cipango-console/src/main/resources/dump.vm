@@ -3,7 +3,8 @@ $response.setContentType("text/plain")
 
 #header1("Server")
 #propertiesTxt ( $envManager.getVersion() )
-#propertiesTxt ($envManager.getEnvironment() )
+#propertiesTxt ($envManager.getJava() )
+#propertiesTxt ($envManager.getHardware() )
 
 #header1("SIP")
 #tableTxt($sipManager.getConnectorsConfig())

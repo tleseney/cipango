@@ -55,17 +55,6 @@
     <welcome-file>about.vm</welcome-file>
   </welcome-file-list>
 	
-	<!---
-  <filter>
-    <filter-name>console</filter-name>
-    <filter-class>org.cipango.console.ConsoleFilter</filter-class>
-   </filter>
-    
-   <filter-mapping>
-     <filter-name>console</filter-name>
-     <url-pattern>/*</url-pattern>
-  </filter-mapping>
-      -->
   <!-- 
    A security constraint that restricts access to the Cipango console
    to users with the role admin 

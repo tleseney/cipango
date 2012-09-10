@@ -18,6 +18,7 @@ public class Attributes
 
 	public static final String CONTENT = "content";
 	public static final String MENU = "menu";
+	public static final String FATAL = "fatal";
 	public static final String WARN = "warn";
 	public static final String INFO = "info";
 

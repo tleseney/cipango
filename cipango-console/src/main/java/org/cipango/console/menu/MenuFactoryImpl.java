@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2011 NEXCOM Systems
+// Copyright 2011-2012 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,17 +17,14 @@ import javax.management.MBeanServerConnection;
 
 
 public class MenuFactoryImpl implements MenuFactory
-{
-	private MBeanServerConnection _connection;
-	
-	public MenuFactoryImpl(MBeanServerConnection connection)
+{	
+	public MenuFactoryImpl()
 	{
-		_connection = connection;
 	}
 
-	public Menu getMenu(String command)
+	public Menu getMenu(String command, MBeanServerConnection connection)
 	{
-		return new MenuImpl(_connection, command);
+		return new MenuImpl(connection, command);
 	}
 
 }

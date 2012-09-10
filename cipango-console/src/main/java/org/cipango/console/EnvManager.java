@@ -74,7 +74,7 @@ public class EnvManager
 		env.add(new Property("Process CPU load", load));
 		
 		StringBuilder sb = new StringBuilder();
-		for (String arg : ManagementFactory.getRuntimeMXBean().getInputArguments())
+		for (String arg : getRuntime().getInputArguments())
 			sb.append(arg).append(' ');
 		env.add(new Property("VM arguments", sb.toString()));
 		env.add(new Property("Jetty Home", properties.get("jetty.home")));

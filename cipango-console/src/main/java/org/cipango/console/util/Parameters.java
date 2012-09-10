@@ -24,5 +24,6 @@ public class Parameters
 	public static final String MAX_MESSAGES = "maxMessages";
 	public static final String MAX_SAVED_MESSAGES = "maxSavedMessages";
 	public static final String MESSAGE_FILTER = "messageFilter";
+	public static final String JMX_CONNECTION = "connection";
 	
 }

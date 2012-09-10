@@ -1,51 +1,65 @@
-   <div class="navbar navbar-fixed-top">
-      <div class="navbar-inner">
-        <div class="container">
-          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </a>
-          <a class="brand" href="#">Cipango</a>
-          <div class="nav-collapse">
-            <ul class="nav">
-						  #foreach( $page in $menu.getPages() )
-								#if ($menu.isPageEnabled($page))
-									#if ($page.getPages())
-										#if ($menu.isCurrentPage($page))
-											<li class="dropdown active">
-										#else
-											<li class="dropdown">
-										#end
-											<a href="#" data-toggle="dropdown" class="dropdown-toggle">$page.getMenuTitle()</a>
-											<ul class="dropdown-menu">
-												#foreach( $subPage in $page.getPages() )
-													#if ($menu.isPageEnabled($subPage))
-														<li class=""><a href="$subPage.getName()">$subPage.getMenuTitle()</a></li>
-													#end
-												#end
-											</ul>
-										</li>
-									#else
-										#if ($menu.isCurrentPage($page))
-											<li class="active">
-										#else
-											<li>
-										#end
-											<a href="$page.getName()">$page.getMenuTitle()</a>
-										</li>
-									#end
+<div class="navbar navbar-fixed-top">
+	<div class="navbar-inner">
+		<div class="container">
+			<a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+				<span class="icon-bar"></span>
+				<span class="icon-bar"></span>
+				<span class="icon-bar"></span>
+			</a>
+			<a class="brand" href="about.vm">Cipango</a>
+			<div class="nav-collapse">
+				<ul class="nav">
+					#foreach( $page in $menu.getPages() )
+						#if ($menu.isPageEnabled($page))
+							#if ($page.getPages())
+								#if ($menu.isCurrentPage($page))
+									<li class="dropdown active">
+								#else
+									<li class="dropdown">
 								#end
+									<a href="#" data-toggle="dropdown" class="dropdown-toggle">$page.getMenuTitle()</a>
+									<ul class="dropdown-menu">
+										#foreach( $subPage in $page.getPages() )
+											#if ($menu.isPageEnabled($subPage))
+												<li class=""><a href="$subPage.getName()">$subPage.getMenuTitle()</a></li>
+											#end
+										#end
+									</ul>
+								</li>
+							#else
+								#if ($menu.isCurrentPage($page))
+									<li class="active">
+								#else
+									<li>
+								#end
+									<a href="$page.getName()">$page.getMenuTitle()</a>
+								</li>
 							#end
-						</ul>
-						#if ($request.getUserPrincipal())
-							<ul class="nav pull-right">
-								<li><a href="#">Logged in as $request.getUserPrincipal().getName()</a></li>
-								<li class="divider-vertical"></li>
-								<li><a href="login.vm?logout=true" title="Log Out">Log Out</a></li>
-							</ul>
 						#end
-          </div><!--/.nav-collapse -->
-        </div>
-      </div>
-    </div>
+					#end
+				</ul>
+				<ul class="nav pull-right">
+					#if ($connections.size() > 1)
+						<li class="dropdown">
+							<a data-toggle="dropdown" class="dropdown-toggle" href="#">$session.getAttribute("org.cipango.console.JmxConnection").DisplayName <b class="caret"></b></a>
+							<ul class="dropdown-menu">
+								<li><a href="?connection=local">Local JVM</a></li>
+								<li class="divider"></li>
+								<li class="nav-header">Remote servers</li>
+								#foreach( $connection in $connections )
+									#if (!$connection.Local) <li><a href="?connection=$connection.Id">$connection.DisplayName</a></li> #end
+								#end
+							</ul>
+						</li>
+					#end
+					#if ($request.getUserPrincipal())
+						<li class="divider-vertical"></li>
+						<li><a href="#">Logged in as $request.getUserPrincipal().getName()</a></li>
+						<li class="divider-vertical"></li>
+						<li><a href="login.vm?logout=true" title="Log Out">Log Out</a></li>
+					#end
+				</ul>
+			</div>
+		</div>
+	</div>
+</div>

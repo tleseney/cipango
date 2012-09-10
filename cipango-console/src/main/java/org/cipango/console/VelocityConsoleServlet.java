@@ -4,27 +4,25 @@ import java.io.IOException;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.management.MBeanServer;
 import javax.management.MBeanServerConnection;
-import javax.management.MBeanServerFactory;
-import javax.management.ObjectName;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import org.apache.velocity.Template;
 import org.apache.velocity.context.Context;
 import org.apache.velocity.tools.view.VelocityLayoutServlet;
+import org.cipango.console.JmxConnection.LocalConnection;
 import org.cipango.console.menu.Menu;
 import org.cipango.console.menu.MenuFactory;
 import org.cipango.console.menu.MenuFactoryImpl;
 import org.cipango.console.menu.Page;
-import org.cipango.console.util.ObjectNameFactory;
+import org.cipango.console.util.Attributes;
 import org.cipango.console.util.Parameters;
 import org.cipango.console.util.ReplaceTool;
 import org.eclipse.jetty.util.log.Log;
@@ -33,51 +31,25 @@ import org.eclipse.jetty.util.log.Logger;
 public class VelocityConsoleServlet extends VelocityLayoutServlet
 {
 
-	public static final ObjectName 
-	CONNECTOR_MANAGER = ObjectNameFactory.create("org.cipango.server:type=connectormanager,id=0"),
-	CONTEXT_DEPLOYER = ObjectNameFactory.create("org.cipango.deployer:type=contextdeployer,id=0"),
-	DAR = ObjectNameFactory.create("org.cipango.dar:type=defaultapplicationrouter,id=0"),
-	DIAMETER_NODE = ObjectNameFactory.create("org.cipango.diameter.node:type=node,id=0"),
-	DIAMETER_PEERS = ObjectNameFactory.create("org.cipango.diameter.node:type=peer,*"),
-	DIAMETER_FILE_LOG = ObjectNameFactory.create("org.cipango.diameter.log:type=filemessagelogger,id=0"),
-	DIAMETER_CONSOLE_LOG = ObjectNameFactory.create("org.cipango.callflow.diameter:type=jmxmessagelogger,id=0"),
-	HTTP_LOG = ObjectNameFactory.create("org.eclipse.jetty:type=ncsarequestlog,id=0"),
-	SIP_APP_DEPLOYER = ObjectNameFactory.create("org.cipango.deployer:type=sipappdeployer,id=0"),
-	SIP_CONSOLE_MSG_LOG = ObjectNameFactory.create("org.cipango.callflow:type=jmxmessagelog,id=0"),
-	SERVER = ObjectNameFactory.create("org.cipango.server:type=server,id=0"), 
-	SNMP_AGENT = ObjectNameFactory.create("org.cipango.snmp:type=snmpagent,id=0"), 
-	SIP_MESSAGE_LOG = ObjectNameFactory.create("org.cipango.server.log:type=filemessagelog,id=0"),
-	TRANSACTION_MANAGER = ObjectNameFactory.create("org.cipango.server.transaction:type=transactionmanager,id=0");
-	
 	private Logger _logger = Log.getLogger("console");
-	private MBeanServerConnection _mbsc;
-	private EnvManager _envManager;
-	private JettyManager _jettyManager;
-	private ApplicationManager _applicationManager;
-	private SipManager _sipManager;
-	private DiameterManager _diameterManager;
-	private SnmpManager _snmpManager;
+	
 	private StatisticGraph _statisticGraph;
-	private ReplaceTool _replaceTool = new ReplaceTool();
 	private Map<String, List<Action>> _actions = new HashMap<String, List<Action>>();
+	
+	private Map<String, JmxConnection> _jmxMap = new HashMap<String, JmxConnection>();
+	private LocalConnection _localConnection;
 	
 	@Override
 	public void init(ServletConfig config) throws ServletException
 	{
 		super.init(config);
-		initConnection();
-		_envManager = new EnvManager(_mbsc);
-		_jettyManager = new JettyManager(_mbsc);
-		_applicationManager = new ApplicationManager(_mbsc);
-		_sipManager = new SipManager(_mbsc);
-		_diameterManager = new DiameterManager(_mbsc);
-		_snmpManager = new SnmpManager(_mbsc);
+		_localConnection = new JmxConnection.LocalConnection();
 		
-		if (isJmxEnabled())
+		if (_localConnection.isConnectionValid())
 		{
 			try
 			{
-				_statisticGraph = new StatisticGraph(_mbsc);
+				_statisticGraph = new StatisticGraph(_localConnection.getMbsc());
 				_statisticGraph.start();
 				getServletContext().setAttribute(StatisticGraph.class.getName(), _statisticGraph);
 			}
@@ -86,43 +58,57 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 				_logger.warn("Failed to start statistic graph", e);
 			}
 		}
+
+		_jmxMap.put("local", _localConnection);
+		
+		List<JmxConnection.RmiConnection> rmiConnections = JmxConnection.RmiConnection.getRmiConnections();
+		for (JmxConnection.RmiConnection connection : rmiConnections)
+		{
+			try
+			{
+				_jmxMap.put(connection.getId(), connection);
+			}
+			catch (Exception e)
+			{
+				_logger.warn("Unable to add RMI connection: " + connection, e);
+			}
+			
+		}
+		
 		if (getServletContext().getAttribute(MenuFactory.class.getName()) == null)
-			getServletContext().setAttribute(MenuFactory.class.getName(), new MenuFactoryImpl(_mbsc));
+			getServletContext().setAttribute(MenuFactory.class.getName(), new MenuFactoryImpl());
 	}
 	
-	private void initConnection() throws ServletException
+	public Map<String, Object> newJmxMap(JmxConnection connection)
 	{
-		try
-		{
-			List<MBeanServer> l = MBeanServerFactory.findMBeanServer(null);
-			Iterator<MBeanServer> it = l.iterator();
-			while (it.hasNext())
-			{
-				MBeanServer server = it.next();
-				for (int j = 0; j < server.getDomains().length; j++)
-				{
-					if (server.isRegistered(SERVER))
-					{
-						_mbsc = server;
-						break;
-					}
-				}
-			}
-			_logger.debug("Use MBeanServerConnection {}", _mbsc, null);
-		}
-		catch (Throwable t)
-		{
-			_logger.warn("Unable to get MBeanServer", t);
-			throw new IllegalStateException("Unable to get MBeanServer", t);
-		}
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("replace", new ReplaceTool());
+		map.put("connections", _jmxMap.values());
+		map.put("jmxConnection", connection);
+		
+		MBeanServerConnection mbsc = connection.getMbsc();
+		map.put("envManager", new EnvManager(mbsc));
+		map.put("jettyManager", new JettyManager(mbsc));
+		map.put("applicationManager", new ApplicationManager(mbsc));
+		map.put("sipManager", new SipManager(mbsc));
+		map.put("diameterManager", new DiameterManager(mbsc));
+		map.put("snmpManager", new SnmpManager(mbsc));
+		map.put("statisticGraph", _statisticGraph); // FIXME
+		return map;
 	}
 	
 	@Override
 	protected void doRequest(HttpServletRequest request, HttpServletResponse response) throws IOException
 	{
+		JmxConnection connection = getConnection(request);
+		if (!connection.isConnectionValid() && !_localConnection.isConnectionValid())
+		{
+			response.sendError(503 ,"JMX is not enabled, unable to use cipango console. Please start Cipango with:\n" +
+			"\tjava -jar start.jar --ini=start-cipango.ini --pre=etc/cipango-jmx.xml");
+			return;
+		}
+		
 		HttpSession session = request.getSession();
-		session.setAttribute(MBeanServerConnection.class.getName(), _mbsc);
-		session.setAttribute(StatisticGraph.class.getName(), _statisticGraph);
 		
 		Principal principal = request.getUserPrincipal();
 		if (principal != null && !principal.equals(session.getAttribute(Principal.class.getName())))
@@ -136,11 +122,11 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 		if (index != -1)
 			command = command.substring(index + 1);
 
-		Menu menu = getMenuFactory().getMenu(command);
-		request.setAttribute("menu", menu);
+		Menu menu = getMenuFactory().getMenu(command, connection.getMbsc());
+		request.setAttribute(Attributes.MENU, menu);
 		
 		Page currentPage = menu.getCurrentPage();
-		if (currentPage != null)
+		if (currentPage != null && request.getAttribute(Attributes.FATAL) == null)
 		{
 			registerActions();
 			Action action = getAction(currentPage, request);
@@ -195,12 +181,50 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 					return action;
 		}
 		return null;
-
 	}
 	
-	public boolean isJmxEnabled()
+	public JmxConnection getConnection(HttpServletRequest request)
 	{
-		return _mbsc != null;
+		JmxConnection connection = null;
+		HttpSession session = request.getSession();
+		
+		if (request.getAttribute(Attributes.FATAL) != null)
+			return _localConnection;
+		
+		String connectionId = request.getParameter(Parameters.JMX_CONNECTION);
+		if (connectionId != null && !"".equals(connectionId))
+		{
+			connection = _jmxMap.get(connectionId);
+			if (connection == null)
+				fatal(request, "Coud not found RMI connection with ID " + connectionId);
+			else
+				session.setAttribute(JmxConnection.class.getName(), connection);
+		}
+		if (connection == null)
+			connection = (JmxConnection) session.getAttribute(JmxConnection.class.getName());
+		if (connection == null)
+		{
+			connection = _localConnection;
+			session.setAttribute(JmxConnection.class.getName(), connection);
+		}
+		
+		try
+		{
+			session.setAttribute(MBeanServerConnection.class.getName(), connection.getMbsc());
+		}
+		catch (Exception e)
+		{
+			fatal(request, "Unable to connect to remote server: " + connection);
+			connection = _localConnection;
+		}
+
+		return connection;
+	}
+	
+	public void fatal(HttpServletRequest request, String message)
+	{
+		_logger.warn(message);
+		request.setAttribute(Attributes.FATAL, message);
 	}
 		
 	@Override
@@ -208,14 +232,19 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 	{
 		super.fillContext(context, request);
 		
-		context.put("envManager", _envManager);
-		context.put("jettyManager", _jettyManager);
-		context.put("applicationManager", _applicationManager);
-		context.put("sipManager", _sipManager);
-		context.put("diameterManager", _diameterManager);
-		context.put("snmpManager", _snmpManager);
-		context.put("statisticGraph", _statisticGraph);
-		context.put("replace", _replaceTool);
+		JmxConnection connection = getConnection(request);
+		
+		HttpSession session = request.getSession();
+		session.setAttribute(StatisticGraph.class.getName(), _statisticGraph);
+		
+		if (connection.getContextMap() == null)
+			connection.setContextMap(newJmxMap(connection));
+		
+		for (Map.Entry<String, Object> entry: connection.getContextMap().entrySet())
+			context.put(entry.getKey(), entry.getValue());
+
+		session.setAttribute(MBeanServerConnection.class.getName(), connection.getMbsc());
+
 	}
 	
 	public MenuFactory getMenuFactory()
@@ -230,4 +259,13 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 			_statisticGraph.stop();
 	}
 
+	@Override
+	protected Template getTemplate(HttpServletRequest request, HttpServletResponse response)
+	{
+		if (request.getAttribute(Attributes.FATAL) != null)
+			return getTemplate("components/Fatal.vm");
+		return super.getTemplate(request, response);
+	}
+
+	
 }

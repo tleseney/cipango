@@ -12,6 +12,18 @@
          <height>300</height>
      </options>
      <datasources>
+     	<def>
+             <name>systemCpu</name>
+             <rrd>${rrd}</rrd>
+             <source>systemCpu</source>
+             <cf>AVERAGE</cf>
+         </def>
+         <def>
+             <name>systemCpu-max</name>
+             <rrd>${rrd}</rrd>
+             <source>systemCpu</source>
+             <cf>MAX</cf>
+         </def>
          <def>
              <name>cpu</name>
              <rrd>${rrd}</rrd>
@@ -54,6 +66,26 @@
          </cdef>
      </datasources>
      <graph>
+       <line>
+           <datasource>systemCpu</datasource>
+           <color>#FF0000</color>
+           <legend>System CPU</legend>
+       </line>  
+       <gprint>
+           <datasource>systemCpu-max</datasource>
+           <cf>MAX</cf>
+           <format>max = %3.2f %%</format>
+       </gprint>
+	   <gprint>
+	       <datasource>systemCpu</datasource>
+	       <cf>AVERAGE</cf>
+	       <format>avg = %3.2f %%</format>
+	   </gprint>
+	   <gprint>
+           <datasource>systemCpu</datasource>
+           <cf>LAST</cf>
+           <format>current = %3.2f %%\r</format>
+       </gprint>  
        <line>
            <datasource>cpuPercentage</datasource>
            <color>#0000FF</color>

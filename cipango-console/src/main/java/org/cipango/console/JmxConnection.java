@@ -213,12 +213,16 @@ public abstract class JmxConnection
 				throw new IllegalArgumentException("Invalid port value: should be between 0 and 65536");
 			}
 			setId(_host + ":" + _port);
+			setDisplayName(displayName);
 
-			String[] credentials = new String[2];
-			credentials[0] = usr;
-			credentials[1] = pwd;
-			_environment = new HashMap<String, Object>();
-			_environment.put(JMXConnector.CREDENTIALS, credentials);
+			if (usr != null && pwd != null)
+			{
+				String[] credentials = new String[2];
+				credentials[0] = usr;
+				credentials[1] = pwd;
+				_environment = new HashMap<String, Object>();
+				_environment.put(JMXConnector.CREDENTIALS, credentials);
+			}
 		}
 		
 		protected void initJmxConnection() throws SecurityException, MalformedURLException, IOException

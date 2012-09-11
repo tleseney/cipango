@@ -3,6 +3,12 @@ package org.cipango.console;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryUsage;
+import java.lang.management.OperatingSystemMXBean;
+import java.lang.management.RuntimeMXBean;
+import java.lang.management.ThreadMXBean;
 import java.util.Date;
 import java.util.Set;
 import java.util.Timer;
@@ -35,13 +41,16 @@ public class StatisticGraph
 	
 	private static final ObjectName OPERATING_SYSTEM = ObjectNameFactory.create("java.lang:type=OperatingSystem");
 	private static final ObjectName GARBAGE_COLLECTORS = ObjectNameFactory.create("java.lang:type=GarbageCollector,*");
+	private static final ObjectName THREAD = ObjectNameFactory.create(ManagementFactory.THREAD_MXBEAN_NAME);
+	
 	
 	public enum GraphType
 	{
 		CALLS("rddCallsGraphTemplate.xml"),
 		MEMORY("rddMemoryGraphTemplate.xml"),
 		MESSAGES("rddMessagesGraphTemplate.xml"),
-		CPU("rddCpuGraphTemplate.xml");
+		CPU("rddCpuGraphTemplate.xml"),
+		THREADS("rddThreadsGraph.xml");
 		
 		private RrdGraphDefTemplate _template;
 		
@@ -66,32 +75,33 @@ public class StatisticGraph
 		
 	private long _refreshPeriod = -1; // To ensure that the stat will start if
 										// needed at startup
-
+	private long _timeoutPeriod = 60000; // Timeout before a retry is done after exception when getting connection
 	private StatisticGraphTask _task;
+	private TimerTask _startTask;
 	private RrdDbPool _rrdPool;
 	private String _rrdPath;
-	private MBeanServerConnection _connection;
+	private JmxConnection _connection;
 	private String _dataFileName;
 	private ObjectName _sessionManger;
+	private ObjectName _threadPool;
 
-	private Timer _statTimer = new Timer("Statistics timer");
-	private static Runtime __runtime = Runtime.getRuntime();
+	private static Timer __statTimer = new Timer("Statistics timer");
 
 	private Logger _logger = Log.getLogger("console");
 
 	private boolean _started = false;
 	private boolean _cpuStatAvailable = false;
+	private boolean _systemCpuStatAvailable = false;
 
-	public StatisticGraph(MBeanServerConnection connection) throws AttributeNotFoundException,
+	public StatisticGraph(JmxConnection connection) throws AttributeNotFoundException,
 			InstanceNotFoundException, MBeanException, ReflectionException, IOException, RrdException
 	{
 		_connection = connection;
-		_sessionManger = (ObjectName) _connection.getAttribute(JettyManager.SERVER, "sessionManager");
 		_rrdPool = RrdDbPool.getInstance();
 	}
 
 	/**
-	 * Sets the refresh period for statistics in seconds. If the period has changed, write
+	 * Sets the refresh period for statistics in milliseconds. If the period has changed, write
 	 * statictics immediatly and reschedule the timer with <code>statRefreshPeriod</code>.
 	 * 
 	 * @param statRefreshPeriod The statistics refresh period in seconds or <code>-1</code> to
@@ -101,7 +111,7 @@ public class StatisticGraph
 	{
 		if (_refreshPeriod != statRefreshPeriod)
 		{
-			this._refreshPeriod = statRefreshPeriod;
+			_refreshPeriod = statRefreshPeriod;
 			if (_task != null)
 			{
 				_task.run();
@@ -112,7 +122,7 @@ public class StatisticGraph
 
 			if (_refreshPeriod != -1)
 			{
-				_statTimer.schedule(_task, _refreshPeriod * 1000, _refreshPeriod * 1000);
+				__statTimer.schedule(_task, _refreshPeriod);
 			}
 		}
 	}
@@ -123,65 +133,88 @@ public class StatisticGraph
 		{
 			RrdDb rrdDb = _rrdPool.requestRrdDb(_rrdPath);
 			Sample sample = rrdDb.createSample();
-			sample.setValue("calls", (Integer) _connection.getAttribute(_sessionManger, "callSessions"));
-			long totalMemory = __runtime.totalMemory();
-			sample.setValue("maxMemory", __runtime.maxMemory());
-			sample.setValue("totalMemory", totalMemory);
-			sample.setValue("usedMemory", totalMemory - __runtime.freeMemory());
+			sample.setValue("calls", (Integer) getMbsc().getAttribute(_sessionManger, "callSessions"));
+			MemoryUsage r = getMemory().getHeapMemoryUsage();
+			sample.setValue("maxMemory", r.getMax());
+			sample.setValue("totalMemory", r.getCommitted());
+			sample.setValue("usedMemory", r.getUsed());
 			// No values are set for incomingMessages, outgoingMessages to reset these counters.
 			sample.update();
 			_rrdPool.release(rrdDb);
 		}
 		catch (Exception e)
 		{
-			_logger.warn("Unable to set statistics", e);
+			_logger.warn("Unable to reset statistics", e);
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	public void updateDb()
+	/**
+	 * Returns <code>true</code> if update has been successfully done.
+	 * @return
+	 */
+	public boolean updateDb()
 	{
 		try
 		{
-			RrdDb rrdDb = _rrdPool.requestRrdDb(_rrdPath);
-			Sample sample = rrdDb.createSample();
-			if (_connection.isRegistered(_sessionManger))
-				sample.setValue("calls", (Integer) _connection.getAttribute(_sessionManger, "callSessions"));
-			
-			long totalMemory = __runtime.totalMemory();
-			sample.setValue("maxMemory", __runtime.maxMemory());
-			sample.setValue("totalMemory", totalMemory);
-			sample.setValue("usedMemory", totalMemory - __runtime.freeMemory());
-			if (_connection.isRegistered(SipManager.CONNECTOR_MANAGER))
+			MBeanServerConnection mbsc;
+			try
 			{
-				sample.setValue("incomingMessages",
-						(Long) _connection.getAttribute(SipManager.CONNECTOR_MANAGER, "messagesReceived"));
-				sample.setValue("outgoingMessages",
-						(Long) _connection.getAttribute(SipManager.CONNECTOR_MANAGER, "messagesSent"));
+				mbsc = getMbsc();
+			}
+			catch (Exception e) 
+			{
+				return false;
 			}
 			
-			int nbCpu = (Integer) _connection.getAttribute(OPERATING_SYSTEM, "AvailableProcessors");
+			RrdDb rrdDb = _rrdPool.requestRrdDb(_rrdPath);
+			Sample sample = rrdDb.createSample();
+			if (mbsc.isRegistered(_sessionManger))
+				sample.setValue("calls", (Integer) mbsc.getAttribute(_sessionManger, "callSessions"));
+			
+			MemoryUsage r = getMemory().getHeapMemoryUsage();
+
+			sample.setValue("maxMemory", r.getMax());
+			sample.setValue("totalMemory", r.getCommitted());
+			sample.setValue("usedMemory", r.getUsed());
+			if (mbsc.isRegistered(SipManager.CONNECTOR_MANAGER))
+			{
+				sample.setValue("incomingMessages",
+						(Long) mbsc.getAttribute(SipManager.CONNECTOR_MANAGER, "messagesReceived"));
+				sample.setValue("outgoingMessages",
+						(Long) mbsc.getAttribute(SipManager.CONNECTOR_MANAGER, "messagesSent"));
+			}
+			
+			int nbCpu = (Integer) mbsc.getAttribute(OPERATING_SYSTEM, "AvailableProcessors");
 			if (_cpuStatAvailable)
 			{
-				long processCpuTime = (Long) _connection.getAttribute(OPERATING_SYSTEM, "ProcessCpuTime");
+				long processCpuTime = (Long) mbsc.getAttribute(OPERATING_SYSTEM, "ProcessCpuTime");
 				sample.setValue("cpu", processCpuTime / nbCpu);
+				
+				if (_systemCpuStatAvailable)
+					sample.setValue("systemCpu", (Double) mbsc.getAttribute(OPERATING_SYSTEM, "SystemCpuLoad") * 100);
 			}
 			
 			long timeInGc = 0;
-			Set<ObjectName> garbageCollections = _connection.queryNames(GARBAGE_COLLECTORS, null);
+			Set<ObjectName> garbageCollections = mbsc.queryNames(GARBAGE_COLLECTORS, null);
 			for (ObjectName objectName : garbageCollections)
 			{
-				timeInGc += (Long) _connection.getAttribute(objectName, "CollectionTime");
+				timeInGc += (Long) mbsc.getAttribute(objectName, "CollectionTime");
 			}
 			sample.setValue("timeInGc", timeInGc / nbCpu);
 			
+			sample.setValue("totalThreads", (Integer) mbsc.getAttribute(THREAD, "ThreadCount"));
+			long threadsInPool =  (Integer) mbsc.getAttribute(_threadPool, "threads");
+			sample.setValue("activeThreadsInPool", threadsInPool - (Integer) mbsc.getAttribute(_threadPool, "idleThreads"));
+			sample.setValue("threadsInPool",threadsInPool);
 			
 			sample.update();
 			_rrdPool.release(rrdDb);
+			return true;
 		}
 		catch (Exception e)
 		{
 			_logger.warn("Unable to set statistics", e);
+			return false;
 		}
 	}
 
@@ -224,24 +257,37 @@ public class StatisticGraph
 		_dataFileName = name;
 	}
 
-	public void start() throws Exception
+	public synchronized void start()
 	{
 		if (_started)
 			return;
 		try
 		{
+			_sessionManger = (ObjectName) getMbsc().getAttribute(JettyManager.SERVER, "sessionManager");
+			_threadPool = (ObjectName) getMbsc().getAttribute(JettyManager.SERVER, "sipThreadPool");
+			
 			if (_dataFileName == null)
-				_dataFileName = System.getProperty("jetty.home", ".") + "/logs/statistics.rdd";
+			{
+				String name;
+				if (_connection.isLocal())
+					name = "statistics.rdd";
+				else
+					name = "statistics-" + _connection.getId().replace(":", "-") + ".rdd";
+				_dataFileName = System.getProperty("jetty.home", ".") + "/logs/" + name;
+			}
 
 			File rrdFile = new File(_dataFileName);
 			_rrdPath = rrdFile.getAbsolutePath();
 
-			if (_connection.isRegistered(OPERATING_SYSTEM))
+			if (getMbsc().isRegistered(OPERATING_SYSTEM))
 			{
 				try
 				{
-					_connection.getAttribute(OPERATING_SYSTEM, "ProcessCpuTime");
+					getMbsc().getAttribute(OPERATING_SYSTEM, "ProcessCpuTime");
 					_cpuStatAvailable = true;
+					
+					getMbsc().getAttribute(OPERATING_SYSTEM, "SystemCpuLoad");
+					_systemCpuStatAvailable = true;
 				} 
 				catch (Throwable e) 
 				{
@@ -267,13 +313,17 @@ public class StatisticGraph
 				updateDb();
 
 			RrdDb rrdDb = _rrdPool.requestRrdDb(_rrdPath);
-			setRefreshPeriod(rrdDb.getRrdDef().getStep());
+			setRefreshPeriod(rrdDb.getRrdDef().getStep() * 1000);
 			_rrdPool.release(rrdDb);
 			_started = true;
 		}
 		catch (Exception e)
 		{
+			_started = false;
 			_logger.warn("Unable to create RRD", e);
+
+			_startTask = new StartTask();
+			__statTimer.schedule(_startTask, _timeoutPeriod);
 		}
 	}
 
@@ -282,13 +332,24 @@ public class StatisticGraph
 		return _started;
 	}
 
-	public void stop()
+	public synchronized void stop()
 	{
 		_started = false;
 		if (_task != null)
 			_task.cancel();
-		_refreshPeriod = -1;
-		
+		if (_startTask != null)
+			_startTask.cancel();
+		_refreshPeriod = -1;	
+	}
+	
+	public MBeanServerConnection getMbsc()
+	{
+		return _connection.getMbsc();
+	}
+
+	public MemoryMXBean getMemory() throws IOException
+	{
+		return ManagementFactory.newPlatformMXBeanProxy(getMbsc(), ManagementFactory.MEMORY_MXBEAN_NAME, MemoryMXBean.class);
 	}
 
 	class StatisticGraphTask extends TimerTask
@@ -296,7 +357,20 @@ public class StatisticGraph
 
 		public void run()
 		{
-			updateDb();
+			synchronized (StatisticGraph.this)
+			{
+				boolean success = updateDb();
+				__statTimer.schedule(new StatisticGraphTask(), success ? _refreshPeriod : _timeoutPeriod);
+			}
+		}
+
+	}
+	
+	class StartTask extends TimerTask
+	{
+		public void run()
+		{
+			start();
 		}
 
 	}

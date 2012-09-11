@@ -33,10 +33,12 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 
 	private Logger _logger = Log.getLogger("console");
 	
-	private StatisticGraph _statisticGraph;
 	private Map<String, List<Action>> _actions = new HashMap<String, List<Action>>();
 	
 	private Map<String, JmxConnection> _jmxMap = new HashMap<String, JmxConnection>();
+	
+	// Use a separate map for statistic graph to ensure only one instance is created by connection
+	private Map<String, StatisticGraph> _statisticGraphs = new HashMap<String, StatisticGraph>();
 	private LocalConnection _localConnection;
 	
 	@Override
@@ -49,9 +51,9 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 		{
 			try
 			{
-				_statisticGraph = new StatisticGraph(_localConnection.getMbsc());
-				_statisticGraph.start();
-				getServletContext().setAttribute(StatisticGraph.class.getName(), _statisticGraph);
+				StatisticGraph statisticGraph = new StatisticGraph(_localConnection);
+				statisticGraph.start();
+				_statisticGraphs.put(_localConnection.getId(), statisticGraph);
 			}
 			catch (Exception e)
 			{
@@ -59,7 +61,7 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 			}
 		}
 
-		_jmxMap.put("local", _localConnection);
+		_jmxMap.put(_localConnection.getId(), _localConnection);
 		
 		List<JmxConnection.RmiConnection> rmiConnections = JmxConnection.RmiConnection.getRmiConnections();
 		for (JmxConnection.RmiConnection connection : rmiConnections)
@@ -67,6 +69,9 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 			try
 			{
 				_jmxMap.put(connection.getId(), connection);
+				StatisticGraph statisticGraph = new StatisticGraph(connection);
+				statisticGraph.start();
+				_statisticGraphs.put(connection.getId(), statisticGraph);
 			}
 			catch (Exception e)
 			{
@@ -93,7 +98,7 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 		map.put("sipManager", new SipManager(mbsc));
 		map.put("diameterManager", new DiameterManager(mbsc));
 		map.put("snmpManager", new SnmpManager(mbsc));
-		map.put("statisticGraph", _statisticGraph); // FIXME
+		map.put("statisticGraph", _statisticGraphs.get(connection.getId()));
 		return map;
 	}
 	
@@ -198,12 +203,24 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 			if (connection == null)
 				fatal(request, "Coud not found RMI connection with ID " + connectionId);
 			else
+			{
+				if (connection.isLocal())
+				{
+					if (session.getAttribute(JmxConnection.class.getName()) != null)
+						session.setAttribute(Attributes.INFO, "Connected to local JVM");
+				}
+				else
+					session.setAttribute(Attributes.INFO, "Connected to remote server: " + connection);
+
 				session.setAttribute(JmxConnection.class.getName(), connection);
+			}
 		}
 		if (connection == null)
 			connection = (JmxConnection) session.getAttribute(JmxConnection.class.getName());
 		if (connection == null)
 		{
+			if (_jmxMap.size() > 1)
+				session.setAttribute(Attributes.INFO, "Connected to local JVM");
 			connection = _localConnection;
 			session.setAttribute(JmxConnection.class.getName(), connection);
 		}
@@ -224,6 +241,7 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 	public void fatal(HttpServletRequest request, String message)
 	{
 		_logger.warn(message);
+		request.getSession().removeAttribute(Attributes.INFO);
 		request.setAttribute(Attributes.FATAL, message);
 	}
 		
@@ -235,15 +253,13 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 		JmxConnection connection = getConnection(request);
 		
 		HttpSession session = request.getSession();
-		session.setAttribute(StatisticGraph.class.getName(), _statisticGraph);
+		session.setAttribute(StatisticGraph.class.getName(), _statisticGraphs.get(connection.getId()));
 		
 		if (connection.getContextMap() == null)
 			connection.setContextMap(newJmxMap(connection));
 		
 		for (Map.Entry<String, Object> entry: connection.getContextMap().entrySet())
 			context.put(entry.getKey(), entry.getValue());
-
-		session.setAttribute(MBeanServerConnection.class.getName(), connection.getMbsc());
 
 	}
 	
@@ -255,8 +271,8 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 	@Override
 	public void destroy()
 	{	
-		if (_statisticGraph != null)
-			_statisticGraph.stop();
+		for (StatisticGraph statisticGraph : _statisticGraphs.values())
+			statisticGraph.stop();
 	}
 
 	@Override

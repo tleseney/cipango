@@ -28,6 +28,7 @@ Statistics are started since $sipManager.getStatsDuration()<br/>
 		#printGraph("SIP Messages", "messages")
 		#printGraph("JVM Memory", "memory")
 		#printGraph("CPU Usage", "cpu")
+		#printGraph("Threads", "threads")
 	#else
 		Statistics Graphs are deactivated
 		#action($field.in($sipManager).START_GRAPH)

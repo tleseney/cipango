@@ -55,12 +55,58 @@
          <max>U</max>
      </datasource>
      <datasource>
+         <name>systemCpu</name>
+         <type>GAUGE</type>
+         <heartbeat>10</heartbeat>
+         <min>0</min>
+         <max>100</max>
+     </datasource>
+     <datasource>
          <name>timeInGc</name>
          <type>COUNTER</type>
          <heartbeat>10</heartbeat>
          <min>0</min>
          <max>U</max>
      </datasource>
+     <datasource>
+         <name>totalThreads</name>
+         <type>GAUGE</type>
+         <heartbeat>10</heartbeat>
+         <min>0</min>
+         <max>U</max>
+     </datasource>
+     <datasource>
+         <name>threadsInPool</name>
+         <type>GAUGE</type>
+         <heartbeat>10</heartbeat>
+         <min>0</min>
+         <max>U</max>
+     </datasource>
+     <datasource>
+         <name>activeThreadsInPool</name>
+         <type>GAUGE</type>
+         <heartbeat>10</heartbeat>
+         <min>0</min>
+         <max>U</max>
+     </datasource>   
+     
+     <!--  
+     <datasource>
+         <name>queueSize</name>
+         <type>GAUGE</type>
+         <heartbeat>10</heartbeat>
+         <min>0</min>
+         <max>U</max>
+     </datasource>
+     <datasource>
+         <name>minorCollections</name>
+         <type>COUNTER</type>
+         <heartbeat>10</heartbeat>
+         <min>0</min>
+         <max>U</max>
+     </datasource>
+     -->
+     
      <!-- at least one archive must be supplied -->
      <archive>
          <cf>AVERAGE</cf>

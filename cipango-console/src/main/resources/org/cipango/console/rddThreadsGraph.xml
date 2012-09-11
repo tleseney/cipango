@@ -1,0 +1,107 @@
+<rrd_graph_def>
+     <span>
+         <start>${start}</start>
+         <end>${end}</end>
+     </span>
+     <options>
+         <title>Threads</title>
+         <image_format>png</image_format>
+         <width>717</width>
+         <height>300</height>
+         <min_value>-U</min_value>
+  
+     </options>
+     <datasources>
+         <def>
+             <name>totalThreads</name>
+             <rrd>${rrd}</rrd>
+             <source>totalThreads</source>
+             <cf>AVERAGE</cf>
+         </def>
+         <def>
+             <name>threadsInPool</name>
+             <rrd>${rrd}</rrd>
+             <source>threadsInPool</source>
+             <cf>AVERAGE</cf>
+         </def>
+         <def>
+             <name>threadsInPool-max</name>
+             <rrd>${rrd}</rrd>
+             <source>threadsInPool</source>
+             <cf>MAX</cf>
+         </def>
+         
+         <def>
+             <name>activeThreadsInPool</name>
+             <rrd>${rrd}</rrd>
+             <source>activeThreadsInPool</source>
+             <cf>AVERAGE</cf>
+         </def>
+         <def>
+             <name>activeThreadsInPool-max</name>
+             <rrd>${rrd}</rrd>
+             <source>activeThreadsInPool</source>
+             <cf>MAX</cf>
+         </def>     
+     </datasources>
+     
+     <graph>
+       <line>
+         <datasource>totalThreads</datasource>
+         <color>#00CC00</color>
+         <legend>Total threads</legend>
+       </line>
+		<gprint>
+		  <datasource>totalThreads</datasource>
+		  <cf>AVERAGE</cf>
+		  <format>avg = %7.2f</format>
+		</gprint>
+	    <gprint>
+	      <datasource>totalThreads</datasource>
+	      <cf>LAST</cf>
+	      <format>current = %7.2f\r</format>
+	    </gprint>
+         
+	    <line>
+          <datasource>threadsInPool</datasource>
+          <color>#0000FF</color>
+          <legend>Threads in SIP pool</legend>
+        </line>
+	    <gprint>
+          <datasource>threadsInPool-max</datasource>
+          <cf>MAX</cf>
+          <format>max = %7.2f</format>
+        </gprint>
+	    <gprint>
+	      <datasource>threadsInPool</datasource>
+	      <cf>AVERAGE</cf>
+	      <format>avg = %7.2f</format>
+	    </gprint>
+        <gprint>
+          <datasource>threadsInPool</datasource>
+          <cf>LAST</cf>
+          <format>current = %7.2f\r</format>
+        </gprint>
+        
+        <line>
+          <datasource>activeThreadsInPool</datasource>
+          <color>#FF0000</color>
+          <legend>Active threads in SIP pool</legend>
+        </line>
+        <gprint>
+          <datasource>activeThreadsInPool-max</datasource>
+          <cf>MAX</cf>
+          <format>max = %7.2f</format>
+        </gprint>
+        <gprint>
+          <datasource>activeThreadsInPool</datasource>
+          <cf>AVERAGE</cf>
+          <format>avg = %7.2f</format>
+        </gprint>
+        <gprint>
+          <datasource>activeThreadsInPool</datasource>
+          <cf>LAST</cf>
+          <format>current = %7.2f\r</format>
+        </gprint>
+     </graph>
+</rrd_graph_def>

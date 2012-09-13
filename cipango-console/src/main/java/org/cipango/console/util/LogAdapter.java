@@ -20,14 +20,14 @@ public class LogAdapter implements LogChute
 		switch (level)
 		{
 		case DEBUG_ID:
-			_logger.debug(message, (Object[]) null);
+			_logger.debug(message, (Object) null);
 			break;
 		case INFO_ID:
-			_logger.info(message, (Object[]) null);
+			_logger.info(message, (Object) null);
 			break;
 		case WARN_ID:
 		case ERROR_ID:
-			_logger.warn(message, (Object[]) null);
+			_logger.warn(message, (Object) null);
 			break;
 		default:
 			break;

@@ -21,6 +21,7 @@ import javax.management.MBeanServerConnection;
 
 import org.cipango.console.ApplicationManager;
 import org.cipango.console.DiameterManager;
+import org.cipango.console.EnvManager;
 import org.cipango.console.JettyManager;
 import org.cipango.console.SipManager;
 import org.cipango.console.SnmpManager;
@@ -126,7 +127,15 @@ public class MenuImpl implements Menu
 				return c.isRegistered(DiameterManager.NODE);
 			}
 		}),
-		CALLS = LOGS.add(new PageImpl("logs-calls.vm", "Calls"));
+		CALLS = LOGS.add(new PageImpl("logs-calls.vm", "Calls")),
+		SYSTEM_LOGS = LOGS.add(new PageImpl("logs-systems.vm", "System logs")
+		{
+			@Override
+			public boolean isEnabled(MBeanServerConnection c) throws IOException
+			{
+				return c.isRegistered(EnvManager.LOGBACK) ||  c.isRegistered(EnvManager.JETTY_LOGGER);
+			}
+		});
 	
 	
 	protected MBeanServerConnection _connection;

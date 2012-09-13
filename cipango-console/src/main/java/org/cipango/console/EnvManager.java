@@ -22,19 +22,69 @@ import javax.management.MBeanInfo;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import javax.management.ReflectionException;
+import javax.servlet.http.HttpServletRequest;
 
 import org.cipango.console.data.Property;
 import org.cipango.console.data.PropertyList;
+import org.cipango.console.menu.MenuImpl;
 import org.cipango.console.util.ObjectNameFactory;
 import org.cipango.console.util.PrinterUtil;
+import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.log.Logger;
+import org.eclipse.jetty.util.log.StdErrLog;
 
 public class EnvManager
 {
 	private MBeanServerConnection _mbsc;
 	private NumberFormat _percentFormat;
 	
-	private static final ObjectName OPERATING_SYSTEM = ObjectNameFactory.create(ManagementFactory.OPERATING_SYSTEM_MXBEAN_NAME);
-		
+	public static final ObjectName OPERATING_SYSTEM = ObjectNameFactory.create(ManagementFactory.OPERATING_SYSTEM_MXBEAN_NAME);
+	public static final ObjectName LOGBACK = ObjectNameFactory.create("ch.qos.logback.classic:Name=default,Type=ch.qos.logback.classic.jmx.JMXConfigurator");
+	public static final ObjectName JETTY_LOGGER = ObjectNameFactory.create("org.eclipse.jetty.util.log:type=log,id=0");
+	
+	
+	public static final Action RELOAD_lOG_CONF = Action.add(new Action(MenuImpl.SYSTEM_LOGS, "reload-system-logs-conf")
+	{
+		@Override
+		public void doProcess(HttpServletRequest request, MBeanServerConnection mbsc) throws Exception
+		{
+			if (mbsc.isRegistered(LOGBACK))
+			{
+				mbsc.invoke(LOGBACK, "reloadDefaultConfiguration", new Object[0], new String[0]);
+			}
+		}	
+	});
+	
+	public static final Action SET_LOGGER_LEVEL = Action.add(new Action(MenuImpl.SYSTEM_LOGS, "set-logger-level")
+	{
+		@Override
+		public void doProcess(HttpServletRequest request, MBeanServerConnection mbsc) throws Exception
+		{
+			if (mbsc.isRegistered(LOGBACK))
+			{
+				String level = request.getParameter("level");
+				String logger = request.getParameter("logger");
+				mbsc.invoke(LOGBACK, "setLoggerLevel", new Object[] { logger, level } , new String[] { "java.lang.String", "java.lang.String" });
+			}
+		}	
+	});
+	
+	public static final Action SET_DEBUG_ENABLED = Action.add(new Action(MenuImpl.SYSTEM_LOGS, "set-debug-enabled")
+	{
+		@Override
+		public void doProcess(HttpServletRequest request, MBeanServerConnection mbsc) throws Exception
+		{
+			if (mbsc.isRegistered(JETTY_LOGGER))
+			{
+				Boolean enabled = "true".equalsIgnoreCase(request.getParameter("enabled"));
+				String logger = request.getParameter("logger");
+				mbsc.invoke(JETTY_LOGGER, "setDebugEnabled", new Object[] { logger, enabled } , new String[] { "java.lang.String", "java.lang.Boolean" });
+			}
+		}	
+	});
+	
+	private static Logger __logger = Log.getLogger("console");
+	
 	public EnvManager(MBeanServerConnection mbsc)
 	{
 		_mbsc = mbsc;
@@ -175,5 +225,30 @@ public class EnvManager
 		
 		SortedMap<String, String> map = new TreeMap<String, String>(properties);
 		return map;
+	}
+	
+	public boolean isLogbackAvailable() throws IOException
+	{
+		return _mbsc.isRegistered(LOGBACK);
+	}
+	
+	public boolean isJettyLogAvailable() throws IOException
+	{
+		return _mbsc.isRegistered(JETTY_LOGGER);
+	}
+	
+	public String getLogLevel(String logger) throws IOException, InstanceNotFoundException, MBeanException, ReflectionException
+	{
+		return (String) _mbsc.invoke(LOGBACK, "getLoggerEffectiveLevel", new Object[] { logger }, new String[] { "java.lang.String" });
+	}
+	
+	public boolean isDebugEnabled(String logger) throws IOException, InstanceNotFoundException, MBeanException, ReflectionException
+	{
+		return (Boolean) _mbsc.invoke(JETTY_LOGGER, "isDebugEnabled", new Object[] { logger }, new String[] { "java.lang.String" });
+	}
+	
+	public boolean isStdErrorLoggerUsed()
+	{
+		return __logger instanceof StdErrLog;
 	}
 }

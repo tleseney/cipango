@@ -4,11 +4,8 @@ Call-IDs $math.min(1, $callIds.size()) to $math.min($callIds.size(), 100)  for a
 <br/>
 #foreach ($callId in $callIds)
 	<a href="?callID=$esc.url($callId)">$callId</a>
-	#if ($math.mod(i,5) == 0)
-		<br/>
-	#elseif( $foreach.count > 100 )
+	#if( $foreach.count > 100 )
 		#break
-	#else &nbsp;
 	#end
 #end
 

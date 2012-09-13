@@ -45,10 +45,6 @@
 	  <servlet-name>StatisticGraphServlet</servlet-name>
 	  <url-pattern>statistics/cpu.png</url-pattern>
 	</servlet-mapping>
-		<servlet-mapping>
-	  <servlet-name>StatisticGraphServlet</servlet-name>
-	  <url-pattern>statistics/threads.png</url-pattern>
-	</servlet-mapping>
 	
 	<servlet-mapping>
 	  <servlet-name>SvgServlet</servlet-name>
@@ -61,7 +57,7 @@
 	
   <!-- 
    A security constraint that restricts access to the Cipango console
-   to users with the role user 
+   to users with the role admin 
   -->
   <security-constraint>
     <web-resource-collection>

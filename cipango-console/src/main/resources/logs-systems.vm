@@ -1,0 +1,113 @@
+#set ($loggers = { "org.cipango" : "Cipango main logger", 
+					"org.eclipse.jetty" : "Jetty logger",
+					"console" : "Console logger" 
+})
+#set ($levels = [ "TRACE", "DEBUG", "INFO", "WARN", "ERROR"])
+
+#if ($envManager.isLogbackAvailable())
+	<table class="table table-striped">
+		<tr>
+			<th>Logger</th>
+			<th>Level</th>
+			<th>Description</th>
+		</tr>
+		#foreach ($logger in $loggers.keySet())
+			<tr>
+				<td>$logger</td>
+				<td>
+					<form method="post" class="form-inline modal-form">
+						#set ($currentLevel = $envManager.getLogLevel($logger))
+						<select name="level" class="span3">
+							#foreach ($level in $levels)
+								<option #if ($level == $currentLevel) selected="selected" #end >$level</option>
+							#end
+						</select>
+						<input type="hidden"  name="logger" value="$logger">
+						<input type="hidden"  name="action" value="set-logger-level">
+						<input type="submit" value="Set level" class="btn">
+					</form>
+				</td>
+				<td>$loggers.get($logger)</td>
+			</tr>
+		#end
+		<tr>
+			<form method="post" class="form-inline modal-form">
+				<td><input type="text" name="logger"></td>
+				<td>
+					<select name="level" class="span3">
+						#foreach ($level in $levels)
+							<option>$level</option>
+						#end
+					</select>
+					<input type="hidden"  name="action" value="set-logger-level">
+					<input type="submit" value="Set level" class="btn">
+				</td>
+				<td></td>
+			</form>
+		</tr>
+	</table>
+	#action($field.in($envManager).RELOAD_lOG_CONF) 
+#elseif ($envManager.isJettyLogAvailable())
+	#if ($envManager.isStdErrorLoggerUsed())
+		<table class="table table-striped">
+			<tr>
+				<th>Logger</th>
+				<th>Debug enabled</th>
+				<th>Description</th>
+			</tr>
+			#foreach ($logger in $loggers.keySet())
+				<tr>
+					<td>$logger</td>
+					<td>
+						<form method="post" class="form-inline modal-form">
+							#set ($enabled = $envManager.isDebugEnabled($logger))
+							<select name="enabled" class="span3">
+								<option #if ($enabled) selected="selected" #end >true</option>
+								<option #if (!$enabled) selected="selected" #end >false</option>
+							</select>
+							<input type="hidden"  name="logger" value="$logger">
+							<input type="hidden"  name="action" value="set-debug-enabled">
+							<input type="submit" value="Set level" class="btn">
+						</form>
+					</td>
+					<td>$loggers.get($logger)</td>
+				</tr>
+			#end
+			<tr>
+				<form method="post" class="form-inline modal-form">
+					<td><input type="text" name="logger"></td>
+					<td>
+						<select name="enabled" class="span3">
+							<option>true</option>
+							<option>false</option>
+						</select>
+						<input type="hidden"  name="action" value="set-debug-enabled">
+						<input type="submit" value="Set level" class="btn">
+					</td>
+					<td></td>
+				</form>
+			</tr>
+		</table>
+	#else
+		<table class="table table-striped">
+			<tr>
+				<th>Logger</th>
+				<th>Debug enabled</th>
+				<th>Description</th>
+			</tr>
+			#foreach ($logger in $loggers.keySet())
+				<tr>
+					<td>$logger</td>
+					<td>$envManager.isDebugEnabled($logger)</td>
+					<td>$loggers.get($logger)</td>
+				</tr>
+			#end
+		</table>
+		<div class="alert alert-info">
+			To be able to modify log config when using logback, the following code: <pre>&lt;jmxConfigurator /&gt;</pre> should be added in logback.xml 
+			(see <a href="http://logback.qos.ch/manual/jmxConfig.html">logback configuration</a>)
+		</div>
+	#end
+#else
+	Loggers are not available via JMX.
+#end

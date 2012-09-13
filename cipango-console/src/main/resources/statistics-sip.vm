@@ -14,6 +14,9 @@ Statistics are started since $sipManager.getStatsDuration()<br/>
 		#action($field.in($sipManager).STOP_GRAPH)
 		<form method="post" class="well form-inline">
 			Display Statistics Graphs for: 
+			#if (!$time)
+				#set ($time = 3600)
+			#end
 			<select name="time">
 				#set ($statsTime = {800:"last 15 minutes", 3600:"last hour", 14400:"last 4 hours", 43200:"last 12 hours", 86400:"last day", 172800:"last 2 days", 604800:"last week", 1209600:"last 2 weeks"})
 				#foreach ($value in $statsTime.keySet())

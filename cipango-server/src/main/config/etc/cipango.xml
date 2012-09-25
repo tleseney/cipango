@@ -5,14 +5,23 @@
 
     <Call name="addBean">
       <Arg>
-          <New id="SipServer" class="org.cipango.server.SipServer">
-            <Call name="addConnector">
-              <Arg>
-                <New class="org.cipango.server.bio.UdpConnector">
-                </New>
-              </Arg>
-            </Call>
-          </New>
+				<New id="SipServer" class="org.cipango.server.SipServer">
+					<Call name="addConnector">
+						<Arg>
+							<New class="org.cipango.server.nio.UdpConnector">
+								<Set name="port"><Property default="5060" name="sip.port"/></Set>
+								<Set name="host"><Property name="sip.host"/></Set>
+								<Set name="acceptors">4</Set>
+							</New>
+						</Arg>
+					</Call>
+				
+					<Set name="handler">
+						<New class="org.cipango.server.handler.SipContextHandlerCollection">
+							<Arg name="contexts"><Ref id="Contexts" /></Arg>
+						</New>
+					</Set>
+				</New>
       </Arg>
     </Call>
 </Configure>

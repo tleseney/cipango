@@ -15,7 +15,7 @@
 
   <build>
     <plugins>
-<!--
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-antrun-plugin</artifactId>
@@ -31,9 +31,11 @@
                 <copy todir="${assembly-directory}">
                   <fileset dir="target/jetty/jetty-distribution-${jetty-version}" />
                 </copy>
+								<!--
                 <copy file="../VERSION.txt" tofile="${assembly-directory}/VERSION-CIPANGO.txt" />
                 <copy file="../README.txt" tofile="${assembly-directory}/README-CIPANGO.txt" />
                 <copy file="../NOTICE.txt" tofile="${assembly-directory}/NOTICE-CIPANGO.txt" />
+								-->
                 <copy todir="${assembly-directory}">
                   <fileset dir="..">
                     <include name="LICENSE-*" />
@@ -44,7 +46,7 @@
           </execution>
         </executions>
       </plugin>
--->      
+      
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
@@ -98,11 +100,13 @@
                   <artifactId>cipango-dar</artifactId>
                   <classifier>config</classifier>
                 </artifactItem>
+								-->
                 <artifactItem>
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-deploy</artifactId>
                   <classifier>config</classifier>
                 </artifactItem>
+								<!--
                 <artifactItem>
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-diameter</artifactId>
@@ -113,12 +117,12 @@
                   <artifactId>cipango-jmx</artifactId>
                   <classifier>config</classifier>
                 </artifactItem>
+-->
                 <artifactItem>
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-plus</artifactId>
                   <classifier>config</classifier>
                 </artifactItem>
--->
                 <artifactItem>
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-server</artifactId>
@@ -138,15 +142,16 @@
             </goals>
             <configuration>
               <artifactItems>
-<!--
                 <artifactItem>
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-annotations</artifactId>
                 </artifactItem>
+<!--
                 <artifactItem>
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-callflow</artifactId>
                 </artifactItem>
+								-->
                 <artifactItem>
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-console</artifactId>
@@ -154,15 +159,18 @@
                   <destFileName>cipango-console.war</destFileName>
                   <outputDirectory>${assembly-directory}/sipapps</outputDirectory>
                 </artifactItem>
+<!--
                 <artifactItem>
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-dar</artifactId>
                   <outputDirectory>${assembly-directory}/lib/ext</outputDirectory>
                 </artifactItem>
+								-->
                 <artifactItem>
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-deploy</artifactId>
                 </artifactItem>
+<!--
                 <artifactItem>
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-diameter</artifactId>
@@ -172,14 +180,22 @@
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-jmx</artifactId>
                 </artifactItem>
+								-->
                 <artifactItem>
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-plus</artifactId>
                 </artifactItem>
--->
                 <artifactItem>
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-server</artifactId>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.cipango</groupId>
+                  <artifactId>cipango-sip</artifactId>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.cipango</groupId>
+                  <artifactId>cipango-util</artifactId>
                 </artifactItem>
                 <artifactItem>
                   <groupId>javax.servlet</groupId>
@@ -224,33 +240,37 @@
     </plugins>
   </build>
   <dependencies>
-<!--
     <dependency>
       <groupId>org.cipango</groupId>
       <artifactId>cipango-annotations</artifactId>
       <version>${project.version}</version>
     </dependency>
+<!--
     <dependency>
       <groupId>org.cipango</groupId>
       <artifactId>cipango-callflow</artifactId>
       <version>${project.version}</version>
     </dependency>
+-->
     <dependency>
       <groupId>org.cipango</groupId>
       <artifactId>cipango-console</artifactId>
       <version>${project.version}</version>
       <type>war</type>
     </dependency>
+<!--
     <dependency>
       <groupId>org.cipango</groupId>
       <artifactId>cipango-dar</artifactId>
       <version>${project.version}</version>
     </dependency>
+-->
     <dependency>
       <groupId>org.cipango</groupId>
       <artifactId>cipango-deploy</artifactId>
       <version>${project.version}</version>
     </dependency>
+<!--
     <dependency>
       <groupId>org.cipango</groupId>
       <artifactId>cipango-diameter</artifactId>
@@ -261,15 +281,25 @@
       <artifactId>cipango-jmx</artifactId>
       <version>${project.version}</version>
     </dependency>
+-->
     <dependency>
       <groupId>org.cipango</groupId>
       <artifactId>cipango-plus</artifactId>
       <version>${project.version}</version>
     </dependency>
--->
     <dependency>
       <groupId>org.cipango</groupId>
       <artifactId>cipango-server</artifactId>
+      <version>${project.version}</version>
+    </dependency>    
+    <dependency>
+      <groupId>org.cipango</groupId>
+      <artifactId>cipango-sip</artifactId>
+      <version>${project.version}</version>
+    </dependency> 
+    <dependency>
+      <groupId>org.cipango</groupId>
+      <artifactId>cipango-util</artifactId>
       <version>${project.version}</version>
     </dependency>
   </dependencies>

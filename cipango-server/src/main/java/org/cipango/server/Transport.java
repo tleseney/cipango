@@ -3,7 +3,8 @@ package org.cipango.server;
 public enum Transport 
 {
 	UDP("UDP", 5060, false, false, "SIP+D2U"),
-	TCP("TCP", 5060, true, false, "SIP+D2T");
+	TCP("TCP", 5060, true, false, "SIP+D2T"),
+	TLS("TLS", 5061, true, true, "SIPS+D2T");
 	
 	private String _name;
 	private int _defaultPort;

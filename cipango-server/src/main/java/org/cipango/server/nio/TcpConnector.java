@@ -17,7 +17,10 @@ import org.cipango.server.SipConnector;
 import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
+import org.cipango.server.SipServer;
 import org.cipango.server.Transport;
+import org.cipango.server.servlet.DefaultServlet;
+import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipGenerator;
@@ -84,6 +87,11 @@ public class TcpConnector extends AbstractSipConnector
 		TcpConnection connection = new TcpConnection(_channel.accept(), id);
 		addConnection(connection);
 		connection.dispatch();
+	}
+	
+	protected ServerSocketChannel getChannel()
+	{
+		return _channel;
 	}
 	
 	public int getConnectionTimeout()
@@ -214,7 +222,7 @@ public class TcpConnector extends AbstractSipConnector
 		@Override
 		public void run()
 		{
-			MessageBuilder builder = new MessageBuilder(this);
+			MessageBuilder builder = new MessageBuilder(getServer(), this);
 			SipParser parser = new SipParser(builder);
 			int read = 0;
 			
@@ -228,8 +236,12 @@ public class TcpConnector extends AbstractSipConnector
 						break;
 
 					_buffer.flip();
-					if (parser.parseNext(_buffer))
-						parser.reset();
+
+					while (_buffer.hasRemaining())
+					{
+						if (parser.parseNext(_buffer))
+							parser.reset();
+					}
 				}
 			}
 			catch (IOException e)
@@ -256,14 +268,16 @@ public class TcpConnector extends AbstractSipConnector
 		}
 	}
 	
-	class MessageBuilder implements SipParser.SipMessageHandler
+	public static class MessageBuilder implements SipParser.SipMessageHandler
 	{
-		private TcpConnection _connection;
-		private SipMessage _message;
+		protected SipConnection _connection;
+		protected SipMessage _message;
+		private SipServer _server;
 		
-		public MessageBuilder(SipConnection connection)
+		public MessageBuilder(SipServer server, SipConnection connection)
 		{
-			_connection = (TcpConnection) connection;
+			_server = server;
+			_connection = connection;
 		}
 		
 		public boolean startRequest(String method, String uri, SipVersion version)
@@ -333,10 +347,11 @@ public class TcpConnector extends AbstractSipConnector
 		{
 			_message.setConnection(_connection);
 			_message.setTimeStamp(System.currentTimeMillis());
-			getServer().process(_message);
+						
+			_server.process(_message);
 			
 			reset();
-			return false;
+			return true;
 		}
 		
 		public void badMessage(int status, String reason)
@@ -367,6 +382,15 @@ public class TcpConnector extends AbstractSipConnector
 		connector.setThreadPool(new QueuedThreadPool());
 		connector.setHost(host);
 		connector.setPort(5060);
-		connector.start(); 
+		SipServer sipServer = new SipServer();
+		
+		sipServer.addConnector(connector);
+		
+		SipAppContext context = new SipAppContext();
+		context.getSipServletHandler().addSipServlet(DefaultServlet.class.getName());
+		
+		sipServer.setHandler(context);
+		
+		sipServer.start();
 	}
 }

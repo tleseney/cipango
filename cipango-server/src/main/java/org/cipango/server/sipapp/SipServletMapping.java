@@ -15,22 +15,28 @@
 package org.cipango.server.sipapp;
 
 import org.cipango.server.sipapp.rules.MatchingRule;
+import org.eclipse.jetty.util.annotation.ManagedAttribute;
+import org.eclipse.jetty.util.annotation.ManagedObject;
 
+@ManagedObject("Servlet Mapping")
 public class SipServletMapping 
 {
     private String _servletName;
     private MatchingRule _rule;
     
+    @ManagedAttribute(value="Servlet Name", readonly=true)
 	public String getServletName() 
     {
 		return _servletName;
 	}
 	
+    @ManagedAttribute(value="Matching rule", readonly=true)
 	public MatchingRule getMatchingRule() 
     {
 		return _rule;
 	}
 	
+    @ManagedAttribute(value="Matching rule (human readable)", readonly=true)
 	public String getMatchingRuleExpression() 
     {
 		return _rule.getExpression();

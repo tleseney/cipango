@@ -6,12 +6,15 @@ import java.net.InetAddress;
 import javax.servlet.sip.SipURI;
 
 import org.cipango.sip.SipURIImpl;
+import org.eclipse.jetty.util.annotation.ManagedAttribute;
+import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.component.ContainerLifeCycle;
 import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.thread.ThreadPool;
 
+@ManagedObject("SIP connector")
 public abstract class AbstractSipConnector extends ContainerLifeCycle  implements SipConnector
 {
 	private static final Logger LOG = Log.getLogger(AbstractSipConnector.class);
@@ -80,6 +83,7 @@ public abstract class AbstractSipConnector extends ContainerLifeCycle  implement
 		_server = server;
 	}
 	
+	@ManagedAttribute(value="Acceptors", readonly=true)
 	public int getAcceptors()
 	{
 		return _acceptors;

@@ -1,32 +1,27 @@
 package org.cipango.server;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 import javax.servlet.ServletException;
 import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
 
 import org.cipango.server.nio.UdpConnector;
-
 import org.cipango.server.processor.TransportProcessor;
-import org.cipango.server.sipapp.SipContextHandlerCollection;
-import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.server.transaction.TransactionManager;
-import org.cipango.sip.SipGenerator;
-
 import org.eclipse.jetty.util.ArrayUtil;
-import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.MultiException;
-import org.eclipse.jetty.util.component.AbstractLifeCycle;
+import org.eclipse.jetty.util.annotation.ManagedAttribute;
+import org.eclipse.jetty.util.annotation.ManagedObject;
+import org.eclipse.jetty.util.component.ContainerLifeCycle;
 import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.util.thread.ThreadPool;
 
-
-public class SipServer extends AbstractLifeCycle
+@ManagedObject("SIP server")
+public class SipServer extends ContainerLifeCycle
 {
 	private static final Logger LOG = Log.getLogger(SipServer.class);
 
@@ -60,6 +55,7 @@ public class SipServer extends AbstractLifeCycle
 	public void setThreadPool(ThreadPool threadPool)
 	{
 		_threadPool = threadPool;
+		addBean(threadPool);
 	}
 	
 	@Override
@@ -123,6 +119,13 @@ public class SipServer extends AbstractLifeCycle
 		mex.ifExceptionThrow();
 	}
 	
+	@ManagedAttribute("Cipango version")
+	public String getVersion()
+	{
+		return __version;
+	}
+	
+	@ManagedAttribute("SIP connectors")
 	public SipConnector[] getConnectors()
     {
         return _connectors;
@@ -141,10 +144,11 @@ public class SipServer extends AbstractLifeCycle
                 connectors[i].setServer(this);
         }
 
-        //_container.update(this, _connectors, connectors, "connector");
+        updateBeans(_connectors, connectors);
         _connectors = connectors;
     }
 	
+	@ManagedAttribute("Thread pool")
 	public ThreadPool getThreadPool()
 	{
 		return _threadPool;
@@ -153,6 +157,11 @@ public class SipServer extends AbstractLifeCycle
 	public void setHandler(SipHandler handler)
 	{
 		_handler = handler;
+	}
+	
+	public SipHandler getHandler()
+	{
+		return _handler;
 	}
 	
 	public void process(final SipMessage message)
@@ -241,4 +250,5 @@ public class SipServer extends AbstractLifeCycle
 	{
 		connection.send(message);
 	}
+
 }

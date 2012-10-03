@@ -9,7 +9,10 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
 import org.cipango.server.AbstractSipConnector;
+import org.cipango.server.SipServer;
 import org.cipango.server.Transport;
+import org.cipango.server.servlet.DefaultServlet;
+import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.Transaction;
 import org.eclipse.jetty.io.ArrayByteBufferPool;
 import org.eclipse.jetty.io.ByteBufferPool;
@@ -20,6 +23,7 @@ import org.eclipse.jetty.io.SelectorManager;
 import org.eclipse.jetty.server.AbstractConnector;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.util.thread.Scheduler;
 import org.eclipse.jetty.util.thread.TimerScheduler;
 
@@ -258,4 +262,36 @@ public class SelectChannelConnector extends AbstractSipConnector
         	return new SelectSipConnection(SelectChannelConnector.this, endpoint);
 		}
     }
+    
+	public static void main(String[] args) throws Exception 
+	{
+		String host = null;
+		try
+		{
+			host = InetAddress.getLocalHost().getHostAddress();
+		}
+		catch (Exception e)
+		{
+			LOG.ignore(e);
+			host = "127.0.0.1";
+		}
+		
+		
+		
+		SelectChannelConnector connector = new SelectChannelConnector();
+		connector.setThreadPool(new QueuedThreadPool());
+		connector.setHost(host);
+		connector.setPort(5060);
+
+		SipServer sipServer = new SipServer();
+				
+		sipServer.addConnector(connector);
+		
+		SipAppContext context = new SipAppContext();
+		context.getSipServletHandler().addSipServlet(DefaultServlet.class.getName());
+		
+		sipServer.setHandler(context);
+		
+		sipServer.start();
+	}
 }

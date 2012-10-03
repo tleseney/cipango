@@ -1,9 +1,11 @@
 package org.cipango.server.nio;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
+import java.util.concurrent.ExecutionException;
 
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipConnector;
@@ -178,13 +180,31 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 	}
 
 	@Override
-	public void write(ByteBuffer buffer) throws IOException
+	public synchronized void write(ByteBuffer buffer) throws IOException
 	{
-        FutureCallback<Void> fcb = new FutureCallback<Void>();
-        if (BufferUtil.hasContent(buffer))
-        	getEndPoint().write(null, fcb, buffer);
-        else
-        	fcb.completed(null);
+		try
+		{
+	        FutureCallback<Void> fcb = new FutureCallback<Void>();
+	        if (BufferUtil.hasContent(buffer))
+	        	getEndPoint().write(null, fcb, buffer);
+	        else
+	        	fcb.completed(null);
+	        fcb.get();
+		}
+		catch (InterruptedException x)
+        {
+            throw (IOException)new InterruptedIOException().initCause(x);
+        }
+        catch (ExecutionException x)
+        {
+            Throwable cause = x.getCause();
+            if (cause instanceof IOException)
+                throw (IOException)cause;
+            else if (cause instanceof Exception)
+                throw new IOException(cause);
+            else
+                throw (Error)cause;
+        }
 	}
 	
 	@Override

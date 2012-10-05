@@ -2,6 +2,7 @@ package org.cipango.sip;
 
 import java.nio.ByteBuffer;
 
+import org.cipango.util.StringUtil;
 import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.Utf8StringBuilder;
 import org.eclipse.jetty.util.log.Log;
@@ -42,6 +43,7 @@ public class SipParser
 	
 	private byte _eol;
 	private long _contentLength;
+	private ByteBuffer _content;
 	
     private final StringBuilder _string = new StringBuilder();
     private final Utf8StringBuilder _utf8 = new Utf8StringBuilder();
@@ -467,30 +469,34 @@ public class SipParser
 
 			if (_state == State.CONTENT)
 			{
+				// Eat the last LF symbol before content if necessary.
 				if (_eol == SipGrammar.CR && buffer.hasRemaining() && buffer.get(buffer.position()) == SipGrammar.LF)
 				{
-					_eol=buffer.get();
+					buffer.get();
+					_eol=0;
 				}
-				_eol=0;
-	             
-	            if (_contentLength == -1)
+	            
+				ByteBuffer content = getContent(buffer);
+				if (!content.isReadOnly() && buffer.hasRemaining())
 				{
-	            	 ByteBuffer content = buffer.asReadOnlyBuffer();
-	            	 _state = State.END;
-	            	 if (_handler.messageComplete(content))
-	            		 return true;
+					int remaining = buffer.remaining();
+					buffer.get(content.array(), content.position(), remaining);
+					content.position(content.position() + remaining);
+
+					if (content.position() == content.limit())
+					{
+						content.flip();
+						content = content.asReadOnlyBuffer();
+					}
 				}
-				else if (buffer.remaining() >= _contentLength)
+
+				if (content.isReadOnly())
 				{
-					ByteBuffer content = buffer.asReadOnlyBuffer();
-					if (content.remaining() > _contentLength)
-						content.limit(content.position() + (int)_contentLength);
-			
 					_state = State.END;
 					if (_handler.messageComplete(content))
 						return true;
+					releaseContent();
 				}
-	             
 			}
 			return false;
 		}
@@ -509,6 +515,32 @@ public class SipParser
 		_handler.badMessage(400, reason);
 	}
 	
+	private ByteBuffer getContent(ByteBuffer buffer)
+	{
+		if (_content == null)
+		{
+            if (_contentLength == -1)
+			{
+            	 _content = buffer.asReadOnlyBuffer();
+			}
+            else if (buffer.remaining() >= _contentLength)
+			{
+				_content = buffer.asReadOnlyBuffer();
+				if (_content.remaining() > _contentLength)
+					_content.limit(_content.position() + (int)_contentLength);
+				buffer.position(_content.position() + (int)_contentLength);
+			}
+			else
+				_content = ByteBuffer.allocate((int)_contentLength);
+		}
+		return _content;
+	}
+	
+	private void releaseContent()
+	{
+		_content = null;
+	}
+
 	private String takeString()
 	{
 		String s = _string.toString();

@@ -242,6 +242,7 @@ public class SipParserTest
                 "content with undefined length");
 		
 		parser.parseNext(buffer);
+		assertTrue(parser.isState(State.END));
 		assertEquals("content with undefined length", _content);
 	}
 	
@@ -258,7 +259,80 @@ public class SipParserTest
                 "contentEndsHereXXXXXXXXXXXXXXXXXXXXXXXXXX");
 		
 		parser.parseNext(buffer);
+		assertTrue(parser.isState(State.END));
 		assertEquals("contentEndsHere", _content);
+	}
+	
+	@Test
+	public void testSplitContentParse()
+	{
+		ByteBuffer buffer= BufferUtil.toBuffer(
+                "XXXXMESSAGE sip:bob@biloxi.com SIP/2.0\r\n" +
+                        "Content-Length: 35\r\n" +
+                        "\r\n" + 
+                        "Ambition makes you look pretty uglyZZZZ");
+		
+		buffer.position(2);
+		buffer.limit(buffer.capacity()-2);
+		buffer = buffer.slice();
+		
+		for (int i = 0; i < buffer.capacity() - 4; i++)
+		{
+			Handler handler = new Handler();
+			SipParser parser = new SipParser(handler);
+			
+			buffer.position(2);
+			buffer.limit(2+i);
+			if (!parser.parseNext(buffer))
+			{
+				assertEquals(0, buffer.remaining());
+				
+				buffer.limit(buffer.capacity()-2);
+				parser.parseNext(buffer);
+			}
+			
+			assertTrue(parser.isState(State.END));
+
+			assertEquals("MESSAGE", _methodOrVersion);
+			assertEquals("sip:bob@biloxi.com", _uriOrStatus);
+			assertEquals("SIP/2.0", _versionOrReason);
+			
+	        assertEquals(0, _h);
+			assertEquals("Ambition makes you look pretty ugly", _content);
+		}
+	}
+	
+	@Test
+	public void testStreamContentParse()
+	{
+		ByteBuffer buffer= BufferUtil.toBuffer(
+                "MESSAGE sip:bob@biloxi.com SIP/2.0\r\n" +
+                        "Content-Length: 35\r\n" +
+                        "\r\n" + 
+                        "Ambition makes you look pretty ugly");
+
+		Handler handler = new Handler();
+		SipParser parser = new SipParser(handler);
+
+		for (int i = 0; i < buffer.capacity() - 1; i++)
+		{
+			buffer.limit(i);
+			parser.parseNext(buffer);
+			assertEquals(0, buffer.remaining());
+			assertFalse(parser.isState(State.END));
+		}
+		
+		buffer.limit(buffer.capacity());
+		parser.parseNext(buffer);
+
+		assertTrue(parser.isState(State.END));
+		
+		assertEquals("MESSAGE", _methodOrVersion);
+		assertEquals("sip:bob@biloxi.com", _uriOrStatus);
+		assertEquals("SIP/2.0", _versionOrReason);
+		
+        assertEquals(0, _h);
+		assertEquals("Ambition makes you look pretty ugly", _content);
 	}
 	
 	@Test
@@ -279,6 +353,7 @@ public class SipParserTest
 		assertTrue(parser.isState(State.END));
 	}
 	
+	@Test
 	public void testMulti()
 	{
 		Handler handler = new Handler();
@@ -304,15 +379,21 @@ public class SipParserTest
 		
 		parser.reset();
 		init();
-		
+		parser.parseNext(buffer);
 		assertEquals("INVITE", _methodOrVersion);
 		assertEquals("content2", _content);
 		
 		parser.reset();
 		init();
-		
+		parser.parseNext(buffer);
 		assertEquals("REGISTER", _methodOrVersion);
 		assertEquals("content3", _content);
+	}
+	
+	@Test
+	public void testStreamMulti()
+	{
+		// TODO
 	}
 	
 	@Before
@@ -352,6 +433,7 @@ public class SipParserTest
 			_uriOrStatus = uri;
 			_versionOrReason = version == null ? null : version.asString();
 			_bad = null;
+			_content = null;
 			
 			return false;
 		}

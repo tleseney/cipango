@@ -31,7 +31,7 @@ import org.eclipse.jetty.util.log.Logger;
 
 public class SelectSipConnection extends AbstractConnection implements SipConnection
 {
-    private static final Logger LOG = Log.getLogger(SelectSipConnection.class);
+	private static final Logger LOG = Log.getLogger(SelectSipConnection.class);
     
 	public static final int MINIMAL_BUFFER_LENGTH = 2048;
 	
@@ -68,7 +68,6 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 	public void onFillable()
 	{
         LOG.debug("{} onReadable", this);
-
         try
         {
             while (true)
@@ -93,10 +92,10 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
                     }
                     else if (filled < 0)
                     {
-                        // TODO: notify parser?
-                        getEndPoint().shutdownOutput();
-                        releaseBuffer();
-                        return;
+                    	_parser.reset();
+                    	getEndPoint().shutdownOutput();
+                    	releaseBuffer();
+                    	return;
                     }
                 }
 

@@ -479,7 +479,7 @@ public class SipParser
 				ByteBuffer content = getContent(buffer);
 				if (!content.isReadOnly() && buffer.hasRemaining())
 				{
-					int remaining = buffer.remaining();
+					int remaining = (int) Math.min(buffer.remaining(), _contentLength - content.position());
 					buffer.get(content.array(), content.position(), remaining);
 					content.position(content.position() + remaining);
 
@@ -493,9 +493,9 @@ public class SipParser
 				if (content.isReadOnly())
 				{
 					_state = State.END;
+					releaseContent();
 					if (_handler.messageComplete(content))
 						return true;
-					releaseContent();
 				}
 			}
 			return false;

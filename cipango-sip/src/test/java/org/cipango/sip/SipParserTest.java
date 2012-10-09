@@ -270,14 +270,15 @@ public class SipParserTest
                 "XXXXMESSAGE sip:bob@biloxi.com SIP/2.0\r\n" +
                         "Content-Length: 35\r\n" +
                         "\r\n" + 
-                        "Ambition makes you look pretty uglyZZZZ");
+                        "Ambition makes you look pretty uglyZZZZXXXX");
 		
 		buffer.position(2);
 		buffer.limit(buffer.capacity()-2);
 		buffer = buffer.slice();
-		
+				
 		for (int i = 0; i < buffer.capacity() - 4; i++)
 		{
+			init();
 			Handler handler = new Handler();
 			SipParser parser = new SipParser(handler);
 			
@@ -299,6 +300,9 @@ public class SipParserTest
 			
 	        assertEquals(0, _h);
 			assertEquals("Ambition makes you look pretty ugly", _content);
+			assertNull(_bad);
+//			System.out.println((char) buffer.get());
+//			System.out.println((char) buffer.get());
 		}
 	}
 	
@@ -311,6 +315,7 @@ public class SipParserTest
                         "\r\n" + 
                         "Ambition makes you look pretty ugly");
 
+		init();
 		Handler handler = new Handler();
 		SipParser parser = new SipParser(handler);
 
@@ -405,6 +410,8 @@ public class SipParserTest
 		_hdr = null;
 		_val = null;
 		_h = 0;
+		_content = null;
+		_bad = null;
 	}
 	
 	private String _methodOrVersion;
@@ -457,7 +464,7 @@ public class SipParserTest
 		public boolean messageComplete(ByteBuffer content) 
 		{
 			_content = BufferUtil.toString(content, StringUtil.__UTF8_CHARSET);
-			return false;
+			return true;
 		}
 
 		@Override

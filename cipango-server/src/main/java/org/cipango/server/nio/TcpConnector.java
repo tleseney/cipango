@@ -44,7 +44,6 @@ public class TcpConnector extends AbstractSipConnector
 	public static final int DEFAULT_SO_TIMEOUT = 2 * Transaction.__T1 * 64;
 	
 	private ServerSocketChannel _channel;
-	private ByteBuffer[] _inBuffers;
 	private ByteBufferPool _outBuffers;
     private Map<String, TcpConnection> _connections;
     private int _connectionTimeout = DEFAULT_SO_TIMEOUT;
@@ -54,10 +53,7 @@ public class TcpConnector extends AbstractSipConnector
 	{
 		_connections = new HashMap<String, TcpConnection>();
 		_outBuffers = new ArrayByteBufferPool();
-		_inBuffers = new ByteBuffer[getAcceptors()];
-		for (int i = _inBuffers.length; i-->0;)
-			_inBuffers[i] = BufferUtil.allocateDirect(MINIMAL_BUFFER_LENGTH);
-		
+
 		super.doStart();
 	}
 
@@ -131,7 +127,8 @@ public class TcpConnector extends AbstractSipConnector
 		
 		public TcpConnection(SocketChannel channel, int id) throws IOException
 		{
-			_buffer = _inBuffers[id];
+            _buffer = BufferUtil.allocateDirect(MINIMAL_BUFFER_LENGTH);
+
 			_channel = channel;
 			_localAddr = (InetSocketAddress) _channel.getLocalAddress();
 			_remoteAddr = (InetSocketAddress) _channel.getRemoteAddress();

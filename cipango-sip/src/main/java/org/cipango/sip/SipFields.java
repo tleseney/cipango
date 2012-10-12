@@ -1,10 +1,14 @@
 package org.cipango.sip;
 
 import java.nio.ByteBuffer;
+import java.text.ParseException;
 import java.util.Iterator;
+import java.util.ListIterator;
+import java.util.NoSuchElementException;
 
 import javax.servlet.sip.Address;
 import javax.servlet.sip.Parameterable;
+import javax.servlet.sip.ServletParseException;
 
 import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.StringMap;
@@ -24,6 +28,14 @@ public class SipFields implements Iterable<SipFields.Field>
 		return _map.get(name);
 	}
 	
+	public Field getField(SipHeader header, String name)
+	{
+		if (header != null)
+			name = header.toString();
+		
+		return getField(name);
+	}
+	
 	public boolean containsKey(String name)
 	{
 		return _map.containsKey(name);
@@ -31,13 +43,21 @@ public class SipFields implements Iterable<SipFields.Field>
 	
 	public String getString(String name)
 	{
-		Field field = getField(name);
-		return field == null ? null : field.getValue().toString();
+		return getString(null, SipHeader.getFormattedName(name));
 	}
 	
 	public String getString(SipHeader header)
 	{
-		return getString(header.toString());
+		return getString(header, null);
+	}
+	
+	public String getString(SipHeader header, String name)
+	{
+		if (header != null)
+			name = header.toString();
+		
+		Field field = getField(name);
+		return field == null ? null : field.getValue().toString();
 	}
 	
 	public void addString(String name, String value, boolean first) throws IllegalArgumentException
@@ -76,6 +96,7 @@ public class SipFields implements Iterable<SipFields.Field>
 	
 	public void add(String name, String value) throws IllegalArgumentException
 	{
+		name = SipHeader.getFormattedName(name);
 		addString(name, value, false);
 	}
 	
@@ -87,6 +108,7 @@ public class SipFields implements Iterable<SipFields.Field>
 	
 	public void set(String name, Object value)
 	{
+		name = SipHeader.getFormattedName(name);
 		_map.put(name, new Field(name, value));
 	}
 	
@@ -108,6 +130,11 @@ public class SipFields implements Iterable<SipFields.Field>
 			_map.remove(field._name);
 		
 		return field._value;
+	}
+	
+	public void remove(String name)
+	{
+		_map.remove(name);
 	}
 	
 	public void copy(SipFields source, SipHeader header)
@@ -154,6 +181,46 @@ public class SipFields implements Iterable<SipFields.Field>
 		return first;
 	}
 	
+	public ListIterator<String> getValues(String name)
+	{
+		Field field = getField(SipHeader.getFormattedName(name));
+    	
+    	return new FieldIterator<String>(field)
+    	{
+    		public String getValue() { return _f.getValue().toString(); }
+    	};
+	}
+	
+	public long getLong(SipHeader header)
+	{
+		Field field = getField(header.asString());
+		if (field != null)
+			return Long.parseLong(field.getValue().toString());
+		return -1l;
+	}
+	
+    public Iterator<String> getNames()
+    {
+    	return _map.keySet().iterator();
+    }
+
+    public ListIterator<Address> getAddressValues(SipHeader header, String name) throws ServletParseException
+    {
+    	Field field = getField(header, name);
+    	
+    	Field f = field;
+    	while (f != null) // Throw ServletParseException if needed 
+    	{
+    		f.asAddress();
+    		f = f._next;
+    	}
+    	
+    	return new FieldIterator<Address>(field)
+    	{
+    		public Address getValue() { return (Address) _f.getValue(); }
+    	};
+    }
+	
 	public static final class Field
 	{
 		private  SipHeader _header;
@@ -186,6 +253,25 @@ public class SipFields implements Iterable<SipFields.Field>
 			return _value;
 		}
 		
+		public Address asAddress() throws ServletParseException
+    	{
+    		if (!(_value instanceof Address))
+    		{
+    			AddressImpl value = new AddressImpl(_value.toString());
+    			try
+				{
+					value.parse();
+				}
+				catch (ParseException e)
+				{
+					throw new ServletParseException(e);
+				}
+    			_value = value;
+    		}
+
+    		return (Address) _value;
+    	}
+		
 		public void putTo(ByteBuffer buffer)
 		{
 			if (_header != null)
@@ -198,10 +284,72 @@ public class SipFields implements Iterable<SipFields.Field>
 			if (_next != null)
 				_next.putTo(buffer);
 		}
+		
+		@Override
+		public String toString()
+		{
+			return String.valueOf(_value);
+		}
 	}
 
 	public Iterator<Field> iterator() 
 	{
 		return _map.values().iterator();
 	}
+	
+    abstract class FieldIterator<E> implements ListIterator<E> 
+    {
+    	Field _f;
+		Field _first;
+		int _index = 0;
+		
+		public FieldIterator(Field field)
+		{
+			_f = field;
+			_first = field;
+		}
+		
+		public boolean hasNext()
+		{
+			return _f != null;
+		}
+		
+		public E next()
+		{
+			if (_f == null) throw new NoSuchElementException();
+			
+			E value = getValue();
+			_f = _f._next;
+			_index++;
+			
+			return value;
+		}
+		
+		public abstract E getValue();
+		
+		public boolean hasPrevious() 
+		{ 
+			return _index > 0;
+		}
+		
+		public E previous()
+		{
+			if (!hasPrevious()) throw new NoSuchElementException();
+			
+			_index--;
+			
+			_f = _first;
+			for (int i = 0; i < _index; i++)
+				_f = _f._next;
+			
+			return getValue();
+		}
+		
+		public int nextIndex() { return _index; }
+		public int previousIndex() { return _index-1; }
+		
+		public void set(E e) { throw new UnsupportedOperationException(); }
+		public void add(E e) { throw new UnsupportedOperationException(); }
+		public void remove() { throw new UnsupportedOperationException(); }
+    }
 }

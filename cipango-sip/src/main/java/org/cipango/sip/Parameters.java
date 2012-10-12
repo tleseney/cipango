@@ -1,14 +1,13 @@
 package org.cipango.sip;
 
-import java.io.IOException;
 import java.text.ParseException;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.cipango.util.StringScanner;
 import org.cipango.util.StringUtil;
@@ -27,11 +26,15 @@ public class Parameters
 
 	public Iterator<String> getParameterNames() 
 	{
+		if (_parameters == null)
+			return Collections.emptyIterator();
 		return Collections.unmodifiableSet(_parameters.keySet()).iterator();
 	}
 
 	public Set<Entry<String, String>> getParameters() 
 	{
+		if (_parameters == null)
+			return Collections.emptySet();
 		return Collections.unmodifiableSet(_parameters.entrySet());
 	}
 
@@ -79,6 +82,10 @@ public class Parameters
 							value = scanner.readTo(END_PVALUE);
 					}
 					
+					if (!StringUtil.isToken(key)) 
+						throw new ParseException("Invalid parameter name [" 
+								+ key + "]", scanner.position());
+					
 					parameterParsed(key, value);
 				}
 			}
@@ -90,19 +97,19 @@ public class Parameters
 		}
 	}
 	
-	public void appendParameters(Appendable appendable) throws IOException
+	public void appendParameters(StringBuilder appendable)
 	{
 		if (_parameters != null)
 		{
 			for (String name : _parameters.keySet())
 			{
 				String value = _parameters.get(name);
+				appendable.append(';');
+				appendable.append(name);
 				if (value != null)
 				{
-					appendable.append(';');
-					appendable.append(name);
 					appendable.append('=');
-					appendable.append(value);
+					appendable.append(StringUtil.quoteIfNeeded(value, StringUtil.TOKEN_BS));
 				}
 			}
 		}

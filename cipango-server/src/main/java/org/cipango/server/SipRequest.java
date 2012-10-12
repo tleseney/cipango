@@ -1,8 +1,22 @@
+// ========================================================================
+// Copyright 2012 NEXCOM Systems
+// ------------------------------------------------------------------------
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at 
+// http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ========================================================================
 package org.cipango.server;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 
@@ -39,6 +53,7 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	
 	private SipMethod _sipMethod;
 	private String _method;
+	private URI _requestUri;
 	
 	private Transaction _transaction;
 	
@@ -132,6 +147,11 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	
 	//
 	
+	public boolean isRegister()
+	{
+		return _sipMethod == SipMethod.REGISTER;
+	}
+	
 	public boolean isInvite()
 	{
 		return _sipMethod == SipMethod.INVITE;
@@ -181,9 +201,9 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		return null;
 	}
 	@Override
-	public String getScheme() {
-		// TODO Auto-generated method stub
-		return null;
+	public String getScheme() 
+	{
+		return _requestUri.getScheme();
 	}
 	@Override
 	public String getServerName() {
@@ -209,23 +229,35 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	}
 	
 	@Override
-	public Locale getLocale() {
-		// TODO Auto-generated method stub
-		return null;
+	public Locale getLocale()
+	{
+		return getAcceptLanguage();
 	}
+
 	@Override
-	public Enumeration getLocales() {
-		// TODO Auto-generated method stub
-		return null;
+	public Enumeration<Locale> getLocales()
+	{
+		final Iterator<Locale> it = getAcceptLanguages();
+		return new Enumeration<Locale>()
+		{
+			public boolean hasMoreElements()
+			{
+				return it.hasNext();
+			}
+
+			public Locale nextElement()
+			{
+				return it.next();
+			}
+		};
 	}
 	@Override
 	public RequestDispatcher getRequestDispatcher(String path) {
-		// TODO Auto-generated method stub
-		return null;
+		throw new UnsupportedOperationException("Not Applicable");
 	}
 	@Override
-	public String getRealPath(String path) {
-		// TODO Auto-generated method stub
+	public String getRealPath(String path) 
+	{
 		return null;
 	}
 	@Override
@@ -234,12 +266,12 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		return null;
 	}
 	@Override
-	public void addAuthHeader(SipServletResponse arg0, AuthInfo arg1) {
+	public void addAuthHeader(SipServletResponse response, AuthInfo authInfo) {
 		// TODO Auto-generated method stub
 		
 	}
 	@Override
-	public void addAuthHeader(SipServletResponse arg0, String arg1, String arg2) {
+	public void addAuthHeader(SipServletResponse response, String username, String password) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -255,14 +287,14 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		return null;
 	}
 	@Override
-	public ServletInputStream getInputStream() throws IOException {
-		// TODO Auto-generated method stub
+	public ServletInputStream getInputStream() throws IOException 
+	{
 		return null;
 	}
 	@Override
-	public int getMaxForwards() {
-		// TODO Auto-generated method stub
-		return 0;
+	public int getMaxForwards() 
+	{
+		return (int) _fields.getLong(SipHeader.MAX_FORWARDS);
 	}
 	@Override
 	public Address getPoppedRoute() {
@@ -270,18 +302,18 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		return null;
 	}
 	@Override
-	public Proxy getProxy() throws TooManyHopsException {
+	public Proxy getProxy() throws TooManyHopsException 
+	{
+		return getProxy(true);
+	}
+	@Override
+	public Proxy getProxy(boolean create) throws TooManyHopsException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 	@Override
-	public Proxy getProxy(boolean arg0) throws TooManyHopsException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public BufferedReader getReader() throws IOException {
-		// TODO Auto-generated method stub
+	public BufferedReader getReader() throws IOException
+	{
 		return null;
 	}
 	@Override
@@ -290,10 +322,11 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		return null;
 	}
 	@Override
-	public URI getRequestURI() {
-		// TODO Auto-generated method stub
-		return null;
+	public URI getRequestURI() 
+	{
+		return _requestUri;
 	}
+	
 	@Override
 	public SipApplicationRoutingDirective getRoutingDirective()
 			throws IllegalStateException {
@@ -317,28 +350,31 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		
 	}
 	@Override
-	public void pushRoute(SipURI arg0) {
+	public void pushRoute(SipURI route) 
+	{
+		pushRoute(new AddressImpl(route));
+	}
+	@Override
+	public void pushRoute(Address route) {
 		// TODO Auto-generated method stub
 		
 	}
 	@Override
-	public void pushRoute(Address arg0) {
-		// TODO Auto-generated method stub
-		
+	public void setMaxForwards(int maxForwards) 
+	{
+		if (maxForwards < 0 || maxForwards > 255) 
+    		throw new IllegalArgumentException("Max-Forwards should be between 0 and 255");
+    
+    	_fields.set(SipHeader.MAX_FORWARDS, Long.toString(maxForwards));
 	}
 	@Override
-	public void setMaxForwards(int arg0) {
-		// TODO Auto-generated method stub
-		
+	public void setRequestURI(URI uri) 
+	{
+		_requestUri = uri;
 	}
 	@Override
-	public void setRequestURI(URI arg0) {
-		// TODO Auto-generated method stub
-		
-	}
-	@Override
-	public void setRoutingDirective(SipApplicationRoutingDirective arg0,
-			SipServletRequest arg1) throws IllegalStateException {
+	public void setRoutingDirective(SipApplicationRoutingDirective routingDirective,
+			SipServletRequest origRequest) throws IllegalStateException {
 		// TODO Auto-generated method stub
 		
 	}
@@ -391,6 +427,5 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
 	
 }

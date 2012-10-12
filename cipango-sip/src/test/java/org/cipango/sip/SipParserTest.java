@@ -1,6 +1,7 @@
 package org.cipango.sip;
 
 import java.nio.ByteBuffer;
+import java.text.ParseException;
 
 import org.cipango.sip.SipParser.State;
 import org.cipango.util.StringUtil;
@@ -38,6 +39,7 @@ public class SipParserTest
 		SipParser parser = new SipParser(handler);
 		
 		parseAll(parser, buffer);
+		assertTrue(_request);
 		assertEquals("INVITE", _methodOrVersion);
 		assertEquals("sip:atlanta.com", _uriOrStatus);
 		assertEquals("SIP/2.0", _versionOrReason);
@@ -186,7 +188,7 @@ public class SipParserTest
 		
 		buffer.limit(buffer.capacity());
 		parser.parseNext(buffer);
-		System.out.println(parser);
+		//System.out.println(parser);
 		assertTrue(parser.isState(State.END));
 		
 		assertEquals("MESSAGE", _methodOrVersion);
@@ -359,6 +361,64 @@ public class SipParserTest
 	}
 	
 	@Test
+	public void testResponse()
+	{
+		Handler handler = new Handler();
+		SipParser parser = new SipParser(handler);
+		
+		ByteBuffer buffer= BufferUtil.toBuffer(
+				"SIP/2.0 200 OK\r\n" + 
+				"Via: SIP/2.0/UDP 192.0.2.105;branch=z9hG4bK2398ndaoe\r\n" + 
+				"Call-ID: noreason.asndj203insdf99223ndf\r\n" + 
+				"CSeq: 35 INVITE\r\n" + 
+				"From: <sip:user@example.com>;tag=39ansfi3\r\n" + 
+				"To: <sip:user@example.edu>;tag=902jndnke3\r\n" + 
+				"Content-Length: 0\r\n" + 
+				"Contact: <sip:user@host105.example.com>\r\n" + 
+				"\r\n");
+		
+		parser.parseNext(buffer);
+		assertFalse(_request);
+		assertEquals("SIP/2.0", _methodOrVersion);
+		assertEquals("200", _uriOrStatus);
+		assertEquals("OK", _versionOrReason);
+		assertFalse(buffer.hasRemaining());
+		assertTrue(parser.isState(State.END));
+	}
+	
+	@Test
+	public void testBadStatusCode()
+	{
+		Handler handler = new Handler();
+		SipParser parser = new SipParser(handler);
+		
+		ByteBuffer buffer= BufferUtil.toBuffer(
+				"SIP/2.0 sip:user@example.com OK\r\n" + 
+		        "Content-Length: 0\r\n" +
+				"\r\n");
+		
+		parser.parseNext(buffer);
+		//System.out.println(_bad);
+		assertEquals("Invalid status", _bad);
+	}
+	
+	@Test
+	public void testBadUri()
+	{
+		Handler handler = new Handler();
+		SipParser parser = new SipParser(handler);
+		
+		ByteBuffer buffer= BufferUtil.toBuffer(
+				"INVITE 200 OK\r\n" + 
+		        "Content-Length: 0\r\n" +
+				"\r\n");
+		
+		parser.parseNext(buffer);
+		//System.out.println(_bad);
+		assertTrue(_bad != null);
+		assertTrue(_bad.contains("Unknown Version"));
+	}
+	
 	public void testMulti()
 	{
 		Handler handler = new Handler();
@@ -425,14 +485,15 @@ public class SipParserTest
 	private String _content;
 	
 	private String _bad;
+
+	private boolean _request;
 	
 	private class Handler implements SipParser.SipMessageHandler
 	{
-		private boolean request;
 		
 		public boolean startRequest(String method, String uri, SipVersion version) 
 		{
-			request = true;
+			_request = true;
             _h= -1;
             _hdr= new String[9];
             _val= new String[9];
@@ -441,6 +502,21 @@ public class SipParserTest
 			_versionOrReason = version == null ? null : version.asString();
 			_bad = null;
 			_content = null;
+			
+			return false;
+		}
+		
+		@Override
+		public boolean startResponse(SipVersion version, int status, String reason) throws ParseException
+		{
+			_request = false;
+			_h= -1;
+            _hdr= new String[9];
+            _val= new String[9];
+			_methodOrVersion = version == null ? null : version.asString();
+			_uriOrStatus = String.valueOf(status);
+			_versionOrReason = reason;
+			_bad = null;
 			
 			return false;
 		}
@@ -472,6 +548,8 @@ public class SipParserTest
 		{
 			_bad = reason;
 		}
+
+
 		
 	}
 	

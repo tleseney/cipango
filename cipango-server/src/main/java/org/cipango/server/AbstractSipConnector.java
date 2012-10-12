@@ -2,6 +2,7 @@ package org.cipango.server;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.concurrent.Executor;
 
 import javax.servlet.sip.SipURI;
 
@@ -9,10 +10,8 @@ import org.cipango.sip.SipURIImpl;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.component.ContainerLifeCycle;
-import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
-import org.eclipse.jetty.util.thread.ThreadPool;
 
 @ManagedObject("SIP connector")
 public abstract class AbstractSipConnector extends ContainerLifeCycle  implements SipConnector
@@ -23,22 +22,30 @@ public abstract class AbstractSipConnector extends ContainerLifeCycle  implement
 	private String _host;
 	private SipURI _uri;
 	
-	private int _acceptors = 1;
-	private Thread[] _acceptorThreads;
+	private Thread[] _acceptors;
 	
-	private SipServer _server;
-	private ThreadPool _threadPool;
+	private final SipServer _server;
+    private final Executor _executor;
 
-	public AbstractSipConnector()
+	public AbstractSipConnector(SipServer server, Executor executor, int acceptors)
 	{
-		this((Runtime.getRuntime().availableProcessors() + 1) / 2);
+        _server = server;
+        _executor = executor != null? executor: _server.getThreadPool();
+
+        addBean(_server,false);
+        addBean(_executor);
+        
+        // Don't manage executor if inherited from the server.
+        if (executor == null)
+            unmanage(_executor);
+
+        if (acceptors <= 0)
+            acceptors = Math.max(1, (Runtime.getRuntime().availableProcessors()) / 2);
+        if (acceptors > 2 * Runtime.getRuntime().availableProcessors())
+            LOG.warn("{}: Acceptors should be <= 2*availableProcessors", this);
+        _acceptors = new Thread[acceptors];
 	}
-	
-	public AbstractSipConnector(int acceptors)
-	{
-		_acceptors = acceptors;
-	}
-	
+
 	public int getPort()
 	{
 		return _port;
@@ -63,14 +70,9 @@ public abstract class AbstractSipConnector extends ContainerLifeCycle  implement
 		_host = host;
 	}
 	
-	public void setThreadPool(ThreadPool pool)
+	public Executor getExecutor()
 	{
-		_threadPool = pool;
-	}
-	
-	public ThreadPool getThreadPool()
-	{
-		return _threadPool;
+		return _executor;
 	}
 	
 	public SipServer getServer()
@@ -78,20 +80,10 @@ public abstract class AbstractSipConnector extends ContainerLifeCycle  implement
 		return _server;
 	}
 	
-	public void setServer(SipServer server)
-	{
-		_server = server;
-	}
-	
 	@ManagedAttribute(value="Acceptors", readonly=true)
 	public int getAcceptors()
 	{
-		return _acceptors;
-	}
-	
-	public void setAcceptors(int acceptors)
-	{
-		_acceptors = acceptors;
+		return _acceptors.length;
 	}
 	
 	@Override
@@ -114,33 +106,17 @@ public abstract class AbstractSipConnector extends ContainerLifeCycle  implement
 		}
 		
 		_uri = new SipURIImpl(_host, _port);
-		
-		if (_threadPool == null && getServer() != null)
-        	_threadPool = getServer().getThreadPool();
-        
-        if (_threadPool instanceof LifeCycle)
-        {
-        	if (getServer() == null || _threadPool != getServer().getThreadPool())
-        		((LifeCycle) _threadPool).start();
-        }
+
+        super.doStart();
 
         open();
         
         synchronized(this)
         {
-            _acceptorThreads = new Thread[getAcceptors()];
-
-            for (int i = 0; i < _acceptorThreads.length; i++)
-            {
-                if (!_threadPool.dispatch(new Acceptor(i)))
-                {
-                    LOG.warn("insufficient maxThreads configured for {}", this);
-                    break;
-                }
-            }
+            for (int i = 0; i < _acceptors.length; i++)
+            	getExecutor().execute(new Acceptor(i));
         }
         
-        super.doStart();
         LOG.info("Started {}", this);
 	}
 	
@@ -165,11 +141,11 @@ public abstract class AbstractSipConnector extends ContainerLifeCycle  implement
         	Thread current = Thread.currentThread();
             synchronized(AbstractSipConnector.this)
             {
-                if (_acceptorThreads == null)
+                if (_acceptors == null)
                     return;
-                _acceptorThreads[_acceptor] = current;
+                _acceptors[_acceptor] = current;
             }
-            String name = _acceptorThreads[_acceptor].getName();
+            String name = _acceptors[_acceptor].getName();
             current.setName(name + " - Acceptor" + _acceptor + " " + AbstractSipConnector.this);
             int oldPriority = current.getPriority();
             
@@ -207,8 +183,8 @@ public abstract class AbstractSipConnector extends ContainerLifeCycle  implement
                 
                 synchronized(AbstractSipConnector.this)
                 {
-                    if (_acceptorThreads != null)
-                    	_acceptorThreads[_acceptor] = null;
+                    if (_acceptors != null)
+                    	_acceptors[_acceptor] = null;
                 }
             }
         }

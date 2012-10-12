@@ -43,7 +43,7 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 	
 	public SelectSipConnection(SelectChannelConnector connector, EndPoint endpoint)
 	{
-		super(endpoint, connector.getThreadPool());
+		super(endpoint, connector.getExecutor());
 		_connector = connector;
 		_endpoint = endpoint;
         _bufferPool = _connector.getByteBufferPool();
@@ -239,6 +239,14 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 			request.setMethod(m, method);
 			
 			_message = request;
+			return false;
+		}
+
+		@Override
+		public boolean startResponse(SipVersion version, int status,
+				String reason) throws ParseException
+		{
+			// TODO Auto-generated method stub
 			return false;
 		}
 

@@ -15,6 +15,7 @@ import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipSession;
 
+import org.cipango.server.session.ApplicationSession;
 import org.cipango.server.session.Session;
 import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.AddressImpl;
@@ -82,6 +83,16 @@ public abstract class SipMessage implements SipServletMessage
 	{
 		AddressImpl to = (AddressImpl) _fields.get(SipHeader.TO);
 		return to.getTag();
+	}
+	
+	public Session session()
+	{
+		return _session;
+	}
+	
+	public ApplicationSession appSession()
+	{
+		return _session.appSession();
 	}
 	
 	public void addAcceptLanguage(Locale arg0) {

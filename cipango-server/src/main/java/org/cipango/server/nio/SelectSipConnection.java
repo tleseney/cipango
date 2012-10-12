@@ -43,7 +43,7 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 	
 	public SelectSipConnection(SelectChannelConnector connector, EndPoint endpoint)
 	{
-		super(endpoint, connector.getThreadPool());
+		super(endpoint, connector.getExecutor());
 		_connector = connector;
 		_endpoint = endpoint;
         _bufferPool = _connector.getByteBufferPool();
@@ -93,10 +93,10 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
                     }
                     else if (filled < 0)
                     {
-                        // TODO: notify parser?
-                        getEndPoint().shutdownOutput();
-                        releaseBuffer();
-                        return;
+                    	_parser.reset();
+                    	getEndPoint().shutdownOutput();
+                    	releaseBuffer();
+                    	return;
                     }
                 }
 

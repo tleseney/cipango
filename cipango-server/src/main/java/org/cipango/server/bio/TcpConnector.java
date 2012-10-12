@@ -21,6 +21,7 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
 import org.cipango.server.AbstractSipConnector;
@@ -39,11 +40,9 @@ import org.cipango.sip.SipParser;
 import org.eclipse.jetty.io.ArrayByteBufferPool;
 import org.eclipse.jetty.io.ByteBufferPool;
 import org.eclipse.jetty.util.BufferUtil;
-import org.eclipse.jetty.util.component.LifeCycle;
+import org.eclipse.jetty.util.annotation.Name;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
-import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import org.eclipse.jetty.util.thread.ThreadPool;
 
 public class TcpConnector extends AbstractSipConnector //implements Buffers
 {
@@ -61,19 +60,33 @@ public class TcpConnector extends AbstractSipConnector //implements Buffers
     private int _connectionTimeout = DEFAULT_SO_TIMEOUT;
     private int _backlogSize = 50;
     
-    private ThreadPool _tcpThreadPool;
 	private ByteBuffer[] _inBuffers;
 	private ByteBufferPool _outBuffers;
-		
+
+    public TcpConnector(
+    		@Name("sipServer") SipServer server)
+    {
+        this(server, null, Math.max(1,(Runtime.getRuntime().availableProcessors())/2));
+    }
+
+    public TcpConnector(
+            @Name("sipServer") SipServer server,
+            @Name("acceptors") int acceptors)
+    {
+        this(server, null, acceptors);
+    }
+
+    public TcpConnector(
+            @Name("sipServer") SipServer server,
+            @Name("executor") Executor executor,
+            @Name("acceptors") int acceptors)
+    {
+    	super(server, executor, acceptors);
+    }
+    
 	protected void doStart() throws Exception 
 	{
 		_connections = new HashMap<String, TcpConnection>();
-		
-        if (_tcpThreadPool == null)
-        	_tcpThreadPool = new QueuedThreadPool();
-        
-		if (_tcpThreadPool instanceof LifeCycle)
-			((LifeCycle) _tcpThreadPool).start();
 		
 		_outBuffers = new ArrayByteBufferPool();
 		_inBuffers = new ByteBuffer[getAcceptors()];
@@ -86,9 +99,6 @@ public class TcpConnector extends AbstractSipConnector //implements Buffers
 	protected void doStop() throws Exception
 	{
 		super.doStop();
-		
-		if (_tcpThreadPool instanceof LifeCycle)
-            ((LifeCycle)_tcpThreadPool).stop();
 		
 		Object[]  connections = _connections.values().toArray();
 		for (Object o : connections)
@@ -116,11 +126,6 @@ public class TcpConnector extends AbstractSipConnector //implements Buffers
 	public InetAddress getAddr()
 	{
 		return _addr;
-	}
-	
-	public ThreadPool getTcpThreadPool()
-	{
-		return _tcpThreadPool;
 	}
 	
 	public void open() throws IOException
@@ -264,7 +269,7 @@ public class TcpConnector extends AbstractSipConnector //implements Buffers
         {
 			try
 			{
-				getThreadPool().execute(this);
+				getExecutor().execute(this);
 			}
 			catch (RejectedExecutionException e)
             {
@@ -416,11 +421,10 @@ public class TcpConnector extends AbstractSipConnector //implements Buffers
 			host = "127.0.0.1";
 		}
 		
-		TcpConnector connector = new TcpConnector();
-		connector.setThreadPool(new QueuedThreadPool());
+		SipServer sipServer = new SipServer();
+		TcpConnector connector = new TcpConnector(sipServer);
 		connector.setHost(host);
 		connector.setPort(5060);
-		SipServer sipServer = new SipServer();
 		
 		sipServer.addConnector(connector);
 		

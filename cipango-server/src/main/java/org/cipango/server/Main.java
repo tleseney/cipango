@@ -38,7 +38,7 @@ public class Main
 	{			
 		SipServer sipServer = new SipServer();
 		
-		UdpConnector connector = new UdpConnector();
+		UdpConnector connector = new UdpConnector(sipServer);
 		connector.setHost("192.168.2.127");
 		
 		sipServer.addConnector(connector);

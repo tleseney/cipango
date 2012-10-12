@@ -31,7 +31,5 @@ public interface SipConnector extends LifeCycle
 	 * @return the actual address on which the connector is bound
 	 */
 	//InetAddress getAddress();
-	
-	void setServer(SipServer server);
 }
 

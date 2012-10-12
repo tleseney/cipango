@@ -9,6 +9,7 @@ import java.nio.channels.SocketChannel;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
 import org.cipango.server.AbstractSipConnector;
@@ -32,9 +33,9 @@ import org.cipango.sip.Via;
 import org.eclipse.jetty.io.ArrayByteBufferPool;
 import org.eclipse.jetty.io.ByteBufferPool;
 import org.eclipse.jetty.util.BufferUtil;
+import org.eclipse.jetty.util.annotation.Name;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
-import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 public class TcpConnector extends AbstractSipConnector
 {
@@ -44,20 +45,37 @@ public class TcpConnector extends AbstractSipConnector
 	public static final int DEFAULT_SO_TIMEOUT = 2 * Transaction.__T1 * 64;
 	
 	private ServerSocketChannel _channel;
-	private ByteBuffer[] _inBuffers;
 	private ByteBufferPool _outBuffers;
     private Map<String, TcpConnection> _connections;
     private int _connectionTimeout = DEFAULT_SO_TIMEOUT;
-    
+
+    public TcpConnector(
+    		@Name("sipServer") SipServer server)
+    {
+        this(server, null, Math.max(1,(Runtime.getRuntime().availableProcessors())/2));
+    }
+
+    public TcpConnector(
+            @Name("sipServer") SipServer server,
+            @Name("acceptors") int acceptors)
+    {
+        this(server, null, acceptors);
+    }
+
+    public TcpConnector(
+            @Name("sipServer") SipServer server,
+            @Name("executor") Executor executor,
+            @Name("acceptors") int acceptors)
+    {
+    	super(server, executor, acceptors);
+    }
+
 	@Override
 	protected void doStart() throws Exception
 	{
 		_connections = new HashMap<String, TcpConnection>();
 		_outBuffers = new ArrayByteBufferPool();
-		_inBuffers = new ByteBuffer[getAcceptors()];
-		for (int i = _inBuffers.length; i-->0;)
-			_inBuffers[i] = BufferUtil.allocateDirect(MINIMAL_BUFFER_LENGTH);
-		
+
 		super.doStart();
 	}
 
@@ -131,7 +149,8 @@ public class TcpConnector extends AbstractSipConnector
 		
 		public TcpConnection(SocketChannel channel, int id) throws IOException
 		{
-			_buffer = _inBuffers[id];
+            _buffer = BufferUtil.allocateDirect(MINIMAL_BUFFER_LENGTH);
+
 			_channel = channel;
 			_localAddr = (InetSocketAddress) _channel.getLocalAddress();
 			_remoteAddr = (InetSocketAddress) _channel.getRemoteAddress();
@@ -144,7 +163,7 @@ public class TcpConnector extends AbstractSipConnector
         {
 			try
 			{
-				getThreadPool().execute(this);
+				getExecutor().execute(this);
 			}
 			catch (RejectedExecutionException e)
             {
@@ -377,12 +396,11 @@ public class TcpConnector extends AbstractSipConnector
 			LOG.ignore(e);
 			host = "127.0.0.1";
 		}
-		
-		TcpConnector connector = new TcpConnector();
-		connector.setThreadPool(new QueuedThreadPool());
+
+		SipServer sipServer = new SipServer();
+		TcpConnector connector = new TcpConnector(sipServer);
 		connector.setHost(host);
 		connector.setPort(5060);
-		SipServer sipServer = new SipServer();
 		
 		sipServer.addConnector(connector);
 		

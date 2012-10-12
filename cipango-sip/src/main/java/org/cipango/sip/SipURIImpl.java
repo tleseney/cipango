@@ -157,6 +157,7 @@ public class SipURIImpl implements SipURI
 		
 		String key = null;
 		String value = null;
+		boolean ipv6Host = false;
 		
 		if (uri.indexOf('@') != -1)
 			state = State.USER;
@@ -210,7 +211,7 @@ public class SipURIImpl implements SipURI
 				
 				break;
 			case HOST:
-				if (c == ':')
+				if (c == ':' && !ipv6Host)
 				{
 					if (i-m>0)
 						_host = encoded ? UrlEncoded.decodeString(uri, m, i-m, null) : uri.substring(m, i);
@@ -246,6 +247,16 @@ public class SipURIImpl implements SipURI
 						throw new ParseException("missing host", i);
 					return;
 				}
+				else if (c == '[')
+				{
+					ipv6Host = true;
+				}
+				else if (c == ']')
+				{
+					if (!ipv6Host)
+						throw new ParseException("invalid host. Got ']' without '['", i);
+					ipv6Host = false;
+				}
 			
 				break;
 				
@@ -254,6 +265,9 @@ public class SipURIImpl implements SipURI
 				{
 					if (port == -1) port = 0;
 					port = port*10 + (c-'0');
+
+					if (port > 65536)
+						throw new ParseException("invalid port. Got " + port, i);
 				}
 				else
 				{
@@ -458,7 +472,10 @@ public class SipURIImpl implements SipURI
 	
 	public void setHost(String host) 
 	{
-		_host = host;
+		if (host.contains(":") && !host.contains("["))
+    		_host = "[" + host + "]";
+    	else
+            _host = host;
 	}
 	
 
@@ -585,6 +602,26 @@ public class SipURIImpl implements SipURI
 					buffer.append(value);
 				}
 			}
+		}
+		
+		Iterator<String> it2 = getHeaderNames();
+		boolean first = true;
+		while (it2.hasNext()) 
+		{
+			String name = it2.next();
+			String value = getHeader(name);
+			if (first) 
+			{
+				first = false;
+				buffer.append('?');
+			} 
+			else 
+			{
+				buffer.append('&');
+			}
+			buffer.append(StringUtil.encode(name, StringUtil.HEADER_BS));
+			buffer.append('=');
+			buffer.append(StringUtil.encode(value, StringUtil.HEADER_BS));
 		}
 		
 		return buffer.toString();

@@ -65,4 +65,11 @@ public class StringUtilTest
 		assertFalse(StringUtil.equals(null, "xxx"));
 		assertTrue(StringUtil.equals("xxx", "xxx"));
 	}
+	
+	@Test
+	public void testContains()
+	{
+		assertTrue(StringUtil.contains("aab" + StringUtil.TOKEN, StringUtil.TOKEN_BS));
+		assertFalse(StringUtil.contains("\n", StringUtil.TOKEN_BS));
+	}
 }

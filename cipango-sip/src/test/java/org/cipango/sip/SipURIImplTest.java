@@ -13,7 +13,8 @@ public class SipURIImplTest
 			"sip::", 
 			"sip:@", 
 			"sip:alice:@", 
-			"sip:alice@:5060"
+			"sip:alice@:5060",
+			"sip:alice@invalidPort:11111111111111"
 	};
 	
 	String[][] uris = {

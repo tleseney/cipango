@@ -15,7 +15,10 @@
 package org.cipango.sip;
 
 import java.text.ParseException;
+import java.util.AbstractMap;
 import java.util.BitSet;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -67,7 +70,15 @@ public class AddressImpl extends Parameters implements Address
 
 	public void parse() throws ParseException
 	{
-		StringScanner scanner = new StringScanner(_string);
+		String s = _string;
+		parse(_string, true);
+		_string = s;
+	}
+	
+	
+	private void parse(String address, boolean parseParam) throws ParseException 
+	{
+		StringScanner scanner = new StringScanner(address);
 		
 		int m = scanner.skipWhitespace().position();
 		
@@ -114,12 +125,13 @@ public class AddressImpl extends Parameters implements Address
 		}
 		else 
 		{
-			suri = scanner.skipToChar(';').readFromMark();
+			suri = scanner.skipToChar(';').skipBackWhitespace().readFromMark();
 		}
 		
-		_uri = new SipURIImpl(suri);
+		_uri = URIFactory.parseURI(suri);
 		
-		parseParameters(scanner);		
+		if (parseParam)
+			parseParameters(scanner);		
 	}
 	
 	@Override
@@ -132,15 +144,25 @@ public class AddressImpl extends Parameters implements Address
 	}
 
 	@Override
-	public Iterator<String> getParameterNames() {
-		// TODO Auto-generated method stub
-		return null;
+	public Iterator<String> getParameterNames() 
+	{
+		Iterator<String> it = super.getParameterNames();
+		if (_tag != null)
+			it = new TagIterator(it);
+		return it;
 	}
 
 	@Override
-	public Set<Entry<String, String>> getParameters() {
-		// TODO Auto-generated method stub
-		return null;
+	public Set<Entry<String, String>> getParameters() 
+	{
+		Set<Entry<String, String>> set = super.getParameters();
+		if (_tag != null)
+		{
+			set = new HashSet<Entry<String, String>>(set);
+			set.add(new AbstractMap.SimpleEntry<String, String>("tag", _tag));
+			set = Collections.unmodifiableSet(set);
+		}
+		return set;
 	}
 
 	/**
@@ -148,8 +170,7 @@ public class AddressImpl extends Parameters implements Address
 	 */
 	public String getValue() 
 	{
-		// TODO Auto-generated method stub
-		return null;
+		return getValueBuffer().toString();
 	}
 
 	/**
@@ -161,6 +182,7 @@ public class AddressImpl extends Parameters implements Address
 			_tag = null;
 		else 
 			super.removeParameter(name);
+		_string = null;
 	}
 
 	/**
@@ -174,13 +196,28 @@ public class AddressImpl extends Parameters implements Address
 			_tag = value;
 		else
 			super.setParameter(name, value);
+		_string = null;
 	}
 
 	@Override
 	public void setValue(String value) 
 	{
-		// TODO Auto-generated method stub
+		if (value == null)
+			throw new NullPointerException("Null value");
 		
+		try
+		{
+			_displayName = null;
+			_wildcard = false;
+			_string = null;
+			_uri = null;
+			parse(value, false);
+		}
+		catch (ParseException e)
+		{
+			// FIXME change exception class
+			throw new RuntimeException(e);
+		}
 	}
 
 	/**
@@ -194,15 +231,33 @@ public class AddressImpl extends Parameters implements Address
 	@Override
 	public int getExpires() 
 	{
-		// TODO Auto-generated method stub
-		return 0;
+		String expires = getParameter("expires");
+		if (expires != null) 
+		{
+			try 
+			{
+				return Integer.parseInt(expires);
+			} 
+			catch (NumberFormatException _) { }
+		}
+		return -1;
 	}
 
 	@Override
 	public float getQ() 
 	{
-		// TODO Auto-generated method stub
-		return 0;
+		String q = getParameter("q");
+		if (q != null) 
+		{
+			try 
+			{
+				return Float.parseFloat(q);
+			} 
+			catch (NumberFormatException _) 
+			{
+			}
+		}
+		return -1.0f;
 	}
 
 	/**
@@ -227,25 +282,36 @@ public class AddressImpl extends Parameters implements Address
 	public void setDisplayName(String name) 
 	{
 		_displayName = name;
+		_string = null;
 	}
 
 	@Override
-	public void setExpires(int arg0) {
-		// TODO Auto-generated method stub
-		
+	public void setExpires(int seconds) 
+	{
+		if (seconds < 0) 
+			removeParameter("expires");
+		else 
+			setParameter("expires", Integer.toString(seconds));
 	}
 
 	@Override
-	public void setQ(float arg0) {
-		// TODO Auto-generated method stub
-		
+	public void setQ(float q) 
+	{
+		if (q == -1.0f) 
+			removeParameter("q");
+		else 
+		{
+			if (q < 0 || q > 1.0f) 
+				throw new IllegalArgumentException("Invalid q value:" + q);
+			setParameter("q", String.valueOf(q));
+		}
 	}
 
 	@Override
 	public void setURI(URI uri) 
 	{
-		// TODO Auto-generated method stub
-		
+		_uri = uri;
+		_string = null;
 	}
 	
 	@Override
@@ -253,22 +319,30 @@ public class AddressImpl extends Parameters implements Address
 	{
 		if (_string == null)
 		{
-			StringBuilder buffer = new StringBuilder(64);
-			if (_displayName != null)
-				buffer.append(StringUtil.quoteIfNeeded(_displayName, DISPLAY_NAME_BS));
-			
-			buffer.append('<');
-			buffer.append(_uri.toString());
-			buffer.append('>');
+			StringBuilder buffer = getValueBuffer();
 			
 			if (_tag != null)
 			{
 				buffer.append(";tag=");
 				buffer.append(_tag);
 			}
+			appendParameters(buffer);
 			_string = buffer.toString();
 		}
+		//FIXME how detect that URI has been modified
 		return _string;
+	}
+	
+	public StringBuilder getValueBuffer()
+	{
+		StringBuilder buffer = new StringBuilder(64);
+		if (_displayName != null)
+			buffer.append(StringUtil.quoteIfNeeded(_displayName, DISPLAY_NAME_BS)).append(' ');
+		
+		buffer.append('<');
+		buffer.append(_uri.toString());
+		buffer.append('>');
+		return buffer;
 	}
 	
 	@Override
@@ -284,5 +358,69 @@ public class AddressImpl extends Parameters implements Address
 		{
 			throw new RuntimeException(e);
 		}
+	}
+	
+	@Override
+	public boolean equals(Object o) 
+	{
+		if (o == null || !(o instanceof Address)) 
+			return false;
+		
+		Address other = (Address) o;
+		
+		if (!_uri.equals(other.getURI()))
+			return false;
+		
+		if (!StringUtil.equals(_tag, other.getParameter("tag")))
+			return false;
+		
+		// Use super.getParameters() as tag has already been checked
+		for (Entry<String, String> entry : super.getParameters()) 
+		{
+			String otherValue = other.getParameter(entry.getKey()); 
+			if (otherValue != null && !entry.getValue().equals(otherValue))
+				return false;
+		}
+		return true;
+	}
+	
+	class TagIterator implements Iterator<String>
+	{
+		private Iterator<String> _it;
+		private boolean _tagRead = false;
+		private boolean _tagReading = true;
+		
+		public TagIterator(Iterator<String> it)
+		{
+			_it = it;
+		}
+		
+		@Override
+		public boolean hasNext()
+		{
+			return _it.hasNext() || !_tagRead;
+		}
+
+		@Override
+		public String next()
+		{
+			if (!_tagRead)
+			{
+				_tagRead = true;
+				return "tag";
+			}
+			_tagReading = false;
+			return _it.next();
+		}
+
+		@Override
+		public void remove()
+		{
+			if (_tagReading)
+				_tag = null;
+			else
+				_it.remove();
+		}
+		
 	}
 }

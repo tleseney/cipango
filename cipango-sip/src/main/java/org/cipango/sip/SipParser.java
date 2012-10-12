@@ -1,6 +1,7 @@
 package org.cipango.sip;
 
 import java.nio.ByteBuffer;
+import java.text.ParseException;
 
 import org.cipango.util.StringUtil;
 import org.eclipse.jetty.util.BufferUtil;
@@ -10,15 +11,16 @@ import org.eclipse.jetty.util.log.Logger;
 
 public class SipParser 
 {
-	enum State
+	public enum State
 	{
 		START,
-		METHOD,
-		RESPONSE_VERSION,
+		METHOD_OR_VERSION,
 		SPACE1,
 		URI,
+		STATUS,
 		SPACE2,
 		REQUEST_VERSION,
+		REASON_PHRASE,
 		HEADER,
 		HEADER_NAME,	
 		HEADER_IN_NAME,	
@@ -40,6 +42,7 @@ public class SipParser
 	private String _methodString;
 	private String _uri;
 	private SipVersion _version;
+	private long _status;
 	
 	private byte _eol;
 	private long _contentLength;
@@ -71,15 +74,12 @@ public class SipParser
 	{
 		while (_state == State.START && buffer.hasRemaining())
 		{
-			if (Character.isDigit(buffer.get(buffer.position())))
+			_version = SipVersion.lookAheadGet(buffer);
+			if (_version != null)
 			{
-				_version = SipVersion.lookAheadGet(buffer);
-				if (_version != null)
-				{
-					buffer.position(buffer.position()+_version.asString().length()+1);
-                    _state = State.SPACE1;
-                    return;
-				}
+				buffer.position(buffer.position()+_version.asString().length()+1);
+                _state = State.SPACE1;
+                return;
 			}
 			else 
 			{
@@ -104,13 +104,13 @@ public class SipParser
 			{				
 				_string.setLength(0);
 				_string.append((char) ch);
-				_state = Character.isDigit(ch) ? State.RESPONSE_VERSION : State.METHOD;
+				_state = State.METHOD_OR_VERSION;
 				return;
 			}
 		}
 	}
 	
-	private boolean parseLine(ByteBuffer buffer)
+	private boolean parseLine(ByteBuffer buffer) throws ParseException
 	{
 		boolean returnFromParse = false;
 		
@@ -127,13 +127,21 @@ public class SipParser
 			
 			switch (_state)
 			{
-				case METHOD:
+				case METHOD_OR_VERSION:
 					if (ch == SipGrammar.SPACE)
 					{
-						_methodString = takeString();
-						SipMethod method = SipMethod.CACHE.get(_methodString);
-						if (method != null)
-							_methodString = method.toString();
+						String methodOrVersion = takeString();
+						SipVersion version = SipVersion.CACHE.get(methodOrVersion);
+						if (version == null)
+						{
+							SipMethod method = SipMethod.CACHE.get(methodOrVersion);
+							if (method != null)
+								_methodString = method.toString();
+							else
+								_methodString = methodOrVersion;
+						}
+						else
+							_version = version;
 						_state = State.SPACE1;
 					}
 					else if (ch < SipGrammar.SPACE && ch >= 0)
@@ -150,10 +158,27 @@ public class SipParser
 				case SPACE1:
 					if (ch > SipGrammar.SPACE || ch < 0)
 					{
-						// TODO response
-						_state = State.URI;
-						_utf8.reset();
-						_utf8.append(ch);
+						if (Character.isDigit(ch))
+						{
+							_state = State.STATUS;
+							_status = ch - '0';
+							if (_version == null)
+							{
+								badMessage(buffer, "Unknown Version: " + _methodString);
+								return true;
+							}
+						}
+						else
+						{
+							_state = State.URI;
+							_utf8.reset();
+							_utf8.append(ch);
+							if (_version != null)
+							{
+								badMessage(buffer, "Invalid status");
+								return true;
+							}
+						}
 					}
 					else if (ch < SipGrammar.SPACE)
 					{
@@ -171,28 +196,50 @@ public class SipParser
 					else 
 						_utf8.append(ch);
 					break;
+				case STATUS:
+					if (ch == SipGrammar.SPACE)
+					{
+						if (_status < 100 || _status >= 700)
+							throw new ParseException("Invalid status code: " + _status, buffer.position());
+						_state = State.SPACE2;
+					}
+					else if (Character.isDigit(ch))
+						_status = _status * 10 +  ch - '0';
+					else
+						throw new ParseException("Invalid status code: " + _status + (char) ch, buffer.position());
+					break;
 				case SPACE2:
 					if (ch > SipGrammar.SPACE || ch < 0)
 					{
 						_string.setLength(0);
 						_string.append((char) ch);
-						// TODO response
-						
-						_state = State.REQUEST_VERSION;
-						
-						if (buffer.position() > 0 && buffer.hasArray())
+
+						if (_status == 0)
 						{
-							_version = SipVersion.lookAheadGet(buffer.array(), buffer.arrayOffset()+buffer.position()-1, 
-									buffer.arrayOffset()+buffer.limit());
-							if (_version != null)
+							_state = State.REQUEST_VERSION;
+							
+							if (buffer.position() > 0 && buffer.hasArray())
 							{
-								_string.setLength(0);
-								buffer.position(buffer.position()+_version.asString().length()-1);
-								_eol = buffer.get();
-								_state = State.HEADER;
-								returnFromParse |= _handler.startRequest(_methodString, _uri, _version);
+								_version = SipVersion.lookAheadGet(buffer.array(), buffer.arrayOffset()+buffer.position()-1, 
+										buffer.arrayOffset()+buffer.limit());
+								if (_version != null)
+								{
+									_string.setLength(0);
+									buffer.position(buffer.position()+_version.asString().length()-1);
+									_eol = buffer.get();
+									_state = State.HEADER;
+									returnFromParse |= _handler.startRequest(_methodString, _uri, _version);
+								}
 							}
 						}
+						else
+							_state = State.REASON_PHRASE;
+					}
+					else if (ch == SipGrammar.CR || ch == SipGrammar.LF)
+					{
+						_eol = ch;
+						_state = State.HEADER;
+						returnFromParse |= _handler.startResponse(_version, (int) _status, "");
 					}
 					break;
 				case REQUEST_VERSION:
@@ -209,6 +256,21 @@ public class SipParser
 						_eol = ch;
 						_state = State.HEADER;
 						returnFromParse |= _handler.startRequest(_methodString, _uri, _version);
+					}
+					else
+					{
+						_string.append((char) ch);
+					}
+					break;
+				
+				case REASON_PHRASE:
+					if (ch == SipGrammar.CR || ch == SipGrammar.LF)
+					{
+						String reason = takeString();
+						
+						_eol = ch;
+						_state = State.HEADER;
+						returnFromParse |= _handler.startResponse(_version, (int) _status, reason);
 					}
 					else
 					{
@@ -255,7 +317,7 @@ public class SipParser
 								{
 									try
 									{
-										_contentLength = Long.parseLong(_valueString);
+										_contentLength = Long.parseLong(_valueString.trim());
 									}
 									catch (NumberFormatException e)
 									{
@@ -301,7 +363,7 @@ public class SipParser
 								_state = State.HEADER_NAME;
 								_string.setLength(0);
 								_string.append((char) ch);
-								_length = -1;
+								_length = 1;
 							}
 					}
 					
@@ -583,7 +645,8 @@ public class SipParser
 	
 	public interface SipMessageHandler
 	{
-		boolean startRequest(String method, String uri, SipVersion version);
+		boolean startRequest(String method, String uri, SipVersion version) throws ParseException;
+		boolean startResponse(SipVersion version, int status, String reason) throws ParseException;
 		boolean parsedHeader(SipHeader header, String name, String value);
 		boolean headerComplete();
 		boolean messageComplete(ByteBuffer content);

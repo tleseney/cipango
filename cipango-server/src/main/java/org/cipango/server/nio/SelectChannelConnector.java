@@ -252,6 +252,11 @@ public class SelectChannelConnector extends AbstractSipConnector
         }
     }
     
+    protected Connection newConnection(EndPoint endpoint)
+    {
+    	return new SelectSipConnection(this, endpoint);
+    }
+    
     private final class ConnectorSelectorManager extends SelectorManager
     {
         private ConnectorSelectorManager(Executor executor, Scheduler scheduler, int selectSets)
@@ -272,7 +277,7 @@ public class SelectChannelConnector extends AbstractSipConnector
 		public Connection newConnection(SocketChannel channel,
 				EndPoint endpoint, Object attachment)
 		{
-        	return new SelectSipConnection(SelectChannelConnector.this, endpoint);
+        	return SelectChannelConnector.this.newConnection(endpoint);
 		}
     }
     

@@ -7,6 +7,7 @@ import java.net.Socket;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.Executor;
 
 import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.SipServer;
@@ -21,9 +22,9 @@ import org.eclipse.jetty.io.EndPoint;
 import org.eclipse.jetty.io.SelectChannelEndPoint;
 import org.eclipse.jetty.io.SelectorManager;
 import org.eclipse.jetty.server.AbstractConnector;
+import org.eclipse.jetty.util.annotation.Name;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
-import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.util.thread.Scheduler;
 import org.eclipse.jetty.util.thread.TimerScheduler;
 
@@ -33,29 +34,47 @@ public class SelectChannelConnector extends AbstractSipConnector
 
 	public static final int DEFAULT_SO_TIMEOUT = 2 * Transaction.__T1 * 64;
 
-    private Scheduler _scheduler;
+    private final Scheduler _scheduler;
+    private final ByteBufferPool _byteBufferPool;
     private final SelectorManager _manager;
-	private ServerSocketChannel _acceptChannel;
+
+    private ServerSocketChannel _acceptChannel;
     private int _localPort = -1;
     
-    private volatile ByteBufferPool _byteBufferPool;
     private volatile int _acceptQueueSize = 128;
     private volatile long _idleTimeout = DEFAULT_SO_TIMEOUT;
     private volatile boolean _reuseAddress = true;
     private volatile int _soLingerTime = -1;
 
-    public SelectChannelConnector()
+    public SelectChannelConnector(
+    		@Name("sipServer") SipServer server)
     {
-        this(Math.max(1,(Runtime.getRuntime().availableProcessors())/4),
-             Math.max(1,(Runtime.getRuntime().availableProcessors())/4));
+        this(server,
+        		Math.max(1,(Runtime.getRuntime().availableProcessors())/4),
+        		Math.max(1,(Runtime.getRuntime().availableProcessors())/4));
     }
 
-    public SelectChannelConnector(int acceptors, int selectors)
+    public SelectChannelConnector(
+            @Name("sipServer") SipServer server,
+            @Name("acceptors") int acceptors,
+            @Name("selectors") int selectors)
     {
-        super(acceptors);
-		_byteBufferPool = new ArrayByteBufferPool();
-        _manager = new ConnectorSelectorManager(selectors);
-        _scheduler = new TimerScheduler();
+        this(server, null, null, null, acceptors, selectors);
+    }
+    
+    public SelectChannelConnector(
+            @Name("sipServer") SipServer server,
+            @Name("executor") Executor executor,
+            @Name("scheduler") Scheduler scheduler,
+            @Name("bufferPool") ByteBufferPool pool,
+            @Name("acceptors") int acceptors,
+            @Name("selectors") int selectors)
+    {
+    	super(server, executor, acceptors);
+
+		_scheduler = scheduler != null? scheduler: new TimerScheduler();
+		_byteBufferPool = pool != null? pool: new ArrayByteBufferPool();
+        _manager = new ConnectorSelectorManager(getExecutor(), _scheduler, selectors);
 
         addBean(_manager, true);
         addBean(_scheduler, true);
@@ -235,15 +254,9 @@ public class SelectChannelConnector extends AbstractSipConnector
     
     private final class ConnectorSelectorManager extends SelectorManager
     {
-        private ConnectorSelectorManager(int selectSets)
+        private ConnectorSelectorManager(Executor executor, Scheduler scheduler, int selectSets)
         {
-            super(selectSets);
-        }
-
-        @Override
-        protected void execute(Runnable task)
-        {
-            getThreadPool().execute(task);
+            super(executor, scheduler, selectSets);
         }
 
         @Override
@@ -276,14 +289,11 @@ public class SelectChannelConnector extends AbstractSipConnector
 			host = "127.0.0.1";
 		}
 		
+		SipServer sipServer = new SipServer();
 		
-		
-		SelectChannelConnector connector = new SelectChannelConnector();
-		connector.setThreadPool(new QueuedThreadPool());
+		SelectChannelConnector connector = new SelectChannelConnector(sipServer);
 		connector.setHost(host);
 		connector.setPort(5060);
-
-		SipServer sipServer = new SipServer();
 				
 		sipServer.addConnector(connector);
 		

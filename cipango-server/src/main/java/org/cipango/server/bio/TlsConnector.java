@@ -20,6 +20,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.security.cert.X509Certificate;
+import java.util.concurrent.Executor;
 
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
@@ -32,15 +33,14 @@ import javax.net.ssl.SSLSocketFactory;
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipServer;
 import org.cipango.server.Transport;
-import org.cipango.server.bio.TcpConnector.TcpConnection;
 import org.cipango.server.nio.TcpConnector.MessageBuilder;
 import org.cipango.server.servlet.DefaultServlet;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.sip.SipVersion;
+import org.eclipse.jetty.util.annotation.Name;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
-import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 public class TlsConnector  extends TcpConnector
 {
@@ -49,9 +49,30 @@ public class TlsConnector  extends TcpConnector
 	private boolean _allowRenegotiate = true;
 	private int _handshakeTimeout = 0; // 0 means use maxIdleTime
 	
-	public TlsConnector(SslContextFactory sslContextFactory)
-	{
-		_sslContextFactory = sslContextFactory;
+    public TlsConnector(
+    		@Name("sipServer") SipServer server,
+    		@Name("sslContextFactory") SslContextFactory sslContextFactory)
+    {
+        this(server, null, Math.max(1,(Runtime.getRuntime().availableProcessors())/2), sslContextFactory);
+    }
+
+    public TlsConnector(
+            @Name("sipServer") SipServer server,
+            @Name("acceptors") int acceptors,
+    		@Name("sslContextFactory") SslContextFactory sslContextFactory)
+    {
+        this(server, null, acceptors, sslContextFactory);
+    }
+
+    public TlsConnector(
+            @Name("sipServer") SipServer server,
+            @Name("executor") Executor executor,
+            @Name("acceptors") int acceptors,
+            @Name("sslContextFactory") SslContextFactory sslContextFactory)
+    {
+    	super(server, executor, acceptors);
+
+    	_sslContextFactory = sslContextFactory;
         addBean(_sslContextFactory);
 	}
 	
@@ -308,14 +329,12 @@ public class TlsConnector  extends TcpConnector
 		factory.setKeyStorePassword("OBF:1vny1zlo1x8e1vnw1vn61x8g1zlu1vn4");
 		factory.setKeyManagerPassword("OBF:1u2u1wml1z7s1z7a1wnl1u2g");
 		//factory.setIncludeCipherSuites("TLS_RSA_WITH_AES_128_CBC_SHA256", "TLS_RSA_WITH_3DES_EDE_CBC_SHA");
-		
-		TlsConnector connector = new TlsConnector(factory);
-		connector.setThreadPool(new QueuedThreadPool());
-		connector.setHost(host);
-		connector.setPort(5061);
 
 		SipServer sipServer = new SipServer();
-				
+		TlsConnector connector = new TlsConnector(sipServer, factory);
+		connector.setHost(host);
+		connector.setPort(5061);
+			
 		sipServer.addConnector(connector);
 		
 		SipAppContext context = new SipAppContext();

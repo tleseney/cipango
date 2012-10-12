@@ -13,6 +13,7 @@ import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.MultiException;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
+import org.eclipse.jetty.util.annotation.Name;
 import org.eclipse.jetty.util.component.ContainerLifeCycle;
 import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.util.log.Log;
@@ -27,7 +28,7 @@ public class SipServer extends ContainerLifeCycle
 
 	private static final String __version;
 	
-	private ThreadPool _threadPool;
+	private final ThreadPool _threadPool;
 	private SipConnector[] _connectors;
 	
 	private SipHandler _handler;
@@ -43,31 +44,27 @@ public class SipServer extends ContainerLifeCycle
 	
 	public SipServer()
 	{
+		this(null);
 	}
 	
-	public SipServer(int port)
+	public SipServer(@Name("port") int port)
 	{
-		SipConnector connector = new UdpConnector();
+		this(null);
+		SipConnector connector = new UdpConnector(this);
 		connector.setPort(port);
 		setConnectors(new SipConnector[] {connector});
 	}
 	
-	public void setThreadPool(ThreadPool threadPool)
+	public SipServer(@Name("threadpool") ThreadPool pool)
 	{
-		_threadPool = threadPool;
-		addBean(threadPool);
+        _threadPool = pool != null? pool: new QueuedThreadPool();
+        addBean(_threadPool);
 	}
 	
 	@Override
 	protected void doStart() throws Exception
 	{
 		LOG.info("cipango-" + __version);
-		
-		if (_threadPool == null)
-			setThreadPool(new QueuedThreadPool());
-		
-		if (_threadPool instanceof LifeCycle)
-			((LifeCycle) _threadPool).start();
 		
 		//_processor = new TransportProcessor(new SessionProcessor(new TransactionProcessor(new SipSessionProcessor())));
 		_processor = new TransportProcessor(new TransactionManager());
@@ -78,7 +75,16 @@ public class SipServer extends ContainerLifeCycle
 		_handler.start();
 		
 		MultiException mex = new MultiException();
-		
+
+        try
+        {
+            super.doStart();
+        }
+        catch(Throwable e)
+        {
+            mex.add(e);
+        }
+        
 		if (_connectors != null)
 		{
 			for (int i = 0; i <  _connectors.length; i++)
@@ -138,12 +144,6 @@ public class SipServer extends ContainerLifeCycle
 	
 	public void setConnectors(SipConnector[] connectors)
     {
-        if (connectors!=null)
-        {
-            for (int i=0; i < connectors.length; i++)
-                connectors[i].setServer(this);
-        }
-
         updateBeans(_connectors, connectors);
         _connectors = connectors;
     }

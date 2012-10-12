@@ -6,8 +6,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.text.ParseException;
-
-import javax.servlet.sip.SipServletResponse;
+import java.util.concurrent.Executor;
 
 import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.SipConnection;
@@ -15,6 +14,7 @@ import org.cipango.server.SipConnector;
 import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
+import org.cipango.server.SipServer;
 import org.cipango.server.Transport;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipGenerator;
@@ -24,13 +24,12 @@ import org.cipango.sip.SipParser;
 import org.cipango.sip.SipVersion;
 import org.cipango.sip.URIFactory;
 import org.cipango.sip.Via;
-import org.cipango.sip.SipParser.State;
 import org.eclipse.jetty.io.ArrayByteBufferPool;
 import org.eclipse.jetty.io.ByteBufferPool;
 import org.eclipse.jetty.util.BufferUtil;
+import org.eclipse.jetty.util.annotation.Name;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
-import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 public class UdpConnector extends AbstractSipConnector
 {
@@ -44,6 +43,27 @@ public class UdpConnector extends AbstractSipConnector
 	private ByteBuffer[] _inBuffers;
 	private ByteBufferPool _outBuffers;
 	
+    public UdpConnector(
+    		@Name("sipServer") SipServer server)
+    {
+        this(server, null, Math.max(1,(Runtime.getRuntime().availableProcessors())/2));
+    }
+
+    public UdpConnector(
+            @Name("sipServer") SipServer server,
+            @Name("acceptors") int acceptors)
+    {
+        this(server, null, acceptors);
+    }
+
+    public UdpConnector(
+            @Name("sipServer") SipServer server,
+            @Name("executor") Executor executor,
+            @Name("acceptors") int acceptors)
+    {
+    	super(server, executor, acceptors);
+    }
+
 	public Transport getTransport()
 	{
 		return Transport.UDP;
@@ -273,8 +293,8 @@ public class UdpConnector extends AbstractSipConnector
 	
 	public static void main(String[] args) throws Exception 
 	{
-		UdpConnector connector = new UdpConnector();
-		connector.setThreadPool(new QueuedThreadPool());
+		SipServer sipServer = new SipServer();
+		UdpConnector connector = new UdpConnector(sipServer);
 		connector.setHost("192.168.2.127");
 		connector.setPort(5060);
 		connector.start(); 

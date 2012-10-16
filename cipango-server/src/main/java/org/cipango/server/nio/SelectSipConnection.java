@@ -224,6 +224,7 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 			super(server, connection);
 		}
 
+		@Override
 		public boolean headerComplete()
 		{
 			if (!_message.getFields().containsKey(SipHeader.CONTENT_LENGTH.toString()))
@@ -240,6 +241,12 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 				return true;
 			}
 			return false;
+		}
+		
+		@Override
+		public void badMessage(int status, String reason)
+		{
+			((AbstractConnection)_connection).close();
 		}
 	}
 }

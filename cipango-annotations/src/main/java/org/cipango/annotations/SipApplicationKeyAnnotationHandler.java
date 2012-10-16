@@ -45,7 +45,13 @@ public class SipApplicationKeyAnnotationHandler extends AbstractDiscoverableAnno
 	public void handleField(String className, String fieldName, int access, String fieldType,
 			String signature, Object value, String annotation, List<Value> values)
 	{
-		LOG.warn("@SipApplication annotation not applicable for fields: " + className + "." + fieldName);
+		LOG.warn("@SipApplicationKey annotation not applicable for fields: " + className + "." + fieldName);
+	}
+
+	@Override
+	public String getAnnotationName()
+	{
+		return "javax.servlet.sip.annotation.SipApplicationKey";
 	}
 
 

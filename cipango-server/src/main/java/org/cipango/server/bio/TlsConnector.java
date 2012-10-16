@@ -20,6 +20,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.security.cert.X509Certificate;
+import java.text.ParseException;
 import java.util.concurrent.Executor;
 
 import javax.net.ssl.HandshakeCompletedEvent;
@@ -42,6 +43,7 @@ import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
+@Deprecated
 public class TlsConnector  extends TcpConnector
 {
 	private static final Logger LOG = Log.getLogger(TlsConnector.class);
@@ -296,7 +298,7 @@ public class TlsConnector  extends TcpConnector
 		}
 
 		@Override
-		public boolean startRequest(String method, String uri, SipVersion version)
+		public boolean startRequest(String method, String uri, SipVersion version) throws ParseException
 		{
 			LOG.warn("startRequest {}", method);
 			return super.startRequest(method, uri, version);

@@ -35,7 +35,7 @@ import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipURI;
 
-import org.cipango.server.nio.UdpConnector.MessageBuilder;
+import org.cipango.server.AbstractSipConnector.MessageBuilder;
 import org.cipango.server.processor.TransportProcessor;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipParser;
@@ -302,6 +302,11 @@ public class SipMessageParserTortureTest
 	
 	class TestMessageBuilder extends MessageBuilder
 	{
+		public TestMessageBuilder()
+		{
+			super(null, null);
+		}
+
 		private String _reason;
 		
 		@Override

@@ -163,19 +163,6 @@ public class SelectChannelConnector extends AbstractSipConnector
         return _scheduler;
     }
 
-    
-	@Override
-	protected void doStart() throws Exception
-	{
-        super.doStart();
-    }
-
-    @Override
-    protected void doStop() throws Exception
-    {
-        super.doStop();
-    }
-    
 	@Override
 	public Transport getTransport()
 	{

@@ -44,6 +44,7 @@ import org.eclipse.jetty.util.annotation.Name;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
+@Deprecated
 public class TcpConnector extends AbstractSipConnector //implements Buffers
 {
 	private static final Logger LOG = Log.getLogger(TcpConnector.class);

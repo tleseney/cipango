@@ -289,6 +289,7 @@ public class TcpConnector extends AbstractSipConnector
 			super(server, connection);
 		}
 
+		@Override
 		public boolean headerComplete()
 		{
 			if (!_message.getFields().containsKey(SipHeader.CONTENT_LENGTH.toString()))
@@ -305,6 +306,12 @@ public class TcpConnector extends AbstractSipConnector
 				return true;
 			}
 			return false;
+		}
+		
+		@Override
+		public void badMessage(int status, String reason)
+		{
+			// TODO: close the connection.
 		}
 	}
 	

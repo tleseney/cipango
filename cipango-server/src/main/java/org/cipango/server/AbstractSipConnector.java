@@ -338,7 +338,6 @@ public abstract class AbstractSipConnector extends ContainerLifeCycle  implement
 			if (_server != null)
 				_server.process(_message);
 
-			reset();
         	return true;
 		}
 
@@ -346,15 +345,6 @@ public abstract class AbstractSipConnector extends ContainerLifeCycle  implement
 		public void badMessage(int status, String reason)
 		{
 			LOG.debug("Bad message: {} {}", status, reason);
-
-//			if (_message != null && _message.isRequest())
-//			{
-//				SipRequest request = (SipRequest) _message;
-//				SipResponse response = (SipResponse) request.createResponse(
-//						status, reason);
-//				_connection.send(response);
-//			}
-			reset();
 		}
 		
 		public SipMessage getMessage()

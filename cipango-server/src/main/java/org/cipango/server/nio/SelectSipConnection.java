@@ -4,9 +4,9 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
-import java.text.ParseException;
 import java.util.concurrent.ExecutionException;
 
+import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipConnector;
 import org.cipango.server.SipMessage;
@@ -14,13 +14,9 @@ import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
 import org.cipango.server.SipServer;
 import org.cipango.server.Transport;
-import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipGenerator;
 import org.cipango.sip.SipHeader;
-import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipParser;
-import org.cipango.sip.SipVersion;
-import org.cipango.sip.Via;
 import org.eclipse.jetty.io.AbstractConnection;
 import org.eclipse.jetty.io.ByteBufferPool;
 import org.eclipse.jetty.io.EndPoint;
@@ -48,7 +44,7 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 		_endpoint = endpoint;
         _bufferPool = _connector.getByteBufferPool();
 
-        MessageBuilder builder = new MessageBuilder(this);
+        MessageBuilder builder = new MessageBuilder(getServer(), this);
         _parser = new SipParser(builder);
 	}
 
@@ -221,67 +217,11 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
         }
     }
     
-	class MessageBuilder implements SipParser.SipMessageHandler
+	class MessageBuilder extends AbstractSipConnector.MessageBuilder
 	{
-		private SelectSipConnection _connection;
-		private SipMessage _message;
-		
-		public MessageBuilder(SipConnection connection)
+		public MessageBuilder(SipServer server, SipConnection connection)
 		{
-			_connection = (SelectSipConnection) connection;
-		}
-		
-		public boolean startRequest(String method, String uri, SipVersion version)
-		{
-			SipRequest request = new SipRequest();
-			
-			SipMethod m = SipMethod.CACHE.get(method);
-			request.setMethod(m, method);
-			
-			_message = request;
-			return false;
-		}
-
-		@Override
-		public boolean startResponse(SipVersion version, int status,
-				String reason) throws ParseException
-		{
-			// TODO Auto-generated method stub
-			return false;
-		}
-
-		public boolean parsedHeader(SipHeader header, String name, String value)
-		{
-			Object o = value;
-			
-			try
-			{	
-				if (header != null)
-				{
-					switch (header.getType())
-					{
-					case VIA:
-						Via via = new Via(value);
-						via.parse();
-						o = via;
-						break;
-					case ADDRESS:
-						AddressImpl addr = new AddressImpl(value);
-						addr.parse();
-						o = addr;
-						break;
-					default:
-						break;
-					}
-				}
-			}
-			catch (ParseException e)
-			{
-				LOG.warn(e);
-				return true;
-			}
-			_message.getFields().add(name, o, false);
-			return false;
+			super(server, connection);
 		}
 
 		public boolean headerComplete()
@@ -289,39 +229,17 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 			if (!_message.getFields().containsKey(SipHeader.CONTENT_LENGTH.toString()))
 			{
 				// RFC3261 18.3.
-				badMessage(400, "Content-Length is mandatory");
+				if (_message.isRequest())
+				{
+					SipRequest request = (SipRequest) _message;
+					SipResponse response = (SipResponse) request.createResponse(
+							400, "Content-Length is mandatory");
+					_connection.send(response);
+				}
+				reset();
 				return true;
 			}
 			return false;
-		}
-
-		public boolean messageComplete(ByteBuffer content) 
-		{
-			_message.setConnection(_connection);
-			_message.setTimeStamp(System.currentTimeMillis());
-			getServer().process(_message);
-			
-			// TODO: _message.setContent()
-			
-			reset();
-        	return true;
-		}
-		
-		public void badMessage(int status, String reason)
-		{
-			if (_message != null && _message.isRequest())
-			{
-				SipRequest request = (SipRequest) _message;
-				SipResponse response = (SipResponse) request.createResponse(
-						status, reason);
-				_connection.send(response);
-			}
-			reset();
-		}
-
-		protected void reset()
-		{
-			_message = null;
 		}
 	}
 }

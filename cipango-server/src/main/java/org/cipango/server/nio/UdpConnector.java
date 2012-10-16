@@ -5,25 +5,17 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
-import java.text.ParseException;
 import java.util.concurrent.Executor;
 
 import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipConnector;
 import org.cipango.server.SipMessage;
-import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
 import org.cipango.server.SipServer;
 import org.cipango.server.Transport;
-import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipGenerator;
-import org.cipango.sip.SipHeader;
-import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipParser;
-import org.cipango.sip.SipVersion;
-import org.cipango.sip.URIFactory;
-import org.cipango.sip.Via;
 import org.eclipse.jetty.io.ArrayByteBufferPool;
 import org.eclipse.jetty.io.ByteBufferPool;
 import org.eclipse.jetty.util.BufferUtil;
@@ -197,103 +189,10 @@ public class UdpConnector extends AbstractSipConnector
 		public void process(ByteBuffer buffer) throws IOException
 		{
 			
-			MessageBuilder builder = new MessageBuilder();
+			MessageBuilder builder = new MessageBuilder(getServer(), this);
 			SipParser parser = new SipParser(builder);
 			
 			parser.parseNext(buffer);
-
-			// FIXME how handle this case
-//			if (parser.getState() != State.END)
-//				throw new IOException("Parse not ended: state is " + parser.getState());
-			
-			SipMessage message = builder._message;
-			message.setConnection(this);
-			message.setTimeStamp(System.currentTimeMillis());
-			
-			getServer().process(message);
-		}
-	}
-	
-	public static class MessageBuilder implements SipParser.SipMessageHandler
-	{
-		private SipMessage _message;
-		
-		public boolean startRequest(String method, String uri, SipVersion version) throws ParseException
-		{
-			SipRequest request = new SipRequest();
-			
-			SipMethod m = SipMethod.CACHE.get(method);
-			request.setMethod(m, method);
-
-			_message = request;
-			request.setRequestURI(URIFactory.parseURI(uri));
-	
-			return false;
-		}
-
-		@Override
-		public boolean startResponse(SipVersion version, int status, String reason) throws ParseException
-		{
-			SipResponse response = new SipResponse();
-			response.setStatus(status, reason);
-			_message = response;
-			return false;
-		}
-
-		public boolean parsedHeader(SipHeader header, String name, String value)
-		{
-			Object o = value;
-			
-			try
-			{	
-				if (header != null)
-				{
-					switch (header.getType())
-					{
-					case VIA:
-						Via via = new Via(value);
-						via.parse();
-						o = via;
-						break;
-					case ADDRESS:
-						AddressImpl addr = new AddressImpl(value);
-						addr.parse();
-						o = addr;
-						break;
-					}
-				}
-			}
-			catch (ParseException e)
-			{
-				LOG.warn(e);
-				return true;
-			}
-			if (header != null)
-				name = header.asString();
-			if (o == null) // FIXME where this case should be handle
-				o = "";
-			_message.getFields().add(name, o, false);
-			return false;
-		}
-
-		public boolean headerComplete() 
-		{
-			return false;
-		}
-
-		public boolean messageComplete(ByteBuffer content) 
-		{
-			return false;
-		}
-		
-		public void badMessage(int status, String reason)
-		{
-			
-		}
-
-		public SipMessage getMessage()
-		{
-			return _message;
 		}
 	}
 	

@@ -7,7 +7,6 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executor;
@@ -24,13 +23,9 @@ import org.cipango.server.Transport;
 import org.cipango.server.servlet.DefaultServlet;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.Transaction;
-import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipGenerator;
 import org.cipango.sip.SipHeader;
-import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipParser;
-import org.cipango.sip.SipVersion;
-import org.cipango.sip.Via;
 import org.eclipse.jetty.io.ArrayByteBufferPool;
 import org.eclipse.jetty.io.ByteBufferPool;
 import org.eclipse.jetty.util.BufferUtil;
@@ -304,69 +299,11 @@ public class TcpConnector extends AbstractSipConnector
 		}
 	}
 	
-	public static class MessageBuilder implements SipParser.SipMessageHandler
+	public static class MessageBuilder extends AbstractSipConnector.MessageBuilder
 	{
-		protected SipConnection _connection;
-		protected SipMessage _message;
-		private SipServer _server;
-		
 		public MessageBuilder(SipServer server, SipConnection connection)
 		{
-			_server = server;
-			_connection = connection;
-		}
-		
-		public boolean startRequest(String method, String uri, SipVersion version)
-		{
-			SipRequest request = new SipRequest();
-			
-			SipMethod m = SipMethod.CACHE.get(method);
-			request.setMethod(m, method);
-			
-			_message = request;
-			return false;
-		}
-
-		@Override
-		public boolean startResponse(SipVersion version, int status,
-				String reason) throws ParseException
-		{
-			// TODO Auto-generated method stub
-			return false;
-		}
-		
-		public boolean parsedHeader(SipHeader header, String name, String value)
-		{
-			Object o = value;
-			
-			try
-			{	
-				if (header != null)
-				{
-					switch (header.getType())
-					{
-					case VIA:
-						Via via = new Via(value);
-						via.parse();
-						o = via;
-						break;
-					case ADDRESS:
-						AddressImpl addr = new AddressImpl(value);
-						addr.parse();
-						o = addr;
-						break;
-					default:
-						break;
-					}
-				}
-			}
-			catch (ParseException e)
-			{
-				LOG.warn(e);
-				return true;
-			}
-			_message.getFields().add(name, o, false);
-			return false;
+			super(server, connection);
 		}
 
 		public boolean headerComplete()
@@ -385,27 +322,6 @@ public class TcpConnector extends AbstractSipConnector
 				return true;
 			}
 			return false;
-		}
-
-		public boolean messageComplete(ByteBuffer content) 
-		{
-			_message.setConnection(_connection);
-			_message.setTimeStamp(System.currentTimeMillis());
-						
-			_server.process(_message);
-			
-			reset();
-			return true;
-		}
-		
-		public void badMessage(int status, String reason)
-		{
-			reset();
-		}
-
-		protected void reset()
-		{
-			_message = null;
 		}
 	}
 	

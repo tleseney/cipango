@@ -1,6 +1,7 @@
 package org.cipango.server;
 
 import java.io.IOException;
+import java.net.InetAddress;
 
 import javax.servlet.sip.SipURI;
 
@@ -26,10 +27,12 @@ public interface SipConnector extends LifeCycle
 	int getPort();
 	
 	SipURI getURI();
+		
+	SipConnection getConnection(InetAddress address, int port) throws IOException;
 	
 	/**
 	 * @return the actual address on which the connector is bound
 	 */
-	//InetAddress getAddress();
+	InetAddress getAddress();
 }
 

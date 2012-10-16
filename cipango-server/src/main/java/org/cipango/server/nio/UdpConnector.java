@@ -121,6 +121,12 @@ public class UdpConnector extends AbstractSipConnector
 		
 	}
 	
+	@Override
+	public SipConnection getConnection(InetAddress address, int port)
+	{
+		return new UdpConnection(new InetSocketAddress(address, port));
+	}
+	
 	class UdpConnection implements SipConnection
 	{
 		private InetSocketAddress _address;
@@ -300,4 +306,5 @@ public class UdpConnector extends AbstractSipConnector
 		connector.start(); 
 		
 	}
+
 }

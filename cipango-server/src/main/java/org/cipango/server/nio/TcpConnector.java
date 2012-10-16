@@ -1,6 +1,7 @@
 package org.cipango.server.nio;
 
 import java.io.IOException;
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -37,6 +38,7 @@ import org.eclipse.jetty.util.annotation.Name;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
+@Deprecated
 public class TcpConnector extends AbstractSipConnector
 {
 	private static final Logger LOG = Log.getLogger(TcpConnector.class);
@@ -120,6 +122,21 @@ public class TcpConnector extends AbstractSipConnector
 	public void setConnectionTimeout(int connectionTimeout)
 	{
 		_connectionTimeout = connectionTimeout;
+	}
+	
+
+	@Override
+	public SipConnection getConnection(InetAddress address, int port) throws IOException
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public InetAddress getAddress()
+	{
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 	protected void addConnection(TcpConnection connection)
@@ -393,7 +410,7 @@ public class TcpConnector extends AbstractSipConnector
 	}
 	
 	public static void main(String[] args) throws Exception 
-	{
+	{		
 		String host = null;
 		try
 		{
@@ -419,4 +436,6 @@ public class TcpConnector extends AbstractSipConnector
 		
 		sipServer.start();
 	}
+
+
 }

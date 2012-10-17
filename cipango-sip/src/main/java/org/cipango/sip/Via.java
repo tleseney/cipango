@@ -235,4 +235,19 @@ public class Via extends Parameters implements Parameterable
 			throw new RuntimeException(e);
 		}
 	}
+
+	public void setTransport(String transport)
+	{
+		_transport = transport;
+	}
+
+	public void setHost(String host)
+	{
+		_host = host;
+	}
+
+	public void setPort(int port)
+	{
+		_port = port;
+	}
 }

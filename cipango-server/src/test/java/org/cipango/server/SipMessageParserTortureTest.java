@@ -296,6 +296,7 @@ public class SipMessageParserTortureTest
 		{
 			os.write(buffer, 0, read);
 		}
+		is.close();
 		return os.toByteArray();
 	}
 	

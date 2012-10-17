@@ -481,9 +481,9 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public byte[] getRawContent() throws IOException {
-		// TODO Auto-generated method stub
-		return null;
+	public byte[] getRawContent() 
+	{
+		return _content;
 	}
 
 	/**

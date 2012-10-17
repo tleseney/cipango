@@ -275,10 +275,15 @@ public class SipFields implements Iterable<SipFields.Field>
 		public void putTo(ByteBuffer buffer)
 		{
 			if (_header != null)
-			{
 				buffer.put(_header.getBytesColonSpace());
-				buffer.put(StringUtil.getBytes(_value.toString(), StringUtil.__UTF8));
+			else
+			{
+				buffer.put(StringUtil.getUtf8Bytes(_name));
+				buffer.put(SipGrammar.COLON);
+				buffer.put(SipGrammar.SPACE);
 			}
+
+			buffer.put(StringUtil.getBytes(_value.toString(), StringUtil.__UTF8));
 			BufferUtil.putCRLF(buffer);
 			
 			if (_next != null)

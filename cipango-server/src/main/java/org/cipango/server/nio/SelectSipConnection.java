@@ -35,7 +35,9 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 	private SelectChannelConnector _connector;
 	private EndPoint _endpoint;
 	private SipParser _parser;
-    ByteBuffer _buffer;
+    private ByteBuffer _buffer;
+    private final SipGenerator _sipGenerator;
+    
 	
 	public SelectSipConnection(SelectChannelConnector connector, EndPoint endpoint)
 	{
@@ -46,6 +48,7 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 
         MessageBuilder builder = new MessageBuilder(getServer(), this);
         _parser = new SipParser(builder);
+        _sipGenerator = new SipGenerator();
 	}
 
 	public SipServer getServer()
@@ -154,12 +157,22 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 	@Override
 	public void send(SipMessage message)
 	{
-		SipResponse response = (SipResponse) message;
 		ByteBuffer buffer = _bufferPool.acquire(MINIMAL_BUFFER_LENGTH, false);
 		buffer.clear();
 		
-		new SipGenerator().generateResponse(buffer, response.getStatus(),
-				response.getReasonPhrase(), response.getFields());
+		if (message instanceof SipResponse)
+		{
+
+			SipResponse response = (SipResponse) message;
+			_sipGenerator.generateResponse(buffer, response.getStatus(),
+					response.getReasonPhrase(), response.getFields(), response.getRawContent());
+		}
+		else
+		{
+			SipRequest request = (SipRequest) message;
+			_sipGenerator.generateRequest(buffer, request.getMethod(), request.getRequestURI(), 
+					request.getFields(), request.getRawContent());
+		}
 
 		buffer.flip();
 		try

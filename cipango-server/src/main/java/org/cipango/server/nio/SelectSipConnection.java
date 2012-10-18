@@ -10,11 +10,11 @@ import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipConnector;
 import org.cipango.server.SipMessage;
+import org.cipango.server.SipMessageGenerator;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
 import org.cipango.server.SipServer;
 import org.cipango.server.Transport;
-import org.cipango.sip.SipGenerator;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipParser;
 import org.eclipse.jetty.io.AbstractConnection;
@@ -32,11 +32,11 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 	public static final int MINIMAL_BUFFER_LENGTH = 2048;
 	
     private final ByteBufferPool _bufferPool;
-	private SelectChannelConnector _connector;
-	private EndPoint _endpoint;
+	private final SelectChannelConnector _connector;
+	private final EndPoint _endpoint;
 	private SipParser _parser;
     private ByteBuffer _buffer;
-    private final SipGenerator _sipGenerator;
+    private final SipMessageGenerator _sipGenerator;
     
 	
 	public SelectSipConnection(SelectChannelConnector connector, EndPoint endpoint)
@@ -48,7 +48,7 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 
         MessageBuilder builder = new MessageBuilder(getServer(), this);
         _parser = new SipParser(builder);
-        _sipGenerator = new SipGenerator();
+        _sipGenerator = new SipMessageGenerator();
 	}
 
 	public SipServer getServer()
@@ -160,19 +160,7 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 		ByteBuffer buffer = _bufferPool.acquire(MINIMAL_BUFFER_LENGTH, false);
 		buffer.clear();
 		
-		if (message instanceof SipResponse)
-		{
-
-			SipResponse response = (SipResponse) message;
-			_sipGenerator.generateResponse(buffer, response.getStatus(),
-					response.getReasonPhrase(), response.getFields(), response.getRawContent());
-		}
-		else
-		{
-			SipRequest request = (SipRequest) message;
-			_sipGenerator.generateRequest(buffer, request.getMethod(), request.getRequestURI(), 
-					request.getFields(), request.getRawContent());
-		}
+		_sipGenerator.generateMessage(buffer, message);
 
 		buffer.flip();
 		try
@@ -213,6 +201,12 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
             else
                 throw (Error)cause;
         }
+	}
+	
+	@Override
+	public boolean isOpen()
+	{
+		return getEndPoint().isOpen();
 	}
 	
 	@Override
@@ -262,4 +256,5 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 			((AbstractConnection)_connection).close();
 		}
 	}
+
 }

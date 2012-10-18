@@ -102,6 +102,8 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	{
 		if (isCommitted())
 			throw new IllegalStateException("request is committed");
+		
+		_session.sendRequest(this);
 		// TODO
 	}
 	

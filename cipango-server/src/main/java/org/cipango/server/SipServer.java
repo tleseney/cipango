@@ -15,7 +15,6 @@ import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.annotation.Name;
 import org.eclipse.jetty.util.component.ContainerLifeCycle;
-import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
@@ -33,6 +32,7 @@ public class SipServer extends ContainerLifeCycle
 	
 	private SipHandler _handler;
 	private SipProcessor _processor;
+	private TransactionManager _transactionManager;
 		
 	static 
 	{
@@ -67,7 +67,9 @@ public class SipServer extends ContainerLifeCycle
 		LOG.info("cipango-" + __version);
 		
 		//_processor = new TransportProcessor(new SessionProcessor(new TransactionProcessor(new SipSessionProcessor())));
-		_processor = new TransportProcessor(new TransactionManager());
+		_transactionManager = new TransactionManager();
+		_processor = new TransportProcessor(_transactionManager);
+		_transactionManager.setTransportProcessor((TransportProcessor) _processor);
 		
 		_processor.setServer(this);
 		_processor.start();
@@ -249,6 +251,11 @@ public class SipServer extends ContainerLifeCycle
 	public void send(SipMessage message, SipConnection connection)
 	{
 		connection.send(message);
+	}
+
+	public TransactionManager getTransactionManager()
+	{
+		return _transactionManager;
 	}
 
 }

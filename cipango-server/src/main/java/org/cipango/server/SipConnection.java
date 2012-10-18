@@ -18,4 +18,6 @@ public interface SipConnection
 	
 	void send(SipMessage message);
 	void write(ByteBuffer buffer) throws IOException;
+	
+	boolean isOpen();
 }

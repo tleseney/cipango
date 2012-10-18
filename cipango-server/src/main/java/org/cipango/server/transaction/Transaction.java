@@ -41,7 +41,22 @@ public abstract class Transaction
 		TERMINATED
 	}
 	
-	enum Timer { A, B, D, E, F, G, H, I, J, K, L, M }
+	enum Timer
+	{ 
+		/** INVITE request retransmit, for UDP only */ A, 
+		/** INVITE transaction timeout */ B, 
+		/** Wait time for response retransmits */ D, 
+		/** non-INVITE request retransmit interval UDP only*/ E, 
+		/**  non-INVITE transaction timeout timer */ F,
+		/** INVITE response retransmit interval */ G, 
+		/**  Wait time for ACK receipt */ H, 
+		/** Wait time for ACK retransmits */ I, 
+		/** Wait time for non-INVITE request*/ J, 
+		/** Wait time for response retransmits*/ K,
+		/** Wait time for accepted INVITE request retransmits*/ L, 
+		/** Wait time for retransmission of 2xx to INVITE or additional 2xx 
+		 * from other branches of a forked INVITE*/ M 
+	}
 	
 	public static final int DEFAULT_T1 = 500;
 	public static final int DEFAULT_T2 = 4000;
@@ -57,15 +72,15 @@ public abstract class Transaction
 	
 	private String _branch;
 	
-	public TransactionManager _transactionManager;
+	protected TransactionManager _transactionManager;
 	
 	protected SipRequest _request;
+	
+	private Map<Timer, TimerTask> _timerTasks = new EnumMap<Timer, TimerTask>(Timer.class);
 		
 	public abstract boolean isServer();
 	public abstract SipConnection getConnection();
 	protected abstract void timeout(Timer timer);
-	
-	private Map<Timer, TimerTask> _timerTasks = new EnumMap<Timer, TimerTask>(Timer.class);
 
 	public Transaction(SipRequest request, String branch)
 	{
@@ -93,6 +108,11 @@ public abstract class Transaction
 	public boolean isInvite()
 	{
 		return _request.isInvite();
+	}
+	
+	public boolean isAck()
+	{
+		return _request.isAck();
 	}
 	
 	public boolean isCancel()
@@ -156,6 +176,11 @@ public abstract class Transaction
 		_timerTasks.remove(timer);
 	}*/
 	
+	public SipRequest getRequest()
+	{
+		return _request;
+	}
+	
 	@Override
 	public String toString()
 	{
@@ -169,4 +194,5 @@ public abstract class Transaction
 		public void run() { try { timeout(_timer); } catch (Throwable t) { LOG.debug(t); } } 
 		@Override public String toString() { return "Timer" + _timer; }
 	}
+
 }

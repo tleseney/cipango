@@ -11,10 +11,9 @@ import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipConnector;
 import org.cipango.server.SipMessage;
-import org.cipango.server.SipResponse;
+import org.cipango.server.SipMessageGenerator;
 import org.cipango.server.SipServer;
 import org.cipango.server.Transport;
-import org.cipango.sip.SipGenerator;
 import org.cipango.sip.SipParser;
 import org.eclipse.jetty.io.ArrayByteBufferPool;
 import org.eclipse.jetty.io.ByteBufferPool;
@@ -34,6 +33,7 @@ public class UdpConnector extends AbstractSipConnector
 	
 	private ByteBuffer[] _inBuffers;
 	private ByteBufferPool _outBuffers;
+	private final SipMessageGenerator _sipGenerator;
 	
     public UdpConnector(
     		@Name("sipServer") SipServer server)
@@ -54,6 +54,7 @@ public class UdpConnector extends AbstractSipConnector
             @Name("acceptors") int acceptors)
     {
     	super(server, executor, acceptors);
+    	_sipGenerator = new SipMessageGenerator();
     }
 
 	public Transport getTransport()
@@ -160,12 +161,11 @@ public class UdpConnector extends AbstractSipConnector
 		
 		public void send(SipMessage message)
 		{
-			SipResponse response = (SipResponse) message;
 			ByteBuffer buffer = _outBuffers.acquire(1500, false);
 			
 			buffer.clear();
 			
-			new SipGenerator().generateResponse(buffer, response.getStatus(), response.getReasonPhrase(), response.getFields());
+			_sipGenerator.generateMessage(buffer, message);
 
 			buffer.flip();
 			try
@@ -193,6 +193,12 @@ public class UdpConnector extends AbstractSipConnector
 			SipParser parser = new SipParser(builder);
 			
 			parser.parseNext(buffer);
+		}
+
+		@Override
+		public boolean isOpen()
+		{
+			return _channel.isOpen();
 		}
 	}
 	

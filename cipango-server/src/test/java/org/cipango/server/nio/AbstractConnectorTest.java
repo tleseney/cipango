@@ -6,6 +6,7 @@ import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertTrue;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 
 import javax.servlet.ServletException;
@@ -14,9 +15,11 @@ import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipURI;
 
 import org.cipango.server.AbstractSipConnector;
+import org.cipango.server.AbstractSipConnector.MessageBuilder;
 import org.cipango.server.SipMessage;
 import org.cipango.server.SipServer;
 import org.cipango.server.handler.AbstractSipHandler;
+import org.cipango.sip.SipParser;
 import org.eclipse.jetty.server.Server;
 import org.junit.After;
 import org.junit.Before;
@@ -76,7 +79,7 @@ public abstract class AbstractConnectorTest
 	@Test
 	public void testMessage() throws Exception
 	{
-		send(_serializedRegister);
+		send(SERIALIZED_REGISTER);
 		
 		SipServletMessage message = getMessage(1000);
 		send(_serializedRegister2);
@@ -92,6 +95,7 @@ public abstract class AbstractConnectorTest
 		send(_serializedMessage);
 		
 		SipServletMessage message = getMessage(1000);
+		System.out.println(message);
 		send(_serializedRegister2);
 		send(_serializedRegister2);
 		send(_serializedRegister2);
@@ -137,6 +141,15 @@ public abstract class AbstractConnectorTest
 	protected abstract void send(String message) throws Exception;
 
 	
+	public SipMessage getAsMessage(String messsage)
+	{
+		ByteBuffer b = ByteBuffer.wrap(messsage.getBytes());
+		MessageBuilder builder = new MessageBuilder(null, null);
+		SipParser parser = new SipParser(builder);
+		parser.parseNext(b);
+		return builder.getMessage();
+	}
+	
 	private SipServletMessage getMessage(long timeout) throws InterruptedException
 	{
 		if (_message != null)
@@ -155,7 +168,7 @@ public abstract class AbstractConnectorTest
 	
 	private String _pingEolEol = "\r\n\r\n";
 	
-	private String _serializedRegister = 
+	public static final String SERIALIZED_REGISTER = 
 	        "REGISTER sip:127.0.0.1:5070 SIP/2.0\r\n"
 	        + "Call-ID: c117fdfda2ffd6f4a859a2d504aedb25@127.0.0.1\r\n"
 	        + "CSeq: 2 REGISTER\r\n"

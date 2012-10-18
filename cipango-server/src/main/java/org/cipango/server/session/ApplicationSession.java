@@ -70,6 +70,11 @@ public class ApplicationSession implements SipApplicationSession
 		return _sessionManager.newUASTag(this);
 	}
 	
+	public String newBranch()
+	{
+		return _sessionManager.newBranch();
+	}
+	
 	public Session getSession(SipRequest request)
 	{
 		return _sessions.get(0);

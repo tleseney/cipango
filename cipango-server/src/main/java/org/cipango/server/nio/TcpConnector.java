@@ -16,6 +16,7 @@ import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipConnector;
 import org.cipango.server.SipMessage;
+import org.cipango.server.SipMessageGenerator;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
 import org.cipango.server.SipServer;
@@ -158,6 +159,7 @@ public class TcpConnector extends AbstractSipConnector
 		private SocketChannel _channel;
 		private InetSocketAddress _localAddr;
 		private InetSocketAddress _remoteAddr;
+	    private final SipMessageGenerator _sipGenerator;
 		
 		public TcpConnection(SocketChannel channel, int id) throws IOException
 		{
@@ -169,6 +171,7 @@ public class TcpConnector extends AbstractSipConnector
 			
 			_channel.socket().setTcpNoDelay(true);
 			_channel.socket().setSoTimeout(_connectionTimeout);
+			_sipGenerator = new SipMessageGenerator();
 		}
 		
 		public void dispatch() throws IOException
@@ -223,13 +226,11 @@ public class TcpConnector extends AbstractSipConnector
 		@Override
 		public void send(SipMessage message)
 		{
-			SipResponse response = (SipResponse) message;
 			ByteBuffer buffer = _outBuffers.acquire(MINIMAL_BUFFER_LENGTH, false);
 			
 			buffer.clear();
 			
-			new SipGenerator().generateResponse(buffer, response.getStatus(),
-					response.getReasonPhrase(), response.getFields());
+			_sipGenerator.generateMessage(buffer, message);
 
 			buffer.flip();
 			try
@@ -292,11 +293,18 @@ public class TcpConnector extends AbstractSipConnector
 				}
 			}
 		}
+		
+		@Override
+		public boolean isOpen()
+		{
+			return _channel.isOpen();
+		}
 
 		public String toString()
 		{
 			return getRemoteAddress() + ":" + getRemotePort();
 		}
+
 	}
 	
 	public static class MessageBuilder extends AbstractSipConnector.MessageBuilder

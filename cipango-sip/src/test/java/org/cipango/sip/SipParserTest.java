@@ -461,6 +461,52 @@ public class SipParserTest
 		// TODO
 	}
 	
+
+	@Test
+	public void testListHeaders()
+	{
+		Handler handler = new Handler();
+		SipParser parser = new SipParser(handler);
+		
+		ByteBuffer buffer= BufferUtil.toBuffer(
+				"MESSAGE sip:bob@biloxi.com SIP/2.0\r\n" +
+				"Accept: INVITE, ACK ,\tBYE   \r\n" +	
+				"P-No-List-Header: INVITE, ACK\r\n" +	
+				"Route: \"one, server\" <sip:cipango.org>, \"two\" <sip:cipango.org:5062>\r\n" +	
+				"Route: \"escape quote \\\", \" <sip:cipango.org:5063>, \"four\" <sip:cipango.org:5064>\r\n" +	
+				"Accept: UPDATE\r\n" +	
+                "Content-Length: 0\r\n" +
+				"\r\n");
+		parser.parseNext(buffer);
+		assertEquals("Accept", _hdr[0]);
+		assertEquals("INVITE", _val[0]);
+		
+		assertEquals("Accept", _hdr[1]);
+		assertEquals("ACK", _val[1]);
+		
+		assertEquals("Accept", _hdr[2]);
+		assertEquals("BYE", _val[2]);
+		
+		assertEquals("P-No-List-Header", _hdr[3]);
+		assertEquals("INVITE, ACK", _val[3]);
+		
+		assertEquals("Route", _hdr[4]);
+		assertEquals("\"one, server\" <sip:cipango.org>", _val[4]);
+		
+		assertEquals("Route", _hdr[5]);
+		assertEquals("\"two\" <sip:cipango.org:5062>", _val[5]);
+		
+		assertEquals("Route", _hdr[6]);
+		assertEquals("\"escape quote \\\", \" <sip:cipango.org:5063>", _val[6]);
+		
+		assertEquals("Route", _hdr[7]);
+		assertEquals("\"four\" <sip:cipango.org:5064>", _val[7]);
+		
+		assertEquals("Accept", _hdr[8]);
+		assertEquals("UPDATE", _val[8]);
+		
+	}
+	
 	@Before
 	public void init()
 	{
@@ -495,8 +541,8 @@ public class SipParserTest
 		{
 			_request = true;
             _h= -1;
-            _hdr= new String[9];
-            _val= new String[9];
+            _hdr= new String[10];
+            _val= new String[10];
 			_methodOrVersion = method;
 			_uriOrStatus = uri;
 			_versionOrReason = version == null ? null : version.asString();
@@ -511,8 +557,8 @@ public class SipParserTest
 		{
 			_request = false;
 			_h= -1;
-            _hdr= new String[9];
-            _val= new String[9];
+            _hdr= new String[10];
+            _val= new String[10];
 			_methodOrVersion = version == null ? null : version.asString();
 			_uriOrStatus = String.valueOf(status);
 			_versionOrReason = reason;

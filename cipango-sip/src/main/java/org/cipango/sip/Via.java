@@ -14,6 +14,7 @@
 
 package org.cipango.sip;
 
+import java.net.InetAddress;
 import java.text.ParseException;
 import java.util.BitSet;
 import java.util.EnumMap;
@@ -117,7 +118,22 @@ public class Via extends Parameters implements Parameterable
 	{
 		_params.put(Param.RPORT, Integer.toString(port));
 	}
-	
+
+	public String getMAddr()
+	{
+		return _params.get(Param.MADDR);
+	}
+
+	public boolean hasMAddr()
+	{
+		return _params.get(Param.MADDR) != null;
+	}
+
+	public void setMAddr(String maddr)
+	{
+		_params.put(Param.MADDR, maddr);
+	}
+
 	/**
 	 * @see Parameterable#setParameter(String, String)
 	 */

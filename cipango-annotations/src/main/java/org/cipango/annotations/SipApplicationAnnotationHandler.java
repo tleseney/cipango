@@ -55,4 +55,10 @@ public class SipApplicationAnnotationHandler extends AbstractDiscoverableAnnotat
 		LOG.warn ("@SipApplication annotation not applicable for fields: "+className+"."+fieldName);
 	}
 
+	@Override
+	public String getAnnotationName()
+	{
+		return "javax.servlet.sip.annotation.SipApplication";
+	}
+
 }

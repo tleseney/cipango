@@ -42,8 +42,7 @@ public class SipApplicationKeyAnnotationHandlerTest
 		_context.setWebAppContext(webAppContext);
 		_parser = new AnnotationParser();
 		_handler = new SipApplicationKeyAnnotationHandler(webAppContext);
-        _parser.registerAnnotationHandler("javax.servlet.sip.annotation.SipApplicationKey",
-        		_handler);
+        _parser.registerHandler(_handler);
 	}
 
 	@Test

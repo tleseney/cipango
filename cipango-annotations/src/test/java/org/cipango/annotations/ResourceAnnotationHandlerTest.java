@@ -61,12 +61,14 @@ public class ResourceAnnotationHandlerTest
 }
 
 
+@SuppressWarnings("serial")
 class BadRessource extends javax.servlet.sip.SipServlet
 {
 	@Resource
 	protected static SipFactory sipFactory;
 }
 
+@SuppressWarnings("serial")
 class BadRessource2 extends javax.servlet.sip.SipServlet
 {
 	@Resource

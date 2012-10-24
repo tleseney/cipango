@@ -283,11 +283,25 @@ public class SipFields implements Iterable<SipFields.Field>
 				buffer.put(SipGrammar.SPACE);
 			}
 
+			Field next = _next;
+			
 			buffer.put(StringUtil.getBytes(_value.toString(), StringUtil.__UTF8));
+			if (_header != null && _header.isMerge())
+			{
+				while (next != null)
+				{
+					buffer.put((byte) ',');
+					buffer.put(SipGrammar.SPACE);
+					buffer.put(StringUtil.getUtf8Bytes((next._value.toString())));
+					next = next._next;
+				}
+			}
+			
 			BufferUtil.putCRLF(buffer);
 			
-			if (_next != null)
-				_next.putTo(buffer);
+			if (next != null)
+				next.putTo(buffer);
+
 		}
 		
 		@Override

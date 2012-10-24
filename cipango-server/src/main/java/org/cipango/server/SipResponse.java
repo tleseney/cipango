@@ -292,7 +292,7 @@ public class SipResponse extends SipMessage implements SipServletResponse
 	{
 		ByteBuffer buffer = ByteBuffer.allocate(4096); // FIXME size
 		new SipGenerator().generateResponse(buffer, _status, _reason, _fields, getRawContent());
-		return new String(buffer.array(), StringUtil.__UTF8_CHARSET);
+		return new String(buffer.array(), 0, buffer.position(), StringUtil.__UTF8_CHARSET);
 	}
 
 	public void setRequest(SipRequest request)

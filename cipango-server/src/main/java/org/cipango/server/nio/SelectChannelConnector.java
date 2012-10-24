@@ -177,6 +177,24 @@ public class SelectChannelConnector extends AbstractSipConnector
 	}
 	
 	@Override
+	public int getDefaultPort()
+	{
+		return 5060;
+	}
+	
+	@Override
+	public boolean isReliable()
+	{
+		return true;
+	}
+	
+	@Override
+	public boolean isSecure()
+	{
+		return false;
+	}
+	
+	@Override
 	public void open() throws IOException
 	{
         synchronized(this)

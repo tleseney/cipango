@@ -16,7 +16,7 @@ public interface SipConnection
 	InetAddress getRemoteAddress();
 	int getRemotePort();
 	
-	void send(SipMessage message);
+	void send(SipMessage message) throws MessageTooLongException;
 	void write(ByteBuffer buffer) throws IOException;
 	
 	boolean isOpen();

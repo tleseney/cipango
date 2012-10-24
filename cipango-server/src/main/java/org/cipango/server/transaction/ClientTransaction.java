@@ -137,58 +137,23 @@ public class ClientTransaction extends Transaction
 		if (getConnection() != null)
 		{
 			if (getConnection().isOpen())
-				getServer().send(_request, getConnection());
+				getServer().sendRequest(_request, getConnection());
 			else
 				LOG.debug("Could not sent request {} as the connection {} is closed", _request, getConnection());
 		}
 		else 
 		{
 			// TODO check Maxforwards
-			URI uri = null;
 			
-			Address route = _request.getTopRoute();
-			
-			if (route != null /* && !_request.isNextHopStrictRouting() */)
-				uri = route.getURI();
-			else
-				uri = _request.getRequestURI();
-			
-			if (!uri.isSipURI()) 
-				throw new IOException("Cannot route on URI: " + uri);
-			
-			SipURI target = (SipURI) uri;
-			
-			InetAddress address;
-			if (target.getMAddrParam() != null)
-				address = InetAddress.getByName(target.getMAddrParam());
-			else
-				address = InetAddress.getByName(target.getHost()); // TODO 3263
-			
-			
-			Transport transport;
-			if (target.getTransportParam() != null)
-				transport =Transport.valueOf(target.getTransportParam()); // TODO opt
-			else
-				transport = Transport.UDP;
-			
-			int port = target.getPort();
-			if (port == -1) 
-				port = transport.getDefaultPort();
-		
-
 			Via via = new Via(null, null, -1);
 			via.setBranch(getBranch());
 			//customizeVia(via);
 			_request.getFields().add(SipHeader.VIA.asString(), via, true);
 			
 			_connection = _transactionManager.getTransportProcessor().getConnection(
-					_request,
-					transport,
-					address,
-					port);
+					_request, null);
 			_listener.customizeRequest(_request, _connection);
-			getServer().send(_request, _connection);
-
+			getServer().sendRequest(_request, _connection);
 		}
 	}
 	

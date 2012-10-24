@@ -1,6 +1,7 @@
 package org.cipango.server;
 
 import java.io.IOException;
+import java.net.InetAddress;
 
 import javax.servlet.ServletException;
 import javax.servlet.sip.SipURI;
@@ -9,6 +10,7 @@ import javax.servlet.sip.URI;
 import org.cipango.server.nio.UdpConnector;
 import org.cipango.server.processor.TransportProcessor;
 import org.cipango.server.transaction.TransactionManager;
+import org.cipango.sip.Via;
 import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.MultiException;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
@@ -239,20 +241,95 @@ public class SipServer extends ContainerLifeCycle
 		return true; // TODO
 	}
 	
-	public void sendResponse(SipResponse response, SipConnection received)
+	public void sendResponse(SipResponse response, SipConnection connection) throws IOException
 	{
-		if (received == null)
+		try
 		{
-			
+	    	if (connection == null || !connection.getConnector().isReliable() || !connection.isOpen())
+	    	{
+	    		Via via = response.getTopVia();
+	    		
+	    		SipConnector connector = null;
+	    		InetAddress address = null;
+	    		
+	    		if (connection != null)
+	    		{
+	    			connector = connection.getConnector();
+	    			address = connection.getRemoteAddress();
+	    		}
+	    		else
+	    		{
+	    			if (via.hasMAddr())
+	    				address = InetAddress.getByName(via.getMAddr());
+	    			else
+	    				address = InetAddress.getByName(via.getHost());
+	    			connector = _transactionManager.getTransportProcessor().findConnector(
+	    					Transport.valueOf(via.getTransport()), address);
+	    		}
+	    		
+				int port = -1;
+		        if (via.hasRPort()) 
+		        {
+		            port = via.getRPort();
+		        } 
+		        else 
+		        {
+		            port = via.getPort();
+		            if (port == -1) 
+		                port = connection.getConnector().getDefaultPort();
+		        }
+		        connection = connector.getConnection(address, port);
+		        
+		        if (connection == null)
+		        	throw new IOException("Could not found any SIP connection to " 
+		        			+ address + ":" + port + "/" + connector.getTransport());
+	    	}
+			connection.send(response);
 		}
-		send(response, received);
+		catch (MessageTooLongException e)
+		{
+			LOG.warn(e);
+		}
 	}
 	
-	public void send(SipMessage message, SipConnection connection)
+	public void sendRequest(SipRequest request, SipConnection connection) throws IOException
 	{
-		connection.send(message);
-	}
+		try
+		{
+			connection.send(request);
+		}
+		catch (MessageTooLongException e)
+		{
+			if (!connection.getConnector().isReliable())
+			{
+				LOG.debug("Message is too large.");
+				try
+				{
+					SipConnection newConnection = _transactionManager.getTransportProcessor().getConnection(
+							request, Transport.TCP, connection.getRemoteAddress(), connection.getRemotePort());
+					if (newConnection.getConnector().isReliable())
+					{
+						LOG.debug("Switching to TCP.");
+						sendRequest(request, newConnection);
+					}
+				}
+				catch (IOException io) 
+				{
+					LOG.warn("Failed to switch to TCP.");
 
+					// 	Update via to ensure that right value is used in logs
+					Via via = request.getTopVia();
+					SipConnector connector = connection.getConnector();
+					via.setTransport(connector.getTransport().getName());
+					via.setHost(connector.getURI().getHost());
+					via.setPort(connector.getURI().getPort());
+				}
+			}
+			else
+				LOG.warn(e);
+		}
+	}
+	
 	public TransactionManager getTransactionManager()
 	{
 		return _transactionManager;

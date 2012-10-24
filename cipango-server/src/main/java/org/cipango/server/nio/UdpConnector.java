@@ -8,6 +8,7 @@ import java.nio.channels.DatagramChannel;
 import java.util.concurrent.Executor;
 
 import org.cipango.server.AbstractSipConnector;
+import org.cipango.server.MessageTooLongException;
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipConnector;
 import org.cipango.server.SipMessage;
@@ -27,12 +28,14 @@ public class UdpConnector extends AbstractSipConnector
 	private static final Logger LOG = Log.getLogger(UdpConnector.class);
 	
 	public static final int MAX_UDP_SIZE = 65536;
+	public static final int DEFAULT_MTU = 1500;
 	
 	private DatagramChannel _channel;
 	private InetAddress _localAddr;
 	
 	private ByteBuffer[] _inBuffers;
 	private ByteBufferPool _outBuffers;
+	private int _mtu;
 	private final SipMessageGenerator _sipGenerator;
 	
     public UdpConnector(
@@ -54,12 +57,41 @@ public class UdpConnector extends AbstractSipConnector
             @Name("acceptors") int acceptors)
     {
     	super(server, executor, acceptors);
+    	_mtu = DEFAULT_MTU;
     	_sipGenerator = new SipMessageGenerator();
     }
+
+	public int getMtu()
+	{
+		return _mtu;
+	}
+
+	public void setMtu(int mtu)
+	{
+		_mtu = mtu;
+	}
 
 	public Transport getTransport()
 	{
 		return Transport.UDP;
+	}
+	
+	@Override
+	public int getDefaultPort()
+	{
+		return 5060;
+	}
+	
+	@Override
+	public boolean isReliable()
+	{
+		return false;
+	}
+	
+	@Override
+	public boolean isSecure()
+	{
+		return false;
 	}
 	
 	@Override
@@ -159,15 +191,18 @@ public class UdpConnector extends AbstractSipConnector
 			return getPort();
 		}
 		
-		public void send(SipMessage message)
+		public void send(SipMessage message) throws MessageTooLongException
 		{
-			ByteBuffer buffer = _outBuffers.acquire(1500, false);
-			
-			buffer.clear();
-			
-			_sipGenerator.generateMessage(buffer, message);
+			ByteBuffer buffer = _outBuffers.acquire(_mtu, false);
 
+			buffer.clear();
+
+			_sipGenerator.generateMessage(buffer, message);
+			if (message.isRequest() && (buffer.position() + 200 > _mtu))
+				throw new MessageTooLongException();
+			
 			buffer.flip();
+
 			try
 			{
 				_channel.send(buffer, _address);

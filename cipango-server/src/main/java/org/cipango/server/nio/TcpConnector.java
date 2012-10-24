@@ -1,7 +1,6 @@
 package org.cipango.server.nio;
 
 import java.io.IOException;
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -13,6 +12,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
 import org.cipango.server.AbstractSipConnector;
+import org.cipango.server.MessageTooLongException;
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipConnector;
 import org.cipango.server.SipMessage;
@@ -24,7 +24,6 @@ import org.cipango.server.Transport;
 import org.cipango.server.servlet.DefaultServlet;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.Transaction;
-import org.cipango.sip.SipGenerator;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipParser;
 import org.eclipse.jetty.io.ArrayByteBufferPool;
@@ -82,7 +81,25 @@ public class TcpConnector extends AbstractSipConnector
 	{
 		return Transport.TCP;
 	}
+
+	@Override
+	public int getDefaultPort()
+	{
+		return 5060;
+	}
 	
+	@Override
+	public boolean isReliable()
+	{
+		return true;
+	}
+	
+	@Override
+	public boolean isSecure()
+	{
+		return false;
+	}
+
 	@Override
 	public void open() throws IOException
 	{
@@ -124,8 +141,17 @@ public class TcpConnector extends AbstractSipConnector
 	@Override
 	public SipConnection getConnection(InetAddress address, int port) throws IOException
 	{
-		// TODO Auto-generated method stub
-		return null;
+		synchronized (_connections)
+		{
+			TcpConnection cnx = _connections.get(address + ":" + port);
+			if (cnx == null) 
+			{
+				cnx = null; // TODO
+				addConnection(cnx);
+				cnx.dispatch();
+			}
+			return cnx;
+		}
 	}
 	
 	@Override
@@ -224,7 +250,7 @@ public class TcpConnector extends AbstractSipConnector
 		}
 
 		@Override
-		public void send(SipMessage message)
+		public void send(SipMessage message) throws MessageTooLongException
 		{
 			ByteBuffer buffer = _outBuffers.acquire(MINIMAL_BUFFER_LENGTH, false);
 			
@@ -325,7 +351,14 @@ public class TcpConnector extends AbstractSipConnector
 					SipRequest request = (SipRequest) _message;
 					SipResponse response = (SipResponse) request.createResponse(
 							400, "Content-Length is mandatory");
-					_connection.send(response);
+					try
+					{
+						_connection.send(response);
+					}
+					catch (MessageTooLongException e)
+					{
+						LOG.warn(e);
+					}
 				}
 				reset();
 				return true;

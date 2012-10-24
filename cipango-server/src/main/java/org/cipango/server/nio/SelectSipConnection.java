@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutionException;
 
 import org.cipango.server.AbstractSipConnector;
+import org.cipango.server.MessageTooLongException;
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipConnector;
 import org.cipango.server.SipMessage;
@@ -155,7 +156,7 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 	}
 
 	@Override
-	public void send(SipMessage message)
+	public void send(SipMessage message) throws MessageTooLongException
 	{
 		ByteBuffer buffer = _bufferPool.acquire(MINIMAL_BUFFER_LENGTH, false);
 		buffer.clear();
@@ -242,7 +243,14 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 					SipRequest request = (SipRequest) _message;
 					SipResponse response = (SipResponse) request.createResponse(
 							400, "Content-Length is mandatory");
-					_connection.send(response);
+					try
+					{
+						_connection.send(response);
+					}
+					catch (MessageTooLongException e)
+					{
+						LOG.warn(e);
+					}
 				}
 				reset();
 				return true;

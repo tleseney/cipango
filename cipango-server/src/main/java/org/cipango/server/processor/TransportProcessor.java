@@ -6,6 +6,8 @@ import java.net.InetAddress;
 import java.util.Iterator;
 
 import javax.servlet.sip.Address;
+import javax.servlet.sip.SipURI;
+import javax.servlet.sip.URI;
 
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipConnector;
@@ -159,6 +161,42 @@ public class TransportProcessor extends SipProcessorWrapper
 		return !it.hasNext();
 	}
 	
+    public SipConnection getConnection(SipRequest request, Transport transport) throws IOException
+    {
+		URI uri = null;
+		
+		Address route = request.getTopRoute();
+		
+		if (route != null /* && !_request.isNextHopStrictRouting() */)
+			uri = route.getURI();
+		else
+			uri = request.getRequestURI();
+		
+		if (!uri.isSipURI()) 
+			throw new IOException("Cannot route on URI: " + uri);
+		
+		SipURI target = (SipURI) uri;
+		
+		InetAddress address;
+		if (target.getMAddrParam() != null)
+			address = InetAddress.getByName(target.getMAddrParam());
+		else
+			address = InetAddress.getByName(target.getHost()); // TODO 3263
+		
+		if (transport == null)
+		{
+			if (target.getTransportParam() != null)
+				transport =Transport.valueOf(target.getTransportParam()); // TODO opt
+			else
+				transport = Transport.UDP;
+		}
+		
+		int port = target.getPort();
+		if (port == -1) 
+			port = transport.getDefaultPort();
+		
+		return getConnection(request, transport, address, port);
+    }
 	
     public SipConnection getConnection(SipRequest request, Transport transport, InetAddress address, int port) throws IOException
     {   

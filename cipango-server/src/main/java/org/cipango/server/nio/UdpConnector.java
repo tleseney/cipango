@@ -77,24 +77,6 @@ public class UdpConnector extends AbstractSipConnector
 	}
 	
 	@Override
-	public int getDefaultPort()
-	{
-		return 5060;
-	}
-	
-	@Override
-	public boolean isReliable()
-	{
-		return false;
-	}
-	
-	@Override
-	public boolean isSecure()
-	{
-		return false;
-	}
-	
-	@Override
 	protected void doStart() throws Exception
 	{
 		_inBuffers = new ByteBuffer[getAcceptors()];

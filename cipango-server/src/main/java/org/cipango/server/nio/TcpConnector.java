@@ -83,24 +83,6 @@ public class TcpConnector extends AbstractSipConnector
 	}
 
 	@Override
-	public int getDefaultPort()
-	{
-		return 5060;
-	}
-	
-	@Override
-	public boolean isReliable()
-	{
-		return true;
-	}
-	
-	@Override
-	public boolean isSecure()
-	{
-		return false;
-	}
-
-	@Override
 	public void open() throws IOException
 	{
 		_channel = ServerSocketChannel.open();

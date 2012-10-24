@@ -17,10 +17,6 @@ public interface SipConnector extends LifeCycle
 	
 	void open() throws IOException;
 	void close() throws IOException;
-
-	int getDefaultPort();
-	boolean isReliable();
-	boolean isSecure();
 	
 	@ManagedAttribute(value="Host", readonly=true)
 	String getHost();

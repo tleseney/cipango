@@ -65,24 +65,6 @@ public class TlsChannelConnector extends SelectChannelConnector
 	}
 	
 	@Override
-	public int getDefaultPort()
-	{
-		return 5061;
-	}
-	
-	@Override
-	public boolean isReliable()
-	{
-		return true;
-	}
-	
-	@Override
-	public boolean isSecure()
-	{
-		return true;
-	}
-	
-	@Override
 	protected void doStart() throws Exception
 	{
 		super.doStart();

@@ -245,7 +245,8 @@ public class SipServer extends ContainerLifeCycle
 	{
 		try
 		{
-	    	if (connection == null || !connection.getConnector().isReliable() || !connection.isOpen())
+	    	if (connection == null || !connection.getConnector().getTransport().isReliable()
+	    			|| !connection.isOpen())
 	    	{
 	    		Via via = response.getTopVia();
 	    		
@@ -276,7 +277,7 @@ public class SipServer extends ContainerLifeCycle
 		        {
 		            port = via.getPort();
 		            if (port == -1) 
-		                port = connection.getConnector().getDefaultPort();
+		                port = connection.getConnector().getTransport().getDefaultPort();
 		        }
 		        connection = connector.getConnection(address, port);
 		        
@@ -300,14 +301,14 @@ public class SipServer extends ContainerLifeCycle
 		}
 		catch (MessageTooLongException e)
 		{
-			if (!connection.getConnector().isReliable())
+			if (!connection.getConnector().getTransport().isReliable())
 			{
 				LOG.debug("Message is too large.");
 				try
 				{
 					SipConnection newConnection = _transactionManager.getTransportProcessor().getConnection(
 							request, Transport.TCP, connection.getRemoteAddress(), connection.getRemotePort());
-					if (newConnection.getConnector().isReliable())
+					if (newConnection.getConnector().getTransport().isReliable())
 					{
 						LOG.debug("Switching to TCP.");
 						sendRequest(request, newConnection);

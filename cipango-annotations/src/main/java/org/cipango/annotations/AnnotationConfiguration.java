@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2010 NEXCOM Systems
+// Copyright 2010-2012 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -52,10 +52,10 @@ public class AnnotationConfiguration extends AbstractConfiguration
         	LOG.debug("parsing annotations");
         
         SipApplicationAnnotationHandler sipApplicationAnnotationHandler = new SipApplicationAnnotationHandler(context);
-        parser.registerAnnotationHandler("javax.servlet.sip.annotation.SipApplication", sipApplicationAnnotationHandler);
-        parser.registerAnnotationHandler("javax.servlet.sip.annotation.SipApplicationKey", new SipApplicationKeyAnnotationHandler(context));
-        parser.registerAnnotationHandler("javax.servlet.sip.annotation.SipListener", new SipListenerAnnotationHandler(context));
-        parser.registerAnnotationHandler("javax.servlet.sip.annotation.SipServlet", new SipServletAnnotationHandler(context));
+        parser.registerHandler(sipApplicationAnnotationHandler);
+        parser.registerHandler(new SipApplicationKeyAnnotationHandler(context));
+        parser.registerHandler(new SipListenerAnnotationHandler(context));
+        parser.registerHandler(new SipServletAnnotationHandler(context));
                 
 
         clearAnnotationList(parser.getAnnotationHandlers());

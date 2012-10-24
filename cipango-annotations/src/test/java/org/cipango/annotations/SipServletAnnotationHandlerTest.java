@@ -37,8 +37,7 @@ public class SipServletAnnotationHandlerTest
 		WebAppContext webAppContext = new WebAppContext();
 		_sac.setWebAppContext(webAppContext);
 		_parser = new AnnotationParser();
-        _parser.registerAnnotationHandler("javax.servlet.sip.annotation.SipServlet",
-        		new SipServletAnnotationHandler(webAppContext));
+        _parser.registerHandler(new SipServletAnnotationHandler(webAppContext));
 	}
 	
 	@Test

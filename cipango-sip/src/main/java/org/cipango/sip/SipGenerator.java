@@ -4,6 +4,8 @@ import java.nio.ByteBuffer;
 import java.util.EnumSet;
 import java.util.Set;
 
+import javax.servlet.sip.URI;
+
 import org.cipango.util.StringUtil;
 
 import static org.cipango.sip.SipHeader.*;
@@ -12,10 +14,30 @@ public class SipGenerator
 {
 	private Set<SipHeader> _fixedHeaders = EnumSet.of(VIA, FROM, TO, CALL_ID);
 	
-	public void generateResponse(ByteBuffer buffer, int status, String reason, SipFields sipFields)
+	public void generateRequest(ByteBuffer buffer, String method, URI requestUri, SipFields sipFields, byte[] content)
+	{
+		generateRequestLine(buffer, method, requestUri);
+		generateHeaders(buffer, sipFields);
+		if (content != null)
+			buffer.put(content);
+	}
+	
+	public void generateResponse(ByteBuffer buffer, int status, String reason, SipFields sipFields, byte[] content)
 	{
 		generateResponseLine(buffer, status, reason);
 		generateHeaders(buffer, sipFields);
+		if (content != null)
+			buffer.put(content);
+	}
+	
+	private void generateRequestLine(ByteBuffer buffer,String method, URI requestUri)
+	{
+		buffer.put(StringUtil.getUtf8Bytes(method));
+		buffer.put(SipGrammar.SPACE);
+        buffer.put(StringUtil.getUtf8Bytes(requestUri.toString()));
+		buffer.put(SipGrammar.SPACE);
+		buffer.put(SipVersion.SIP_2_0.toBuffer());
+		buffer.put(SipGrammar.CRLF);
 	}
 	
 	private void generateResponseLine(ByteBuffer buffer, int status, String reason)
@@ -34,7 +56,14 @@ public class SipGenerator
 		}
 		else
 		{
-			// TODO
+			buffer.put(SipVersion.SIP_2_0.toBuffer());
+			buffer.put(SipGrammar.SPACE);
+			buffer.put((byte) ('0' + status / 100));
+            buffer.put((byte) ('0' + (status % 100) / 10));
+            buffer.put((byte) ('0' + (status % 10)));
+            buffer.put(SipGrammar.SPACE);
+            if (reason != null)
+            	buffer.put(StringUtil.getBytes(reason, StringUtil.__UTF8));
 		}
 	}
 	

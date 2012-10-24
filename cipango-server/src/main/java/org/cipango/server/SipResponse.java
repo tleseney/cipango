@@ -15,6 +15,7 @@ package org.cipango.server;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.Locale;
 
@@ -22,19 +23,26 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.sip.Proxy;
 import javax.servlet.sip.ProxyBranch;
 import javax.servlet.sip.Rel100Exception;
+import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.AddressImpl;
+import org.cipango.sip.CSeq;
 import org.cipango.sip.SipFields;
+import org.cipango.sip.SipGenerator;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipStatus;
+import org.eclipse.jetty.util.StringUtil;
+import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.log.Logger;
 
 public class SipResponse extends SipMessage implements SipServletResponse
 {
+	private static final Logger LOG = Log.getLogger(SipResponse.class);
 	private SipRequest _request;
 	private int _status;
 	private String _reason;
@@ -223,7 +231,15 @@ public class SipResponse extends SipMessage implements SipServletResponse
 	 */
 	public String getMethod()
 	{
-		return getRequest().getMethod();
+		try
+		{
+			return new CSeq(getFields().getString(SipHeader.CSEQ)).getMethod();
+		}
+		catch (ServletParseException e)
+		{
+			LOG.debug(e);
+			return null;
+		}
 	}
 	
 	@Override
@@ -269,6 +285,19 @@ public class SipResponse extends SipMessage implements SipServletResponse
         		||(getStatus() >= 300 && getStatus() < 400) 
         		|| getStatus() == 485
         		|| (getStatus() == 200 && _request.isMethod(SipMethod.OPTIONS));
+	}
+	
+	@Override
+	public String toString()
+	{
+		ByteBuffer buffer = ByteBuffer.allocate(4096); // FIXME size
+		new SipGenerator().generateResponse(buffer, _status, _reason, _fields, getRawContent());
+		return new String(buffer.array(), 0, buffer.position(), StringUtil.__UTF8_CHARSET);
+	}
+
+	public void setRequest(SipRequest request)
+	{
+		_request = request;
 	}
 
 }

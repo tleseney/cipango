@@ -18,6 +18,7 @@ import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipSession;
 
+import org.cipango.server.session.ApplicationSession;
 import org.cipango.server.session.Session;
 import org.cipango.server.transaction.Transaction;
 import org.cipango.server.util.ListIteratorProxy;
@@ -111,6 +112,17 @@ public abstract class SipMessage implements SipServletMessage
 		return to.getTag();
 	}
 	
+	public Session session()
+	{
+		return _session;
+	}
+	
+	public ApplicationSession appSession()
+	{
+		return _session.appSession();
+	}
+	
+
 	public void addAcceptLanguage(Locale locale) 
 	{
 		addHeader(SipHeader.ACCEPT_LANGUAGE.asString(), locale.toString().replace('_','-'));
@@ -469,9 +481,9 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public byte[] getRawContent() throws IOException {
-		// TODO Auto-generated method stub
-		return null;
+	public byte[] getRawContent() 
+	{
+		return _content;
 	}
 
 	/**

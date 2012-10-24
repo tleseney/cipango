@@ -9,37 +9,37 @@ import org.eclipse.jetty.util.StringMap;
 
 public enum SipHeader 
 {
-	VIA("Via", Type.VIA, true),
+	VIA("Via", Type.VIA, true, true, false),
 	MAX_FORWARDS("Max-Forwards"),
-	ROUTE("Route", Type.ADDRESS, true),
-	RECORD_ROUTE("Record-Route", Type.ADDRESS, true),
+	ROUTE("Route", Type.ADDRESS, true, true, false),
+	RECORD_ROUTE("Record-Route", Type.ADDRESS, true, true, false),
 	FROM("From", Type.ADDRESS, true),
 	TO("To", Type.ADDRESS, true),
 	CALL_ID("Call-ID", Type.STRING, true),
 	CSEQ("CSeq", Type.STRING, true),
 	CONTACT("Contact"),
 	
-	ACCEPT("Accept"), 
-	ACCEPT_CONTACT("Accept-Contact"),
-	ACCEPT_ENCODING("Accept-Encoding"),
-	ACCEPT_LANGUAGE("Accept-Language"),
-	ACCEPT_RESOURCE_PRIORITY("Accept-Resource-Priority"),
-	ALERT_INFO("Alert-Info"),
-	ALLOW("Allow"),
-	ALLOW_EVENTS("Allow-Events"),	
-	AUTHENTICATION_INFO("Authentication-Info"),
+	ACCEPT("Accept", Type.STRING, false, true, true), 
+	ACCEPT_CONTACT("Accept-Contact", Type.STRING, false, true, true),
+	ACCEPT_ENCODING("Accept-Encoding", Type.STRING, false, true, true),
+	ACCEPT_LANGUAGE("Accept-Language", Type.STRING, false, true, true),
+	ACCEPT_RESOURCE_PRIORITY("Accept-Resource-Priority", Type.STRING, false, true, true),
+	ALERT_INFO("Alert-Info", Type.STRING, false, true, true),
+	ALLOW("Allow", Type.STRING, false, true, true),
+	ALLOW_EVENTS("Allow-Events", Type.STRING, false, true, true),	
+	AUTHENTICATION_INFO("Authentication-Info", Type.STRING, false, true, true),
 	AUTHORIZATION("Authorization"), 
 	
-	CALL_INFO("Call-Info"),
+	CALL_INFO("Call-Info", Type.STRING, false, true, true),
 	
 	CONTENT_DISPOSITION("Content-Disposition"),
-	CONTENT_ENCODING("Content-Encoding"),
-	CONTENT_LANGUAGE("Content-Language"),
+	CONTENT_ENCODING("Content-Encoding", Type.STRING, false, true, true),
+	CONTENT_LANGUAGE("Content-Language", Type.STRING, false, true, true),
 	CONTENT_LENGTH("Content-Length"),
 	CONTENT_TYPE("Content-Type"),
 	
 	DATE("Date"),
-	ERROR_INFO("Error-Info"),
+	ERROR_INFO("Error-Info", Type.STRING, false, true, true),
 	EVENT("Event"),
 	EXPIRES("Expires"),
 	
@@ -54,13 +54,13 @@ public enum SipHeader
 	MIN_SE("Min-SE"),
 	ORGANIZATION("Organization"),
 	P_ACCESS_NETWORK_INFO("P-Access-Network-Info"),
-	P_ASSERTED_IDENTITY("P-Asserted-Identity"),
-	P_ASSOCIATED_URI("P-Associated-URI"),
+	P_ASSERTED_IDENTITY("P-Asserted-Identity", Type.STRING, false, true, false),
+	P_ASSOCIATED_URI("P-Associated-URI", Type.STRING, false, true, false),
 	P_CALLED_PARTY_ID("P-Called-Party-ID"),
 	P_CHARGING_FUNCTION_ADDRESSES("P-Charging-Function-Addresses"),
 	P_CHARGING_VECTOR("P-Charging-Vector"),
 	P_MEDIA_AUTHORIZATION("P-Media-Authorization"), 
-	P_PREFERRED_IDENTITY("P-Preferred-Identity"),
+	P_PREFERRED_IDENTITY("P-Preferred-Identity", Type.STRING, false, true, true),
 	P_USER_DATABASE("P-User-Database"),
 	P_VISITED_NETWORK_ID("P-Visited-Network-ID"),
 	PATH("Path"), 
@@ -68,18 +68,18 @@ public enum SipHeader
 	PRIVACY("Privacy"), 
 	PROXY_AUTHENTICATE("Proxy-Authenticate"),
 	PROXY_AUTHORIZATION("Proxy-Authorization"),
-	PROXY_REQUIRE("Proxy-Require"),
+	PROXY_REQUIRE("Proxy-Require", Type.STRING, false, true, true),
 	RACK("RAck", Type.STRING, true),
-	REASON("Reason"),
+	REASON("Reason", Type.STRING, false, true, true),
 	
 	REFER_SUB("Refer-Sub"),
 	REFER_TO("Refer-To"),
 	REFERRED_BY("Referred-By"),
-	REJECT_CONTACT("Reject-Contact"),
+	REJECT_CONTACT("Reject-Contact", Type.STRING, false, true, true),
 	REPLACES("Replaces"),
 	REPLY_TO("Reply-To"),
 	REQUEST_DISPOSITION("Request-Disposition"),
-	REQUIRE("Require"), 
+	REQUIRE("Require", Type.STRING, false, true, true), 
 	RESOURCE_PRIORITY("Resource-Priority"),
 	RETRY_AFTER("Retry-After"), 
 	
@@ -98,10 +98,10 @@ public enum SipHeader
 	TARGET_DIALOG("Target-Dialog"),
 	TIMESTAMP("Timestamp"),
 	
-	UNSUPPORTED("Unsupported"),
+	UNSUPPORTED("Unsupported", Type.STRING, false, true, true),
 	USER_AGENT("User-Agent"),
 	
-	WARNING("Warning"),
+	WARNING("Warning", Type.STRING, false, true, true),
 	WWW_AUTHENTICATE("WWW-Authenticate");
 	
 	public static final StringMap<SipHeader> CACHE = new StringMap<SipHeader>(true);
@@ -147,13 +147,22 @@ public enum SipHeader
 	private byte[] _bytesColonSpace;
 	
 	private boolean _system;
+	private boolean _list;
+	private boolean _merge;
 	
-	SipHeader(String s, Type type, boolean system)
+	SipHeader(String s, Type type, boolean system, boolean list, boolean merge)
 	{
 		_string = s;
 		_type = type;
 		_system = system;
 		_bytesColonSpace = StringUtil.getBytes(s+": ", StringUtil.__UTF8);
+		_list = list;
+		_merge = merge;
+	}
+	
+	SipHeader(String s, Type type, boolean system)
+	{
+		this(s, type, system, false, false);
 	}
 	
 	SipHeader(String s)
@@ -179,6 +188,16 @@ public enum SipHeader
 	public String asString()
 	{
 		return _string;
+	}
+	
+	public boolean isList()
+	{
+		return _list;
+	}
+
+	public boolean isMerge()
+	{
+		return _merge;
 	}
 	
 	@Override
@@ -266,4 +285,5 @@ public enum SipHeader
 //		SipHeader header = CACHE.get(name);
 //		return header == null ? name : header.toString();
 	}
+
 }

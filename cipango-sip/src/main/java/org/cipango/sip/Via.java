@@ -60,6 +60,13 @@ public class Via extends Parameters implements Parameterable
 		_string = via;
 	}
 	
+	public Via(String host, String transport, int port) 
+	{
+		_host = host;
+		_transport = transport;
+		_port = port;
+	}
+	
 	public String getTransport()
 	{
 		return _transport;
@@ -88,6 +95,11 @@ public class Via extends Parameters implements Parameterable
 	public void setReceived(String received)
 	{
 		_params.put(Param.RECEIVED, received);
+	}
+	
+	public void setBranch(String branch)
+	{
+		_params.put(Param.BRANCH, branch);
 	}
 	
 	public int getRPort()
@@ -222,5 +234,20 @@ public class Via extends Parameters implements Parameterable
 		{
 			throw new RuntimeException(e);
 		}
+	}
+
+	public void setTransport(String transport)
+	{
+		_transport = transport;
+	}
+
+	public void setHost(String host)
+	{
+		_host = host;
+	}
+
+	public void setPort(int port)
+	{
+		_port = port;
 	}
 }

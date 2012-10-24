@@ -89,6 +89,14 @@ public class SessionManager extends AbstractLifeCycle
 		return session.getId() + "-" + StringUtil.toBase62String2(r);
 	}
 	
+	public String newBranch()
+	{
+		long r = _random.nextInt();
+		if (r<0)
+			r = -r;
+		return StringUtil.toBase62String2(r);
+	}
+	
 	public void removeApplicationSession(ApplicationSession session)
 	{
 		_appSessions.remove(session.getId());
@@ -116,7 +124,7 @@ public class SessionManager extends AbstractLifeCycle
 		{
 			e.printStackTrace();
 		}
-		System.out.println("#applications: " + _appSessions.size());
+		//System.out.println("#applications: " + _appSessions.size());
 	}
 	
 	protected void doSessionExpired(ApplicationSession applicationSession)

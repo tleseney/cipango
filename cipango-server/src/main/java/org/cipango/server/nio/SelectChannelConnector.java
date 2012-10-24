@@ -7,9 +7,12 @@ import java.net.Socket;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 
 import org.cipango.server.AbstractSipConnector;
+import org.cipango.server.SipConnection;
 import org.cipango.server.SipServer;
 import org.cipango.server.Transport;
 import org.cipango.server.servlet.DefaultServlet;
@@ -45,6 +48,9 @@ public class SelectChannelConnector extends AbstractSipConnector
     private volatile long _idleTimeout = DEFAULT_SO_TIMEOUT;
     private volatile boolean _reuseAddress = true;
     private volatile int _soLingerTime = -1;
+    private InetAddress _address;
+
+    private final ConcurrentMap<String, SipConnection> _connections;
 
     public SelectChannelConnector(
     		@Name("sipServer") SipServer server)
@@ -76,6 +82,7 @@ public class SelectChannelConnector extends AbstractSipConnector
 		_byteBufferPool = pool != null? pool: new ArrayByteBufferPool();
         _manager = new ConnectorSelectorManager(getExecutor(), _scheduler, selectors);
 
+        _connections = new ConcurrentHashMap<String, SipConnection>();
         addBean(_manager, true);
         addBean(_scheduler, true);
     }
@@ -163,19 +170,6 @@ public class SelectChannelConnector extends AbstractSipConnector
         return _scheduler;
     }
 
-    
-	@Override
-	protected void doStart() throws Exception
-	{
-        super.doStart();
-    }
-
-    @Override
-    protected void doStop() throws Exception
-    {
-        super.doStop();
-    }
-    
 	@Override
 	public Transport getTransport()
 	{
@@ -193,7 +187,8 @@ public class SelectChannelConnector extends AbstractSipConnector
                 _acceptChannel.configureBlocking(true);
                 _acceptChannel.socket().setReuseAddress(getReuseAddress());
                 
-                InetSocketAddress addr = new InetSocketAddress(InetAddress.getByName(getHost()), getPort());
+                _address = InetAddress.getByName(getHost());
+                InetSocketAddress addr = new InetSocketAddress(_address, getPort());
                 _acceptChannel.socket().bind(addr, getAcceptQueueSize());
                 _localPort = _acceptChannel.socket().getLocalPort();
                 if (_localPort <= 0)
@@ -252,10 +247,66 @@ public class SelectChannelConnector extends AbstractSipConnector
         }
     }
     
+    public SipConnection getConnection(InetAddress address, int port) throws IOException
+	{
+		String key = getKey(address, port);
+		SipConnection connection = _connections.get(key);
+		if (connection == null)
+		{
+			synchronized (this)
+			{
+				connection = _connections.get(key);
+				if (connection == null)
+				{
+					connection = newConnection(address, port);
+					_connections.put(key, connection);
+				}
+			}
+		}
+		return connection;
+	}
+	
+    protected SipConnection newConnection(InetAddress address, int port) throws IOException
+    {
+    	SocketChannel channel = SocketChannel.open(); 
+    	channel.connect(new InetSocketAddress(address, port));
+    	channel.configureBlocking(false);
+    	configure(channel.socket());
+    	synchronized (channel)
+		{
+    		_manager.accept(channel);
+    		try
+			{
+				channel.wait(getIdleTimeout());
+			}
+			catch (InterruptedException e) {}
+		}
+    	return _connections.get(getKey(address, port));
+    }
+    
     protected Connection newConnection(EndPoint endpoint)
     {
-    	return new SelectSipConnection(this, endpoint);
+    	SelectSipConnection connection = new SelectSipConnection(this, endpoint);
+    	_connections.put(getKey(connection), connection);
+    	return connection;
     }
+    
+	protected String getKey(InetAddress address, int port)
+	{
+		return address.getHostAddress() + ":" + port;
+	}
+	    
+    protected String getKey(Connection connection)
+	{
+    	InetSocketAddress addr = connection.getEndPoint().getRemoteAddress();
+		return getKey(addr.getAddress(), addr.getPort());
+	}
+    
+	@Override
+	public InetAddress getAddress()
+	{
+		return _address;
+	}
     
     private final class ConnectorSelectorManager extends SelectorManager
     {
@@ -277,7 +328,12 @@ public class SelectChannelConnector extends AbstractSipConnector
 		public Connection newConnection(SocketChannel channel,
 				EndPoint endpoint, Object attachment)
 		{
-        	return SelectChannelConnector.this.newConnection(endpoint);
+        	Connection connection = SelectChannelConnector.this.newConnection(endpoint);
+        	synchronized (channel)
+			{
+				channel.notify();
+			}
+        	return connection;
 		}
     }
     

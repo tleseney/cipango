@@ -90,7 +90,7 @@ public class TlsChannelConnector extends SelectChannelConnector
 		EndPoint decryptedEndPoint = sslConnection.getDecryptedEndPoint();
 		Connection connection = super.newConnection(decryptedEndPoint);
 		decryptedEndPoint.setConnection(connection);
-		LOG.warn("SSL Connection {} / {}", sslConnection, connection);
+
 		return sslConnection;
     }
 	

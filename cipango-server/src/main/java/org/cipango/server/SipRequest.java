@@ -15,6 +15,7 @@ package org.cipango.server;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Locale;
@@ -42,8 +43,10 @@ import javax.servlet.sip.ar.SipApplicationRoutingRegion;
 
 import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.AddressImpl;
+import org.cipango.sip.SipGenerator;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
+import org.eclipse.jetty.util.StringUtil;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
@@ -99,6 +102,8 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	{
 		if (isCommitted())
 			throw new IllegalStateException("request is committed");
+		
+		_session.sendRequest(this);
 		// TODO
 	}
 	
@@ -426,6 +431,14 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	{
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	@Override
+	public String toString()
+	{
+		ByteBuffer buffer = ByteBuffer.allocate(4096); // FIXME size
+		new SipGenerator().generateRequest(buffer, _method, _requestUri, _fields, getRawContent());
+		return new String(buffer.array(), 0, buffer.position(), StringUtil.__UTF8_CHARSET);
 	}
 	
 }

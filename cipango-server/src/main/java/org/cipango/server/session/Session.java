@@ -1,5 +1,6 @@
 package org.cipango.server.session;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -24,6 +25,8 @@ import org.cipango.server.SipConnection;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
 import org.cipango.server.SipServer;
+import org.cipango.server.transaction.ClientTransaction;
+import org.cipango.server.transaction.ClientTransactionListener;
 import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipMethod;
@@ -65,6 +68,11 @@ public class Session implements SipSessionIf
 		_callId = request.getCallId();
 		_localParty = (Address) request.getTo().clone();
 		_remoteParty = (Address) request.getFrom().clone();
+	}
+	
+	public ApplicationSession appSession()
+	{
+		return _applicationSession;
 	}
 	
 	public boolean isUA()
@@ -157,6 +165,28 @@ public class Session implements SipSessionIf
 		{
 			 //TODO virtual
 		}
+	}
+	
+	public ClientTransaction sendRequest(SipRequest request, ClientTransactionListener listener) throws IOException
+	{
+		accessed();
+		
+		SipServer server = getServer();
+		//server.customizeRequest(request);
+		
+		request.setCommitted(true);
+		
+		return server.getTransactionManager().sendRequest(request, listener);
+	}
+		
+	public ClientTransaction sendRequest(SipRequest request) throws IOException
+	{
+		if (!isUA())
+			throw new IllegalStateException("Session is not UA");
+		
+		ClientTransaction tx = sendRequest(request, null);
+
+		return tx;
 	}
 	
 	private void setState(State state)

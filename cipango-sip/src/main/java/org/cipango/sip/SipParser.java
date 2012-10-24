@@ -2,7 +2,9 @@ package org.cipango.sip;
 
 import java.nio.ByteBuffer;
 import java.text.ParseException;
+import java.util.BitSet;
 
+import org.cipango.util.StringScanner;
 import org.cipango.util.StringUtil;
 import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.Utf8StringBuilder;
@@ -54,6 +56,7 @@ public class SipParser
 	private int _length;
 
 	private static final Logger LOG = Log.getLogger(SipParser.class);
+	private static final BitSet COMMA_QUOTE_BS = StringUtil.toBitSet(",\"");
 	
 	public SipParser(SipMessageHandler eventHandler)
 	{
@@ -325,7 +328,41 @@ public class SipParser
 										return true;
 									}
 								}
-								returnFromParse |= _handler.parsedHeader(_header, _headerString, _valueString);
+								if (_header != null && _header.isList())
+								{
+									StringScanner scanner = new StringScanner(_valueString);
+	
+									while (!scanner.eof())
+									{
+										scanner.skipToOneOf(COMMA_QUOTE_BS);
+							
+										if (scanner.eof())
+											returnFromParse |= _handler.parsedHeader(_header, _headerString, scanner.sliceFromMark());
+										else if (scanner.peekChar() == ',')
+										{
+											scanner.skipBackWhitespace();
+											returnFromParse |= _handler.parsedHeader(_header, _headerString, scanner.sliceFromMark());
+											scanner.skipWhitespace();
+											scanner.skipChar(); // skip ','
+											scanner.skipWhitespace();
+											scanner.mark();
+										}
+										else
+										{
+											try
+											{
+												scanner.readQuoted();
+											}
+											catch (ParseException e)
+											{
+												badMessage(buffer, "Invalid quoted message");
+												return true;
+											}
+										}
+									}	
+								}
+								else
+									returnFromParse |= _handler.parsedHeader(_header, _headerString, _valueString);
 							}
 							
 							_headerString = _valueString = null;

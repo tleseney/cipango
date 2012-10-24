@@ -33,6 +33,22 @@ public class DefaultServlet extends SipServlet
 	}
 	
 	@Override
+	protected void doRegister(SipServletRequest request) throws ServletException, IOException
+	{
+		SipServletResponse response = request.createResponse(200);
+		response.addHeader("Server", getServletConfig().getServletName());
+		response.send();
+	}
+	
+	@Override
+	protected void doMessage(SipServletRequest request) throws ServletException, IOException
+	{
+		SipServletResponse response = request.createResponse(200);
+		response.addHeader("Server", getServletConfig().getServletName());
+		response.send();
+	}
+	
+	@Override
 	protected void doOptions(SipServletRequest request) throws ServletException, IOException
 	{
 		SipServletResponse response = request.createResponse(200);

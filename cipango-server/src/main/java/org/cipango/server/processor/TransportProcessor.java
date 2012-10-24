@@ -1,14 +1,19 @@
 package org.cipango.server.processor;
 
+import java.io.IOException;
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.util.Iterator;
 
 import javax.servlet.sip.Address;
-import javax.servlet.sip.SipServletResponse;
 
+import org.cipango.server.SipConnection;
+import org.cipango.server.SipConnector;
 import org.cipango.server.SipMessage;
 import org.cipango.server.SipProcessor;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
+import org.cipango.server.Transport;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.Via;
 import org.eclipse.jetty.util.log.Log;
@@ -153,4 +158,35 @@ public class TransportProcessor extends SipProcessorWrapper
 			LOG.info("Received bad message: Duplicate header: " + name);
 		return !it.hasNext();
 	}
+	
+	
+    public SipConnection getConnection(SipRequest request, Transport transport, InetAddress address, int port) throws IOException
+    {   
+    	SipConnector connector = findConnector(transport, address);
+    	
+        Via via = request.getTopVia();
+        
+        via.setTransport(connector.getTransport().getName());
+        via.setHost(connector.getURI().getHost());
+        via.setPort(connector.getURI().getPort());
+                
+        SipConnection connection = connector.getConnection(address, port);
+        if (connection == null)
+        	throw new IOException("Could not find connection to " + address + ":" + port + "/" + connector.getTransport());
+        
+        return connection;
+    }
+    
+    public SipConnector findConnector(Transport transport, InetAddress addr)
+    {
+    	boolean ipv4 = addr instanceof Inet4Address;
+    	SipConnector[] connectors = getServer().getConnectors();
+        for (int i = 0; i < connectors.length; i++) 
+        {
+            SipConnector c = connectors[i];
+            if (c.getTransport() == transport && (addr == null || (c.getAddress() instanceof Inet4Address) == ipv4)) 
+                return c;
+        }
+        return connectors[0];
+    }
 }

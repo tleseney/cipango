@@ -6,7 +6,6 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 
 import javax.servlet.sip.SipURI;
 
@@ -33,6 +32,7 @@ public abstract class AbstractSipConnector extends ContainerLifeCycle  implement
 	private int _port;
 	private String _host;
 	private SipURI _uri;
+    private boolean _transportParamForced = false;
 	
 	private Thread[] _acceptors;
 	
@@ -82,6 +82,16 @@ public abstract class AbstractSipConnector extends ContainerLifeCycle  implement
 		_host = host;
 	}
 	
+    public boolean isTransportParamForced()
+	{
+		return _transportParamForced;
+	}
+
+	public void setTransportParamForced(boolean forced)
+	{
+		_transportParamForced = forced;
+	}
+	
 	public Executor getExecutor()
 	{
 		return _executor;
@@ -118,6 +128,8 @@ public abstract class AbstractSipConnector extends ContainerLifeCycle  implement
 		}
 		
 		_uri = new SipURIImpl(_host, _port);
+    	if (isTransportParamForced())
+    		_uri.setTransportParam(getTransport().getName().toLowerCase());
 
         super.doStart();
 

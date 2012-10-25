@@ -88,15 +88,16 @@ public abstract class AbstractConnectorTest
 		assertEquals("c117fdfda2ffd6f4a859a2d504aedb25@127.0.0.1", message.getCallId());
 	}
 
-//	@Test
-//	public void testParam() throws Exception
-//	{
-//		assertEquals("sip:localhost:5040", _connector.getSipUri().toString());
-//		_connector.stop();
-//		_connector.setTransportParam(true);
-//		_connector.start();
-//		assertEquals("sip:localhost:5040;transport=udp", _connector.getSipUri().toString());
-//	}
+	@Test
+	public void testParam() throws Exception
+	{
+		String uri = "sip:localhost:5040;transport=" + _connector.getTransport().toString().toLowerCase();
+		assertEquals("sip:localhost:5040", _connector.getURI().toString());
+		_connector.stop();
+		_connector.setTransportParamForced(true);
+		_connector.start();
+		assertEquals(uri, _connector.getURI().toString());
+	}
 	
 	@Test
 	public void testBinaryContent() throws Exception

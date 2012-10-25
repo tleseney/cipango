@@ -583,7 +583,7 @@ public class SipURIImpl implements SipURI
 					if (value != null && !value.equals(""))
 					{
 						buffer.append('=');
-						buffer.append(value);
+						buffer.append(StringUtil.encode(value, StringUtil.PARAM_BS));
 					}
 				}
 			}
@@ -595,11 +595,11 @@ public class SipURIImpl implements SipURI
 			{
 				String value = _otherParameters.get(name);
 				buffer.append(';');
-				buffer.append(name);
+				buffer.append(StringUtil.encode(name, StringUtil.PARAM_BS));
 				if (value != null && !value.equals(""))
 				{
 					buffer.append('=');
-					buffer.append(value);
+					buffer.append(StringUtil.encode(value, StringUtil.PARAM_BS));
 				}
 			}
 		}

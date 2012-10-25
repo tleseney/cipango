@@ -143,12 +143,72 @@ public class SipURIImplTest
 	}
 	
 	@Test
-	public void testnoValueParam() throws Exception
+	public void testNoValueParam() throws Exception
 	{
 		SipURI uri = sipURI("sip:biloxi.com");
 		uri.setLrParam(true);
 		uri.setParameter("custom", "");
 		assertEquals("sip:biloxi.com;lr;custom", uri.toString());
 	}
+	
+	@Test
+	public void testEscapeParamName() throws Exception
+	{
+		SipURI uri = sipURI("sip:biloxi.com");
+		uri.setParameter("escapeName?", "1");
+		//System.out.println(uri.toString());
+		assertEquals("sip:biloxi.com;escapeName%3f=1", uri.toString());
+		assertEquals(uri, sipURI(uri.toString()));
+	}
+	
+	@Test
+	public void testEscapeParamValue() throws Exception
+	{
+		SipURI uri = sipURI("sip:biloxi.com");
+		uri.setParameter("name", "françois");
+		//System.out.println(uri.toString());
+		assertEquals("sip:biloxi.com;name=fran%c3%a7ois", uri.toString());
+		assertEquals(uri, sipURI(uri.toString()));
+	}
+	
+	@Test
+	public void testEscapeHeaderName() throws Exception
+	{
+		SipURI uri = sipURI("sip:biloxi.com");
+		uri.setHeader("escapeName@", "1");
+		//System.out.println(uri.toString());
+		assertEquals("sip:biloxi.com?escapeName%40=1", uri.toString());
+		assertEquals(uri, sipURI(uri.toString()));
+	}
+	
+	@Test
+	public void testEscapeHeaderValue() throws Exception
+	{
+		SipURI uri = sipURI("sip:biloxi.com");
+		uri.setHeader("subject", "My call");
+		//System.out.println(uri.toString());
+		assertEquals("sip:biloxi.com?subject=My%20call", uri.toString());
+		assertEquals(uri, sipURI(uri.toString()));
+	}
 
+	@Test
+	public void testToString() throws Exception
+	{
+		SipURI uri = null;
+		SipURI uri2 = null;
+		for (int i = 0; i < uris.length; i++)
+		{
+			uri = sipURI(uris[i][0]);
+			try 
+			{
+				uri2 = sipURI(uri.toString());
+			}
+			catch (Exception e)
+			{
+				fail(uris[i][0] + ": " + e.getMessage());
+			}
+			assertEquals(uris[i][0], uri, uri2);
+
+		}
+	}
 }

@@ -79,7 +79,8 @@ public class SelectChannelConnector extends AbstractSipConnector
     	super(server, executor, acceptors);
 
 		_scheduler = scheduler != null? scheduler: new TimerScheduler();
-		_byteBufferPool = pool != null? pool: new ArrayByteBufferPool();
+		_byteBufferPool = pool != null? pool: new ArrayByteBufferPool(
+				SelectSipConnection.MINIMAL_BUFFER_LENGTH, 4096, 65536);
         _manager = new ConnectorSelectorManager(getExecutor(), _scheduler, selectors);
 
         _connections = new ConcurrentHashMap<String, SipConnection>();

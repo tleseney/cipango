@@ -1,6 +1,7 @@
 package org.cipango.server;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
@@ -332,6 +333,20 @@ public abstract class AbstractSipConnector extends ContainerLifeCycle  implement
 		@Override
 		public boolean messageComplete(ByteBuffer content)
 		{
+			if (content != null)
+			{
+    			int size = content.limit() - content.position();
+    			byte[] buffer = new byte[size];
+    			content.get(buffer, 0, size);
+    			try
+    			{
+    				_message.setContent(buffer, _message.getContentType());
+    			}
+    			catch (UnsupportedEncodingException e)
+    			{
+    				LOG.ignore(e);
+    			}
+			}
 			_message.setConnection(_connection);
 			_message.setTimeStamp(System.currentTimeMillis());
 			

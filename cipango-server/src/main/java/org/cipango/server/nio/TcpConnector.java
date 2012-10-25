@@ -71,7 +71,7 @@ public class TcpConnector extends AbstractSipConnector
 	protected void doStart() throws Exception
 	{
 		_connections = new HashMap<String, TcpConnection>();
-		_outBuffers = new ArrayByteBufferPool();
+		_outBuffers = new ArrayByteBufferPool(MINIMAL_BUFFER_LENGTH, 4096, 65536);
 
 		super.doStart();
 	}

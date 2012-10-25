@@ -31,6 +31,7 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 	private static final Logger LOG = Log.getLogger(SelectSipConnection.class);
     
 	public static final int MINIMAL_BUFFER_LENGTH = 2048;
+	public static final int MAXIMAL_BUFFER_LENGTH = 16 * 1024 * 1024;
 	
     private final ByteBufferPool _bufferPool;
 	private final SelectChannelConnector _connector;
@@ -158,11 +159,28 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 	@Override
 	public void send(SipMessage message) throws MessageTooLongException
 	{
-		ByteBuffer buffer = _bufferPool.acquire(MINIMAL_BUFFER_LENGTH, false);
-		buffer.clear();
+		ByteBuffer buffer = null;
+		int bufferSize = MINIMAL_BUFFER_LENGTH;
 		
-		_sipGenerator.generateMessage(buffer, message);
+		while (true)
+		{
+			buffer = _bufferPool.acquire(bufferSize, false);
+			buffer.clear();
 
+			try
+			{
+				_sipGenerator.generateMessage(buffer, message);
+				break;
+			}
+			catch (MessageTooLongException e)
+			{
+				if (bufferSize < MAXIMAL_BUFFER_LENGTH)
+					bufferSize += MINIMAL_BUFFER_LENGTH + message.getContentLength();
+				else
+					throw e;
+			}
+		}
+		
 		buffer.flip();
 		try
 		{

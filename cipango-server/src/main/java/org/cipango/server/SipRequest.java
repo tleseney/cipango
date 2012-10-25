@@ -15,6 +15,7 @@ package org.cipango.server;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.util.Enumeration;
 import java.util.Iterator;
@@ -436,9 +437,23 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	@Override
 	public String toString()
 	{
-		ByteBuffer buffer = ByteBuffer.allocate(4096); // FIXME size
-		new SipGenerator().generateRequest(buffer, _method, _requestUri, _fields, getRawContent());
-		return new String(buffer.array(), 0, buffer.position(), StringUtil.__UTF8_CHARSET);
+		ByteBuffer buffer = null;
+		int bufferSize = 4096 + getContentLength();
+		
+		while (true)
+		{
+			buffer = ByteBuffer.allocate(bufferSize);
+
+			try {
+				new SipGenerator().generateRequest(buffer, _method, _requestUri, _fields, getRawContent());
+				return new String(buffer.array(), 0, buffer.position(), StringUtil.__UTF8_CHARSET);
+
+			}
+			catch (BufferOverflowException e)
+			{
+				bufferSize += 4096 + getContentLength();
+			}
+		}
 	}
 	
 }

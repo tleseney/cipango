@@ -1,20 +1,25 @@
 package org.cipango.server.nio;
 
-import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNotNull;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipMessage;
+import org.cipango.server.AbstractSipConnector.MessageBuilder;
+import org.cipango.sip.SipParser;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -50,7 +55,7 @@ public class SelectChannelConnectorTest extends AbstractConnectorTest
 		assertNotNull(b);
 		String msg = new String(b , "UTF-8");
 		//System.out.println(msg);
-		SipMessage message = getAsMessage(SERIALIZED_REGISTER);
+		SipMessage message = getAsMessage(msg);
 		assertEquals(orig.getMethod(), message.getMethod());
 		Iterator<String> it =  orig.getHeaderNames();
 		while (it.hasNext())
@@ -58,9 +63,36 @@ public class SelectChannelConnectorTest extends AbstractConnectorTest
 			String name = it.next();
 			assertEquals(orig.getHeader(name), message.getHeader(name));
 		}
+		socket.close();
 	}
 	
+	@Test
+	public void testSendBigRequest() throws Exception
+	{
+		final ServerSocket socket = new ServerSocket();
+		
+		socket.bind(new InetSocketAddress(InetAddress.getByName("localhost"), _connector.getPort() + 1));
+		TestServerSocket ts = new TestServerSocket(socket);
+		ts.start();
+		
+		SipConnection connection = _connector.getConnection(socket.getInetAddress(), socket.getLocalPort());
+		assertNotNull(connection);
 
+		SipMessage orig = getAsMessage(SERIALIZED_REGISTER);
+		byte[] buffer = new byte[250 * 1024];
+		Arrays.fill(buffer, (byte)'a');
+		orig.setContent(buffer, "text");
+		connection.send(orig);
+		SipMessage message = read(ts);
+		assertEquals(orig.getMethod(), message.getMethod());
+		Iterator<String> it =  orig.getHeaderNames();
+		while (it.hasNext())
+		{
+			String name = it.next();
+			assertEquals(orig.getHeader(name), message.getHeader(name));
+		}
+		assertEquals(orig.getContent(), message.getContent());
+	}
 	
 	@Override
 	protected void send(String message) throws Exception
@@ -76,6 +108,20 @@ public class SelectChannelConnectorTest extends AbstractConnectorTest
         os.write(message.getBytes("UTF-8"));
         os.flush();
 		socket.close();
+	}
+	
+	private SipMessage read(TestServerSocket ts) throws UnsupportedEncodingException
+	{
+    	TestMessageBuilder builder = new TestMessageBuilder();
+    	SipParser parser = new SipParser(builder);
+
+    	while (!builder.finished)
+    	{
+    		byte[] b = ts.pop();
+    		assertNotNull(b);
+    		parser.parseNext(ByteBuffer.wrap(new String(b, "UTF-8").getBytes()));
+    	}
+    	return builder.getMessage();
 	}
 	
 	class TestServerSocket extends Thread
@@ -149,5 +195,20 @@ public class SelectChannelConnectorTest extends AbstractConnectorTest
 		}
 	}
 	
-	
+	class TestMessageBuilder extends MessageBuilder
+	{
+		boolean finished = false;
+
+		public TestMessageBuilder()
+		{
+			super(null, null);
+		}
+  		
+		@Override
+		public boolean messageComplete(ByteBuffer content)
+		{
+			finished = true;
+			return super.messageComplete(content);
+		}
+   	}
 }

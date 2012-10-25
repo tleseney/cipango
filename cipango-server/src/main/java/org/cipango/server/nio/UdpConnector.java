@@ -83,7 +83,7 @@ public class UdpConnector extends AbstractSipConnector
 		for (int i = _inBuffers.length; i-->0;)
 			_inBuffers[i] = BufferUtil.allocateDirect(MAX_UDP_SIZE);
 		
-		_outBuffers = new ArrayByteBufferPool();
+		_outBuffers = new ArrayByteBufferPool(_mtu, MAX_UDP_SIZE, MAX_UDP_SIZE);
 		super.doStart();
 	}
 	
@@ -191,7 +191,7 @@ public class UdpConnector extends AbstractSipConnector
 			}
 			catch (Exception e)
 			{
-				e.printStackTrace();
+				LOG.warn(e);
 			}
 			
 			_outBuffers.release(buffer); 

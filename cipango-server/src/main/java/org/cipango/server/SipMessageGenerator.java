@@ -14,14 +14,22 @@ public class SipMessageGenerator extends SipGenerator
 			if (message instanceof SipResponse)
     		{
     			SipResponse response = (SipResponse) message;
-    			generateResponse(buffer, response.getStatus(),
-    					response.getReasonPhrase(), response.getFields(), response.getRawContent());
+    			generateResponse(buffer, 
+    					response.getStatus(),
+    					response.getReasonPhrase(), 
+    					response.getFields(), 
+    					response.getRawContent(),
+    					response.getHeaderForm());
     		}
     		else
     		{
     			SipRequest request = (SipRequest) message;
-    			generateRequest(buffer, request.getMethod(), request.getRequestURI(), 
-    					request.getFields(), request.getRawContent());
+    			generateRequest(buffer, 
+    					request.getMethod(), 
+    					request.getRequestURI(), 
+    					request.getFields(), 
+    					request.getRawContent(),
+    					request.getHeaderForm());
     		}
 		}
 		catch (BufferOverflowException e)

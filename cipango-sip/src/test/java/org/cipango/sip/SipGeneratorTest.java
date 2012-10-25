@@ -13,6 +13,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.servlet.sip.SipServletMessage.HeaderForm;
+
 import org.cipango.sip.SipParser.State;
 import org.eclipse.jetty.util.StringUtil;
 import org.junit.Before;
@@ -35,7 +37,7 @@ public class SipGeneratorTest
 	{
 		try
 		{
-			_generator.generateRequest(_buffer, "METHOD", null, null, null);
+			_generator.generateRequest(_buffer, "METHOD", null, null, null, null);
 			fail();
 		}
 		catch (NullPointerException e)
@@ -53,7 +55,7 @@ public class SipGeneratorTest
 		
 		_buffer.put(StringUtil.getUtf8Bytes("XXXX"));
 		_buffer.position(2);
-		_generator.generateRequest(_buffer, "METHOD", uri, null, null);
+		_generator.generateRequest(_buffer, "METHOD", uri, null, null, null);
 
 		assertEquals("XXMETHOD sip:user@host:5061;param=value SIP/2.0\r\n\r\n",
 				toString());
@@ -67,7 +69,7 @@ public class SipGeneratorTest
 		try
 		{
 			_generator.generateRequest(buffer, "METHOD",
-					new SipURIImpl("host", 5061), new SipFields(), null);
+					new SipURIImpl("host", 5061), new SipFields(), null, null);
 			fail();
 		}
 		catch (BufferOverflowException e)
@@ -82,16 +84,16 @@ public class SipGeneratorTest
 		SipURIImpl uri = new SipURIImpl("biloxi.com", 5060);
 
 		headers.add("Host", "localhost");
-		headers.add("Header 1", "value1");
-		headers.add("Header 2", "vale 2a");
-		headers.add("Header 2", "vale 2b");
-		headers.add("Header 3", "");
-		headers.add("Header 4", "value 4a, value 4b, value 4c");
+		headers.add("Header-1", "value1");
+		headers.add("Header-2", "vale 2a");
+		headers.add("Header-2", "vale 2b");
+		headers.add("Header-3", "");
+		headers.add("Header-4", "value 4a, value 4b, value 4c");
 
 		uri.setUser("bob");
 		uri.setParameter("uri-param", "uri-value");
 
-		_generator.generateRequest(_buffer, "METHOD", uri, headers, null);
+		_generator.generateRequest(_buffer, "METHOD", uri, headers, null, null);
 
 		Handler handler = parse(_buffer);
 
@@ -124,14 +126,14 @@ public class SipGeneratorTest
 	public void testMergeHeaders() throws Exception
 	{
 		SipFields fields = new SipFields();
-		fields.add("Accept", "INVITE");
-		fields.add("Accept", "ACK");
+		fields.add("Allow", "INVITE");
+		fields.add("Allow", "ACK");
 		
-		_generator.generateRequest(_buffer, "INVITE", new SipURIImpl("sip:cipango.org"), fields, null);
+		_generator.generateRequest(_buffer, "INVITE", new SipURIImpl("sip:cipango.org"), fields, null, null);
 		String s = toString();
 		//System.out.println("**" + s + "**");
 		assertEquals("INVITE sip:cipango.org SIP/2.0\r\n"
-				+ "Accept: INVITE, ACK\r\n\r\n", s);
+				+ "Allow: INVITE, ACK\r\n\r\n", s);
 		
 	}
 	
@@ -142,7 +144,7 @@ public class SipGeneratorTest
 		fields.add("Route", "<sip:cipango.org;lr>");
 		fields.add("Route", "<sip:cipango.org:5062;lr>");
 		
-		_generator.generateRequest(_buffer, "INVITE", new SipURIImpl("sip:cipango.org"), fields, null);
+		_generator.generateRequest(_buffer, "INVITE", new SipURIImpl("sip:cipango.org"), fields, null, null);
 		String s = toString();
 		//System.out.println("**" + s + "**");
 		assertEquals("INVITE sip:cipango.org SIP/2.0\r\n"
@@ -150,13 +152,36 @@ public class SipGeneratorTest
 				+ "Route: <sip:cipango.org:5062;lr>\r\n\r\n", s);
 		
 	}
+	
+	@Test
+	public void testCompactForm() throws Exception
+	{
+		SipFields fields = new SipFields();
+		fields.add("Call-ID", "fd556@cipango.org");
+		fields.add("Route", "<sip:cipango.org;lr>");
+		
+		_generator.generateRequest(_buffer, "INVITE", new SipURIImpl("sip:cipango.org"), fields, null, HeaderForm.COMPACT);
+		String s = toString();
+		//System.out.println("**" + s + "**");
+		assertEquals("INVITE sip:cipango.org SIP/2.0\r\n"
+				+ "i: fd556@cipango.org\r\n"
+				+ "Route: <sip:cipango.org;lr>\r\n\r\n", s);	
+		
+		_buffer.clear();
+		_generator.generateRequest(_buffer, "INVITE", new SipURIImpl("sip:cipango.org"), fields, null, HeaderForm.LONG);
+		s = toString();
+		//System.out.println("**" + s + "**");
+		assertEquals("INVITE sip:cipango.org SIP/2.0\r\n"
+				+ "Call-ID: fd556@cipango.org\r\n"
+				+ "Route: <sip:cipango.org;lr>\r\n\r\n", s);	
+	}
 
 	@Test
 	public void testGenerateResponse()
 	{
 		_buffer.put(StringUtil.getUtf8Bytes("XXXX"));
 		_buffer.position(2);
-		_generator.generateResponse(_buffer, 202, "All is OK", null, null);
+		_generator.generateResponse(_buffer, 202, "All is OK", null, null, null);
 
 		assertEquals("XXSIP/2.0 202 All is OK\r\n\r\n", toString());
 	}
@@ -168,7 +193,7 @@ public class SipGeneratorTest
 
 		try
 		{
-			_generator.generateResponse(buffer, 202, "All is full of love", null, null);
+			_generator.generateResponse(buffer, 202, "All is full of love", null, null, null);
 			fail();
 		}
 		catch (BufferOverflowException e)

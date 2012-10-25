@@ -445,7 +445,7 @@ public class SipRequest extends SipMessage implements SipServletRequest
 			buffer = ByteBuffer.allocate(bufferSize);
 
 			try {
-				new SipGenerator().generateRequest(buffer, _method, _requestUri, _fields, getRawContent());
+				new SipGenerator().generateRequest(buffer, _method, _requestUri, _fields, getRawContent(), getHeaderForm());
 				return new String(buffer.array(), 0, buffer.position(), StringUtil.__UTF8_CHARSET);
 
 			}

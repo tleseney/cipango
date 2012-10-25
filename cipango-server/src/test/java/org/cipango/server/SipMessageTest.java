@@ -2,9 +2,12 @@ package org.cipango.server;
 
 import static junit.framework.Assert.*;
 
+import javax.servlet.sip.SipServletMessage.HeaderForm;
+
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
+import org.cipango.sip.SipURIImpl;
 import org.junit.Test;
 
 public class SipMessageTest
@@ -13,6 +16,7 @@ public class SipMessageTest
 	public void testCompactHeaders() throws Exception
 	{
 		SipRequest request = new SipRequest();
+		request.setRequestURI(new SipURIImpl("sip:cipango.org"));
 		request.setMethod(SipMethod.REGISTER, SipMethod.REGISTER.asString());
 		request._fields.add(SipHeader.CALL_ID.asString(), "aa");
 		assertEquals("aa", request.getCallId());
@@ -43,5 +47,12 @@ public class SipMessageTest
 		assertEquals("call", request.getHeader(SipHeader.SUBJECT.asString()));
 		assertEquals("call", request.getHeader("s"));
 		
+		request.setHeaderForm(HeaderForm.COMPACT);
+		String compactForm = request.toString();
+		request.setHeaderForm(HeaderForm.LONG);
+		String longForm = request.toString();
+		assertFalse(compactForm.equals(longForm));
+		assertTrue(compactForm.contains("a:"));
+		assertTrue(longForm.contains("Accept-Contact:"));
 	}
 }

@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.EnumSet;
 import java.util.Set;
 
+import javax.servlet.sip.SipServletMessage.HeaderForm;
 import javax.servlet.sip.URI;
 
 import org.cipango.util.StringUtil;
@@ -14,18 +15,18 @@ public class SipGenerator
 {
 	private Set<SipHeader> _fixedHeaders = EnumSet.of(VIA, FROM, TO, CALL_ID);
 	
-	public void generateRequest(ByteBuffer buffer, String method, URI requestUri, SipFields sipFields, byte[] content)
+	public void generateRequest(ByteBuffer buffer, String method, URI requestUri, SipFields sipFields, byte[] content, HeaderForm headerForm)
 	{
 		generateRequestLine(buffer, method, requestUri);
-		generateHeaders(buffer, sipFields);
+		generateHeaders(buffer, sipFields, headerForm);
 		if (content != null)
 			buffer.put(content);
 	}
 	
-	public void generateResponse(ByteBuffer buffer, int status, String reason, SipFields sipFields, byte[] content)
+	public void generateResponse(ByteBuffer buffer, int status, String reason, SipFields sipFields, byte[] content, HeaderForm headerForm)
 	{
 		generateResponseLine(buffer, status, reason);
-		generateHeaders(buffer, sipFields);
+		generateHeaders(buffer, sipFields, headerForm);
 		if (content != null)
 			buffer.put(content);
 	}
@@ -67,13 +68,13 @@ public class SipGenerator
 		}
 	}
 	
-	private void generateHeaders(ByteBuffer buffer, SipFields sipFields)
+	private void generateHeaders(ByteBuffer buffer, SipFields sipFields, HeaderForm headerForm)
 	{
 		if (sipFields != null)
 		{
 			for (SipFields.Field field : sipFields)
 			{
-				field.putTo(buffer);
+				field.putTo(buffer, headerForm);
 			}
 		}
 		

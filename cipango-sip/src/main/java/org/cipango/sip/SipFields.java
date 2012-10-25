@@ -9,6 +9,7 @@ import java.util.NoSuchElementException;
 import javax.servlet.sip.Address;
 import javax.servlet.sip.Parameterable;
 import javax.servlet.sip.ServletParseException;
+import javax.servlet.sip.SipServletMessage.HeaderForm;
 
 import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.StringMap;
@@ -272,10 +273,25 @@ public class SipFields implements Iterable<SipFields.Field>
     		return (Address) _value;
     	}
 		
-		public void putTo(ByteBuffer buffer)
+		public void putTo(ByteBuffer buffer, HeaderForm headerForm)
 		{
 			if (_header != null)
-				buffer.put(_header.getBytesColonSpace());
+			{
+				if (headerForm == HeaderForm.COMPACT)
+				{
+					Byte compact = SipHeader.REVERSE_COMPACT_CACHE.get(_header);
+					if (compact != null)
+					{
+						buffer.put(compact);
+						buffer.put(SipGrammar.COLON);
+						buffer.put(SipGrammar.SPACE);
+					}
+					else
+						buffer.put(_header.getBytesColonSpace());
+				}
+				else
+					buffer.put(_header.getBytesColonSpace());
+			}
 			else
 			{
 				buffer.put(StringUtil.getUtf8Bytes(_name));
@@ -300,7 +316,7 @@ public class SipFields implements Iterable<SipFields.Field>
 			BufferUtil.putCRLF(buffer);
 			
 			if (next != null)
-				next.putTo(buffer);
+				next.putTo(buffer, headerForm);
 
 		}
 		

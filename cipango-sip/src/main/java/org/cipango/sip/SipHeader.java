@@ -106,39 +106,39 @@ public enum SipHeader
 	
 	public static final StringMap<SipHeader> CACHE = new StringMap<SipHeader>(true);
 	//public static final StringMap<SipHeader> COMPACT_CACHE = new StringMap<SipHeader>(true);
-	public static final Map<SipHeader, String> REVERSE_COMPACT_CACHE = new EnumMap<SipHeader, String>(SipHeader.class);
+	public static final Map<SipHeader, Byte> REVERSE_COMPACT_CACHE = new EnumMap<SipHeader, Byte>(SipHeader.class);
 	
 	static 
 	{
 		for (SipHeader header : SipHeader.values())
 			CACHE.put(header.toString(), header);
 		
-		REVERSE_COMPACT_CACHE.put(ACCEPT_CONTACT, "a");
-		REVERSE_COMPACT_CACHE.put(REFERRED_BY, "b");
-		REVERSE_COMPACT_CACHE.put(CONTENT_TYPE, "c");
-		REVERSE_COMPACT_CACHE.put(REQUEST_DISPOSITION, "d");
-		REVERSE_COMPACT_CACHE.put(CONTENT_ENCODING, "e");
-		REVERSE_COMPACT_CACHE.put(FROM, "f");
+		REVERSE_COMPACT_CACHE.put(ACCEPT_CONTACT, new Byte((byte) 'a'));
+		REVERSE_COMPACT_CACHE.put(REFERRED_BY, new Byte((byte) 'b'));
+		REVERSE_COMPACT_CACHE.put(CONTENT_TYPE, new Byte((byte) 'c'));
+		REVERSE_COMPACT_CACHE.put(REQUEST_DISPOSITION, new Byte((byte) 'd'));
+		REVERSE_COMPACT_CACHE.put(CONTENT_ENCODING, new Byte((byte) 'e'));
+		REVERSE_COMPACT_CACHE.put(FROM, new Byte((byte) 'f'));
 		
-		REVERSE_COMPACT_CACHE.put(CALL_ID, "i");
-		REVERSE_COMPACT_CACHE.put(REJECT_CONTACT, "j");
-		REVERSE_COMPACT_CACHE.put(SUPPORTED, "k");
-		REVERSE_COMPACT_CACHE.put(CONTENT_LENGTH, "l");
-		REVERSE_COMPACT_CACHE.put(CONTACT, "m");
-		REVERSE_COMPACT_CACHE.put(IDENTITY, "n");
-		REVERSE_COMPACT_CACHE.put(EVENT, "o");
+		REVERSE_COMPACT_CACHE.put(CALL_ID, new Byte((byte) 'i'));
+		REVERSE_COMPACT_CACHE.put(REJECT_CONTACT, new Byte((byte) 'j'));
+		REVERSE_COMPACT_CACHE.put(SUPPORTED, new Byte((byte) 'k'));
+		REVERSE_COMPACT_CACHE.put(CONTENT_LENGTH, new Byte((byte) 'l'));
+		REVERSE_COMPACT_CACHE.put(CONTACT, new Byte((byte) 'm'));
+		REVERSE_COMPACT_CACHE.put(IDENTITY, new Byte((byte) 'n'));
+		REVERSE_COMPACT_CACHE.put(EVENT, new Byte((byte) 'o'));
 		
-		REVERSE_COMPACT_CACHE.put(REFER_TO, "r");
-		REVERSE_COMPACT_CACHE.put(SUBJECT, "s");
-		REVERSE_COMPACT_CACHE.put(TO, "t");
-		REVERSE_COMPACT_CACHE.put(ALLOW_EVENTS, "u");
-		REVERSE_COMPACT_CACHE.put(VIA, "v");
+		REVERSE_COMPACT_CACHE.put(REFER_TO, new Byte((byte) 'r'));
+		REVERSE_COMPACT_CACHE.put(SUBJECT, new Byte((byte) 's'));
+		REVERSE_COMPACT_CACHE.put(TO, new Byte((byte) 't'));
+		REVERSE_COMPACT_CACHE.put(ALLOW_EVENTS, new Byte((byte) 'u'));
+		REVERSE_COMPACT_CACHE.put(VIA, new Byte((byte) 'v'));
 		
-		REVERSE_COMPACT_CACHE.put(SESSION_EXPIRES, "x");
-		REVERSE_COMPACT_CACHE.put(IDENTITY, "y");
+		REVERSE_COMPACT_CACHE.put(SESSION_EXPIRES, new Byte((byte) 'x'));
+		REVERSE_COMPACT_CACHE.put(IDENTITY, new Byte((byte) 'y'));
 		
-		for (Map.Entry<SipHeader, String> entry : REVERSE_COMPACT_CACHE.entrySet())
-			CACHE.put(entry.getValue(), entry.getKey());
+		for (Map.Entry<SipHeader, Byte> entry : REVERSE_COMPACT_CACHE.entrySet())
+			CACHE.put("" + (char) entry.getValue().byteValue(), entry.getKey());
 		
 	}
 	

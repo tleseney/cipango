@@ -141,5 +141,14 @@ public class SipURIImplTest
 			assertFalse(__different[i][1], uri2.equals(uri1));
 		}
 	}
+	
+	@Test
+	public void testnoValueParam() throws Exception
+	{
+		SipURI uri = sipURI("sip:biloxi.com");
+		uri.setLrParam(true);
+		uri.setParameter("custom", "");
+		assertEquals("sip:biloxi.com;lr;custom", uri.toString());
+	}
 
 }

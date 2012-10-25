@@ -232,10 +232,14 @@ public class Via extends Parameters implements Parameterable
 			{
 				buffer.append(';');
 				buffer.append(p.toString());
-				buffer.append('=');
-				buffer.append(value);
+				if (!"".equals(value))
+				{
+					buffer.append('=');
+					buffer.append(value);
+				}
 			}
 		}
+		appendParameters(buffer);
 		
 		return buffer.toString();
 	}

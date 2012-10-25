@@ -106,7 +106,7 @@ public class Parameters
 				String value = _parameters.get(name);
 				appendable.append(';');
 				appendable.append(name);
-				if (value != null)
+				if (value != null && !"".equals(value))
 				{
 					appendable.append('=');
 					appendable.append(StringUtil.quoteIfNeeded(value, StringUtil.TOKEN_BS));

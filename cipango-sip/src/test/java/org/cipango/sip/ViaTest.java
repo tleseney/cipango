@@ -52,6 +52,37 @@ public class ViaTest
 		}
 	}
 	
+	@Test
+	public void testnoValueParam() throws Exception
+	{
+		Via via = new Via("SIP/2.0/UDP pc33.atlanta.com");
+		via.parse();
+		via.setParameter("rport", "");
+		via.setParameter("custom", "");
+		//System.out.println(via);
+		assertEquals("SIP/2.0/UDP pc33.atlanta.com;rport;custom", via.toString());
+	}
+	
+	@Test
+	public void testCustomParam() throws Exception
+	{
+		Via via = new Via("SIP/2.0/UDP pc33.atlanta.com");
+		via.parse();
+		via.setParameter("custom-param", "custom");
+		//System.out.println(via);
+		assertEquals("SIP/2.0/UDP pc33.atlanta.com;custom-param=custom", via.toString());
+	}
+	
+	@Test
+	public void testQuoteParam() throws Exception
+	{
+		Via via = new Via("SIP/2.0/UDP pc33.atlanta.com;customParam=\"quoted/ char\"");
+		via.parse();
+		via.setBranch("z9hG4bK776asdhds");
+		//System.out.println(via);
+		assertEquals("SIP/2.0/UDP pc33.atlanta.com;branch=z9hG4bK776asdhds;customParam=\"quoted/ char\"", via.toString());
+	}
+	
 	class ViaData
 	{
 		private String _string;

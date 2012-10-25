@@ -4,15 +4,13 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertArrayEquals;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Iterator;
 
 import javax.servlet.ServletException;
-import javax.servlet.sip.Address;
 import javax.servlet.sip.SipServletMessage;
-import javax.servlet.sip.SipURI;
 
 import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.AbstractSipConnector.MessageBuilder;
@@ -43,6 +41,7 @@ public abstract class AbstractConnectorTest
 	public void tearDown() throws Exception
 	{
         _server.stop();
+        Thread.sleep(100);
         //_server.getThreadPool().join();
 	}
 
@@ -82,33 +81,11 @@ public abstract class AbstractConnectorTest
 		send(SERIALIZED_REGISTER);
 		
 		SipServletMessage message = getMessage(1000);
-		send(_serializedRegister2);
+		send(SERIALIZED_REGISTER_2);
 		Thread.sleep(300);
 		assertNotNull(message);
 		assertEquals("REGISTER", message.getMethod());
 		assertEquals("c117fdfda2ffd6f4a859a2d504aedb25@127.0.0.1", message.getCallId());
-	}
-
-	@Test
-	public void testRoute() throws Exception
-	{
-		send(_serializedMessage);
-		
-		SipServletMessage message = getMessage(1000);
-		System.out.println(message);
-		send(_serializedRegister2);
-		send(_serializedRegister2);
-		send(_serializedRegister2);
-		send(_serializedRegister2);
-		
-		Thread.sleep(100);
-		assertNotNull(_message);
-		
-		Iterator<Address> it = message.getAddressHeaders("route");
-		assertEquals("proxy-gen2xx", ((SipURI) it.next().getURI()).getUser());
-		assertTrue(it.hasNext());
-		
-		assertEquals("com.bea.sipservlet.tck.apps.spectestapp.uas", message.getHeader("application-name"));
 	}
 
 //	@Test
@@ -121,6 +98,37 @@ public abstract class AbstractConnectorTest
 //		assertEquals("sip:localhost:5040;transport=udp", _connector.getSipUri().toString());
 //	}
 	
+	@Test
+	public void testBinaryContent() throws Exception
+	{
+		send(SERIALIZED_MESSAGE);
+		
+		String body = "A line in the dirt";
+		SipServletMessage message = getMessage(1000);
+		assertEquals(body.length(), message.getContentLength());
+		assertEquals("application/cipango-test", message.getContentType());
+		assertArrayEquals(body.getBytes(), (byte[])message.getContent());
+	}
+
+	@Test
+	public void testTextContent() throws Exception
+	{
+		send(SERIALIZED_MESSAGE.replace("application/cipango-test", "text/cipango-test"));
+		
+		String body = "A line in the dirt";
+		SipServletMessage message = getMessage(1000);
+		assertEquals(body.length(), message.getContentLength());
+		assertEquals("text/cipango-test", message.getContentType());
+		assertEquals(body, message.getContent());
+
+		send(SERIALIZED_MESSAGE.replace("application/cipango-test", "application/sdp"));
+
+		message = getMessage(1000);
+		assertEquals(body.length(), message.getContentLength());
+		assertEquals("text/cipango-test", message.getContentType());
+		assertEquals(body, message.getContent());
+	}
+
 	class TestHandler extends AbstractSipHandler
 	{
 		public SipServer getServer() {
@@ -140,7 +148,6 @@ public abstract class AbstractConnectorTest
 	
 	protected abstract void send(String message) throws Exception;
 
-	
 	public SipMessage getAsMessage(String messsage)
 	{
 		ByteBuffer b = ByteBuffer.wrap(messsage.getBytes());
@@ -182,7 +189,7 @@ public abstract class AbstractConnectorTest
 	        + "MyHeader: toto\r\n"
 	        + "Content-Length: 0\r\n\r\n";
 		
-	private String _serializedRegister2 = 
+	private static final String SERIALIZED_REGISTER_2 = 
 	        "REGISTER sip:127.0.0.1:5070 SIP/2.0\r\n"
 	        + "Call-ID: foo@bar\r\n"
 	        + "CSeq: 2 REGISTER\r\n"
@@ -196,7 +203,7 @@ public abstract class AbstractConnectorTest
 	        + "MyHeader: toto\r\n"
 	        + "Content-Length: 0\r\n\r\n";
 		
-	private String _serializedMessage = 
+	private static final String SERIALIZED_MESSAGE = 
 			"MESSAGE sip:proxy-gen2xx@127.0.0.1:5060 SIP/2.0\r\n"
 			+ "Call-ID: 13a769769217a57d911314c67df8c729@192.168.1.205\r\n"
 			+ "CSeq: 1 MESSAGE\r\n"
@@ -204,9 +211,10 @@ public abstract class AbstractConnectorTest
 			+ "To: \"JSR289_TCK\" <sip:JSR289_TCK@127.0.0.1:5060>\r\n"
 			+ "Via: SIP/2.0/UDP 192.168.1.205:5071;branch=z9hG4bKaf9d7cee5d176c7edf2fbf9b1e33fc3a\r\n"
 			+ "Max-Forwards: 5\r\n"
-			+ "Route: \"JSR289_TCK\" <sip:proxy-gen2xx@127.0.0.1:5060;lr>,<sip:127.0.0.1:5060;transport=udp;lr>\r\n"
-			+ "Application-Name: com.bea.sipservlet.tck.apps.spectestapp.uas\r\n"
+			+ "Route: \"JSR289_TCK\" <sip:proxy-gen2xx@127.0.0.1:5060;lr>\r\n"
+			+ "route: <sip:127.0.0.1:5060;transport=udp;lr>\r\n"
 			+ "Servlet-Name: Addressing\r\n"
-			+ "Content-Type: text/plain\r\n"
-			+ "Content-Length: 0\r\n\r\n";
+			+ "Content-Type: application/cipango-test\r\n"
+			+ "Content-Length: 18\r\n\r\n"
+			+ "A line in the dirt";
 }

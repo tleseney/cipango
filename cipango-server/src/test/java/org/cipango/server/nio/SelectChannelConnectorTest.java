@@ -49,13 +49,11 @@ public class SelectChannelConnectorTest extends AbstractConnectorTest
 		
 		SipConnection connection = _connector.getConnection(socket.getInetAddress(), socket.getLocalPort());
 		assertNotNull(connection);
+		
 		SipMessage orig = getAsMessage(SERIALIZED_REGISTER);
 		connection.send(orig);
-		byte[] b = ts.pop();
-		assertNotNull(b);
-		String msg = new String(b , "UTF-8");
-		//System.out.println(msg);
-		SipMessage message = getAsMessage(msg);
+		SipMessage message = read(ts);
+		socket.close();
 		assertEquals(orig.getMethod(), message.getMethod());
 		Iterator<String> it =  orig.getHeaderNames();
 		while (it.hasNext())
@@ -63,7 +61,6 @@ public class SelectChannelConnectorTest extends AbstractConnectorTest
 			String name = it.next();
 			assertEquals(orig.getHeader(name), message.getHeader(name));
 		}
-		socket.close();
 	}
 	
 	@Test
@@ -84,6 +81,7 @@ public class SelectChannelConnectorTest extends AbstractConnectorTest
 		orig.setContent(buffer, "text");
 		connection.send(orig);
 		SipMessage message = read(ts);
+		socket.close();
 		assertEquals(orig.getMethod(), message.getMethod());
 		Iterator<String> it =  orig.getHeaderNames();
 		while (it.hasNext())

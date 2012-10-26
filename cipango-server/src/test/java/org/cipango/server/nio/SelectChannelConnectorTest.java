@@ -5,74 +5,38 @@ import static junit.framework.Assert.assertNotNull;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
+import java.net.SocketTimeoutException;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
 
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipMessage;
-import org.cipango.server.AbstractSipConnector.MessageBuilder;
-import org.cipango.sip.SipParser;
 import org.junit.Before;
 import org.junit.Test;
 
 public class SelectChannelConnectorTest extends AbstractConnectorTest
 {
-
-	
 	@Before
 	public void setUp() throws Exception
 	{
 		super.setUp();
 		SelectChannelConnector connector = new SelectChannelConnector(_server); 
-		connector.setHost("localhost");
-		connector.setPort(5040);
+		connector.setHost(getHost());
+		connector.setPort(getPort());
 
 		startServer(connector);
 	}
-	
-	@Test
-	public void testSendRequest() throws Exception
-	{
-		final ServerSocket socket = new ServerSocket();
-		
-		socket.bind(new InetSocketAddress(InetAddress.getByName("localhost"), _connector.getPort() + 1));
-		TestServerSocket ts = new TestServerSocket(socket);
-		ts.start();
-		
-		SipConnection connection = _connector.getConnection(socket.getInetAddress(), socket.getLocalPort());
-		assertNotNull(connection);
-		
-		SipMessage orig = getAsMessage(SERIALIZED_REGISTER);
-		connection.send(orig);
-		SipMessage message = read(ts);
-		socket.close();
-		assertEquals(orig.getMethod(), message.getMethod());
-		Iterator<String> it =  orig.getHeaderNames();
-		while (it.hasNext())
-		{
-			String name = it.next();
-			assertEquals(orig.getHeader(name), message.getHeader(name));
-		}
-	}
-	
+
 	@Test
 	public void testSendBigRequest() throws Exception
 	{
-		final ServerSocket socket = new ServerSocket();
+		createPeer();
 		
-		socket.bind(new InetSocketAddress(InetAddress.getByName("localhost"), _connector.getPort() + 1));
-		TestServerSocket ts = new TestServerSocket(socket);
-		ts.start();
-		
-		SipConnection connection = _connector.getConnection(socket.getInetAddress(), socket.getLocalPort());
+		SipConnection connection = _connector.getConnection(_peer.getInetAddress(), _peer.getPort());
 		assertNotNull(connection);
 
 		SipMessage orig = getAsMessage(SERIALIZED_REGISTER);
@@ -80,8 +44,7 @@ public class SelectChannelConnectorTest extends AbstractConnectorTest
 		Arrays.fill(buffer, (byte)'a');
 		orig.setContent(buffer, "text");
 		connection.send(orig);
-		SipMessage message = read(ts);
-		socket.close();
+		SipMessage message = _peer.getMessage();
 		assertEquals(orig.getMethod(), message.getMethod());
 		Iterator<String> it =  orig.getHeaderNames();
 		while (it.hasNext())
@@ -91,11 +54,22 @@ public class SelectChannelConnectorTest extends AbstractConnectorTest
 		}
 		assertEquals(orig.getContent(), message.getContent());
 	}
-	
+
+	@Override
+	protected void createPeer() throws IOException
+	{
+		final ServerSocket socket = new ServerSocket();
+		
+		socket.bind(new InetSocketAddress(InetAddress.getByName(_connector.getHost()),
+				getNextPeerPort()));
+		_peer = new TestServerSocket(socket);
+		_peer.start();
+	}
+
 	@Override
 	protected void send(String message) throws Exception
 	{
-        Socket socket = new Socket("localhost", _connector.getPort());
+        Socket socket = new Socket(_connector.getHost(), _connector.getPort());
 
         socket.setSoTimeout(10000);
         socket.setTcpNoDelay(true);
@@ -108,62 +82,40 @@ public class SelectChannelConnectorTest extends AbstractConnectorTest
 		socket.close();
 	}
 	
-	private SipMessage read(TestServerSocket ts) throws UnsupportedEncodingException
+	protected static class TestServerSocket extends Peer
 	{
-    	TestMessageBuilder builder = new TestMessageBuilder();
-    	SipParser parser = new SipParser(builder);
-
-    	while (!builder.finished)
-    	{
-    		byte[] b = ts.pop();
-    		assertNotNull(b);
-    		parser.parseNext(ByteBuffer.wrap(new String(b, "UTF-8").getBytes()));
-    	}
-    	return builder.getMessage();
-	}
-	
-	class TestServerSocket extends Thread
-	{
-		private List<byte[]> _read = new ArrayList<byte[]>();
 		private ServerSocket _serverSocket;
 		private Socket _socket;
-		
-		private boolean _active = true;
-		
+
 		public TestServerSocket(ServerSocket socket)
 		{
 			_serverSocket = socket;
 		}
-		
-		public void setUnactive()
-		{
-			_active = false;
-		}
-		
+
 		@Override
 		public void run()
 		{
 			try
 			{
 				_socket = _serverSocket.accept();
-				byte[] b = new byte[2048];
-				while (_active)
-				{
-					int i = _socket.getInputStream().read(b);
-					if (i == -1)
-						continue;
-					byte[] b2 = new byte[i];
-					System.arraycopy(b, 0, b2, 0, i);
-					_read.add(b2);
-				}
+				_socket.setSoTimeout(500);
+				super.run();
 			}
 			catch (Exception e)
 			{
-				if (_active)
+				if (isActive())
 					e.printStackTrace();
 			}
 			finally
 			{
+				try
+				{
+					_socket.close();
+				}
+				catch (IOException e)
+				{
+					e.printStackTrace();
+				}
 				try
 				{
 					_serverSocket.close();
@@ -175,38 +127,35 @@ public class SelectChannelConnectorTest extends AbstractConnectorTest
 			}
 		}
 
-		public byte[] pop()
+		@Override
+		public InetAddress getInetAddress()
 		{
-			if (_read.size() > 0)
-				return _read.remove(0);
-			return null;
+			return _serverSocket.getInetAddress();
 		}
 
-		public Socket getSocket()
+		@Override
+		public int getPort()
 		{
-			return _socket;
+			return _serverSocket.getLocalPort();
 		}
-		
+
+		@Override
 		public void send(byte[] b) throws IOException
 		{
-			getSocket().getOutputStream().write(b);
+			_socket.getOutputStream().write(b);
+		}
+
+		@Override
+		public int read(byte[] b) throws IOException
+		{
+			try
+			{
+				return _socket.getInputStream().read(b);
+			}
+			catch (SocketTimeoutException e)
+			{
+				return -1;
+			}
 		}
 	}
-	
-	class TestMessageBuilder extends MessageBuilder
-	{
-		boolean finished = false;
-
-		public TestMessageBuilder()
-		{
-			super(null, null);
-		}
-  		
-		@Override
-		public boolean messageComplete(ByteBuffer content)
-		{
-			finished = true;
-			return super.messageComplete(content);
-		}
-   	}
 }

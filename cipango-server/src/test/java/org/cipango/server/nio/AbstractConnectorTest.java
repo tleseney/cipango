@@ -7,13 +7,19 @@ import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertArrayEquals;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 import javax.servlet.ServletException;
 import javax.servlet.sip.SipServletMessage;
 
 import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.AbstractSipConnector.MessageBuilder;
+import org.cipango.server.SipConnection;
 import org.cipango.server.SipMessage;
 import org.cipango.server.SipServer;
 import org.cipango.server.handler.AbstractSipHandler;
@@ -25,21 +31,37 @@ import org.junit.Test;
 
 public abstract class AbstractConnectorTest
 {
+	private static final String DEFAULT_HOST = "localhost";
+	private static final int DEFAULT_PORT = 5040;
+	private static final int DEFAULT_PEER_PORT = 4000;
+
+	static private int __port = DEFAULT_PEER_PORT;
+
 	protected SipServer _server;
 	protected AbstractSipConnector _connector;
-	SipServletMessage _message;
-	
+	protected Peer _peer;
+	protected SipServletMessage _message;
+
+	static int getNextPeerPort()
+	{
+		return __port++;
+	}
+
 	@Before
 	public void setUp() throws Exception
 	{
 		_server = new SipServer();
 		_server.setHandler(new TestHandler());
+		_peer = null;
 		_message = null;
 	}
 	
 	@After
 	public void tearDown() throws Exception
 	{
+		if (_peer != null)
+			_peer.tearDown();
+
         _server.stop();
         Thread.sleep(100);
         //_server.getThreadPool().join();
@@ -50,6 +72,16 @@ public abstract class AbstractConnectorTest
         _connector = connector;
         _server.addConnector(_connector);
         _server.start();
+    }
+
+    public String getHost()
+    {
+    	return DEFAULT_HOST;
+    }
+
+    public int getPort()
+    {
+    	return DEFAULT_PORT;
     }
     
 	@Test
@@ -76,27 +108,46 @@ public abstract class AbstractConnectorTest
 	}
 	
 	@Test
-	public void testMessage() throws Exception
+	public void testReceiveRequest() throws Exception
 	{
 		send(SERIALIZED_REGISTER);
 		
 		SipServletMessage message = getMessage(1000);
-		send(SERIALIZED_REGISTER_2);
-		Thread.sleep(300);
 		assertNotNull(message);
 		assertEquals("REGISTER", message.getMethod());
 		assertEquals("c117fdfda2ffd6f4a859a2d504aedb25@127.0.0.1", message.getCallId());
 	}
 
 	@Test
+	public void testSendRequest() throws Exception
+	{
+		createPeer();
+		
+		SipConnection connection = _connector.getConnection(_peer.getInetAddress(), _peer.getPort());
+		assertNotNull(connection);
+		
+		SipMessage orig = getAsMessage(SERIALIZED_REGISTER);
+		connection.send(orig);
+		SipMessage message = _peer.getMessage();
+		assertEquals(orig.getMethod(), message.getMethod());
+		Iterator<String> it =  orig.getHeaderNames();
+		while (it.hasNext())
+		{
+			String name = it.next();
+			assertEquals(orig.getHeader(name), message.getHeader(name));
+		}
+	}
+	
+	@Test
 	public void testParam() throws Exception
 	{
-		String uri = "sip:localhost:5040;transport=" + _connector.getTransport().toString().toLowerCase();
-		assertEquals("sip:localhost:5040", _connector.getURI().toString());
+		String uri = "sip:" + _connector.getHost() + ":" + _connector.getPort();
+		String fullUri = uri + ";transport=" + _connector.getTransport().toString().toLowerCase();
+		assertEquals(uri, _connector.getURI().toString());
 		_connector.stop();
 		_connector.setTransportParamForced(true);
 		_connector.start();
-		assertEquals(uri, _connector.getURI().toString());
+		assertEquals(fullUri, _connector.getURI().toString());
 	}
 	
 	@Test
@@ -106,6 +157,7 @@ public abstract class AbstractConnectorTest
 		
 		String body = "A line in the dirt";
 		SipServletMessage message = getMessage(1000);
+		assertNotNull(message);
 		assertEquals(body.length(), message.getContentLength());
 		assertEquals("application/cipango-test", message.getContentType());
 		assertArrayEquals(body.getBytes(), (byte[])message.getContent());
@@ -118,6 +170,7 @@ public abstract class AbstractConnectorTest
 		
 		String body = "A line in the dirt";
 		SipServletMessage message = getMessage(1000);
+		assertNotNull(message);
 		assertEquals(body.length(), message.getContentLength());
 		assertEquals("text/cipango-test", message.getContentType());
 		assertEquals(body, message.getContent());
@@ -125,6 +178,7 @@ public abstract class AbstractConnectorTest
 		send(SERIALIZED_MESSAGE.replace("application/cipango-test", "application/sdp"));
 
 		message = getMessage(1000);
+		assertNotNull(message);
 		assertEquals(body.length(), message.getContentLength());
 		assertEquals("text/cipango-test", message.getContentType());
 		assertEquals(body, message.getContent());
@@ -146,10 +200,101 @@ public abstract class AbstractConnectorTest
 			_message = message;
 		}	
 	}
-	
+
+	static class TestMessageBuilder extends MessageBuilder
+	{
+		boolean finished = false;
+
+		public TestMessageBuilder()
+		{
+			super(null, null);
+		}
+  		
+		@Override
+		public boolean messageComplete(ByteBuffer content)
+		{
+			finished = true;
+			return super.messageComplete(content);
+		}
+   	}
+
+	protected static abstract class Peer implements Runnable
+	{
+		private boolean _active = false;
+		private List<byte[]> _read = new ArrayList<byte[]>();
+		private Thread _thread;
+
+		public void start()
+		{
+			_active = true;
+			_thread = new Thread(this);
+			_thread.start();
+		}
+
+		public boolean isActive()
+		{
+			return _active;
+		}
+
+		public void tearDown() throws InterruptedException
+		{
+			_active = false;
+			if (_thread != null)
+				_thread.join();
+		}
+
+		public SipMessage getMessage() throws UnsupportedEncodingException
+		{
+	    	TestMessageBuilder builder = new TestMessageBuilder();
+	    	SipParser parser = new SipParser(builder);
+
+	    	while (!builder.finished)
+	    	{
+	    		byte[] b = _read.remove(0);
+	    		assertNotNull(b);
+	    		parser.parseNext(ByteBuffer.wrap(new String(b, "UTF-8").getBytes()));
+	    	}
+	    	return builder.getMessage();
+		}
+
+		@Override
+		public void run()
+		{
+			try
+			{
+				byte[] b = new byte[2048];
+				int length;
+				while (isActive())
+				{
+					length = read(b);
+                    if (length == -1)
+                    	continue;
+                    byte[] copy = new byte[length];
+                    System.arraycopy(b, 0, copy, 0, length);
+                    _read.add(copy);
+				}
+			}
+			catch (Exception e)
+			{
+				if (isActive())
+					e.printStackTrace();
+			}
+		}
+
+		public abstract InetAddress getInetAddress();
+
+		public abstract int getPort();
+
+		public abstract void send(byte[] b) throws IOException;
+
+		public abstract int read(byte[] b) throws IOException;
+	}
+
+	protected abstract void createPeer() throws Exception;
+
 	protected abstract void send(String message) throws Exception;
 
-	public SipMessage getAsMessage(String messsage)
+	protected SipMessage getAsMessage(String messsage)
 	{
 		ByteBuffer b = ByteBuffer.wrap(messsage.getBytes());
 		MessageBuilder builder = new MessageBuilder(null, null);
@@ -179,20 +324,6 @@ public abstract class AbstractConnectorTest
 	public static final String SERIALIZED_REGISTER = 
 	        "REGISTER sip:127.0.0.1:5070 SIP/2.0\r\n"
 	        + "Call-ID: c117fdfda2ffd6f4a859a2d504aedb25@127.0.0.1\r\n"
-	        + "CSeq: 2 REGISTER\r\n"
-	        + "From: <sip:cipango@cipango.org>;tag=9Aaz+gQAAA\r\n"
-	        + "To: <sip:cipango@cipango.org>\r\n"
-	        + "Via: SIP/2.0/UDP 127.0.0.1:6010;branch=z9hG4bKaf9d7cee5d176c7edf2fbf9b1e33fc3a\r\n"
-	        + "Max-Forwards: 70\r\n"
-	        + "User-Agent: Test Script\r\n"
-	        + "Contact: \"Cipango\" <sip:127.0.0.1:6010;transport=udp>\r\n"
-	        + "Allow: INVITE, ACK, BYE, CANCEL, PRACK, REFER, MESSAGE, SUBSCRIBE\r\n"
-	        + "MyHeader: toto\r\n"
-	        + "Content-Length: 0\r\n\r\n";
-		
-	private static final String SERIALIZED_REGISTER_2 = 
-	        "REGISTER sip:127.0.0.1:5070 SIP/2.0\r\n"
-	        + "Call-ID: foo@bar\r\n"
 	        + "CSeq: 2 REGISTER\r\n"
 	        + "From: <sip:cipango@cipango.org>;tag=9Aaz+gQAAA\r\n"
 	        + "To: <sip:cipango@cipango.org>\r\n"

@@ -11,6 +11,7 @@ import java.util.Set;
 
 import org.cipango.util.StringScanner;
 import org.cipango.util.StringUtil;
+import org.eclipse.jetty.util.StringMap;
 
 public class Parameters 
 {
@@ -47,7 +48,7 @@ public class Parameters
 	public void setParameter(String name, String value) 
 	{
 		if (_parameters == null)
-			_parameters = new HashMap<String, String>();
+			_parameters = new StringMap<String>(true);
 		_parameters.put(name, value);		
 	}
 	

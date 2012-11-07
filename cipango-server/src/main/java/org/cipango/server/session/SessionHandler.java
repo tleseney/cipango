@@ -23,15 +23,19 @@ import org.cipango.server.SipHandler;
 import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.handler.AbstractSipHandler;
+import org.cipango.server.sipapp.SipAppContext;
+import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.log.Logger;
 
 public class SessionHandler extends AbstractSipHandler
 {
-	private SessionManager _sessionManager;
+	private static final Logger LOG = Log.getLogger(SessionHandler.class);
+	private final SessionManager _sessionManager;
 	private SipHandler _handler;
 	
-	public SessionHandler()
+	public SessionHandler(SipAppContext context)
 	{
-		_sessionManager = new SessionManager();
+		_sessionManager = new SessionManager(context);
 	}
 	
 	public void setHandler(SipHandler handler)
@@ -93,19 +97,31 @@ public class SessionHandler extends AbstractSipHandler
 			}
 			session.accessed();
 			request.setSession(session);
-			
-			_handler.handle(request);
 		}
+
+		_handler.handle(message);
 	}
 	
 	protected void notFound(SipRequest request, String reason)
 	{
 		if (!request.isAck())
-			request.createResponse(SipServletResponse.SC_CALL_LEG_DONE, reason);
+			try
+			{
+				request.createResponse(SipServletResponse.SC_CALL_LEG_DONE, reason).send();
+			}
+			catch (IOException e)
+			{
+				LOG.ignore(e);
+			}
 	}
 	protected String getApplicationId(String s)
 	{
 		return s.substring(s.lastIndexOf('-'));
+	}
+
+	public SessionManager getSessionManager()
+	{
+		return _sessionManager;
 	}
 	
 }

@@ -1,5 +1,6 @@
 package org.cipango.server.session;
 
+import java.net.InetAddress;
 import java.util.List;
 import java.util.Random;
 import java.util.Timer;
@@ -15,6 +16,7 @@ import javax.servlet.sip.SipApplicationSessionListener;
 import javax.servlet.sip.SipSessionAttributeListener;
 import javax.servlet.sip.SipSessionBindingEvent;
 
+import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.util.StringUtil;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 
@@ -27,20 +29,38 @@ public class SessionManager extends AbstractLifeCycle
 	protected final List<SipApplicationSessionAttributeListener> _applicationSessionAttributeListeners = new CopyOnWriteArrayList<SipApplicationSessionAttributeListener>();
 	
 	protected final List<SipApplicationSessionListener> _applicationSessionListeners = new CopyOnWriteArrayList<SipApplicationSessionListener>();
-
-	private ServletContext _context;
 	
 	private Timer _timer;
 	private long _scavengePeriodMs = 30000;
 	private TimerTask _task;
 	
 	protected ClassLoader _loader;
+	private final SipAppContext _sipAppContext;
+	private final String _localhost;
+	
+	public SessionManager(SipAppContext sipAppContext)
+	{
+		_sipAppContext = sipAppContext;
+		String localhost;
+		try
+		{
+			localhost = InetAddress.getLocalHost().getHostName();
+		}
+		catch (Exception e)
+		{
+			localhost = "localhost";
+		}
+		_localhost = localhost;
+	}
 	
 	@Override
 	protected void doStart() throws Exception
 	{
 		super.doStart();
-		
+
+		// Web app context could be null in some tests.
+		if (_sipAppContext != null && _sipAppContext.getWebAppContext() != null)
+			_loader = _sipAppContext.getWebAppContext().getClassLoader();
 		if (_timer == null)
 		{
 			_timer = new Timer("session-scavenger", true);
@@ -50,7 +70,7 @@ public class SessionManager extends AbstractLifeCycle
 	
 	public ServletContext getContext()
 	{
-		return _context;
+		return _sipAppContext.getServletContext();
 	}
 	
 	public ApplicationSession createApplicationSession()
@@ -81,6 +101,14 @@ public class SessionManager extends AbstractLifeCycle
 		return StringUtil.toBase62String2(r);
 	}
 	
+	public String newCallId()
+	{
+		long r = _random.nextInt();
+		if (r<0)
+			r = -r;
+		return StringUtil.toBase62String2(r) + '@' + _localhost;
+	}
+	
 	public String newUASTag(ApplicationSession session)
 	{
 		long r = _random.nextInt();
@@ -94,7 +122,7 @@ public class SessionManager extends AbstractLifeCycle
 		long r = _random.nextInt();
 		if (r<0)
 			r = -r;
-		return StringUtil.toBase62String2(r);
+		return "z9hG4bK" + StringUtil.toBase62String2(r);
 	}
 	
 	public void removeApplicationSession(ApplicationSession session)
@@ -224,5 +252,10 @@ public class SessionManager extends AbstractLifeCycle
 				_timer.schedule(_task, _scavengePeriodMs, _scavengePeriodMs);
 			}
 		}
+	}
+
+	public SipAppContext getSipAppContext()
+	{
+		return _sipAppContext;
 	}
 }

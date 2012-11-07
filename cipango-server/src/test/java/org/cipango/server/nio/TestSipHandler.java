@@ -11,10 +11,11 @@ import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
 import org.cipango.server.handler.AbstractSipHandler;
+import org.junit.Ignore;
 
 import junit.framework.Assert;
 
-
+@Ignore
 public class TestSipHandler extends AbstractSipHandler
 {
 	private Throwable _e;

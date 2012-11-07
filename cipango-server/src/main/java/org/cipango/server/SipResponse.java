@@ -90,9 +90,16 @@ public class SipResponse extends SipMessage implements SipServletResponse
 		}
 	}
 	
-	protected boolean needsContact()
+	public boolean is2xx()
 	{
-		return (_request.isInvite() && _status < 300); // TODO
+		return (200 <= _status && _status < 300);
+	}
+	
+	public boolean needsContact()
+	{
+		return (isInvite() || isSubscribe() || isMethod(SipMethod.NOTIFY)
+				|| isMethod(SipMethod.REFER) || isMethod(SipMethod.UPDATE))
+				&& (getStatus() < 300);
 	}
 	
 	public Transaction getTransaction()
@@ -227,20 +234,35 @@ public class SipResponse extends SipMessage implements SipServletResponse
 		return getContentLanguage();
 	}
 
+	
+	@Override
+	public SipMethod getSipMethod()
+	{
+		if (_sipMethod == null)
+		{
+			String method = getMethod();
+			_sipMethod = SipMethod.lookAheadGet(ByteBuffer.wrap(method.getBytes()));
+		}
+		return _sipMethod;
+	}
+	
 	/**
 	 * @see SipServletMessage#getMethod
 	 */
 	public String getMethod()
 	{
-		try
+		if (_method == null)
 		{
-			return new CSeq(getFields().getString(SipHeader.CSEQ)).getMethod();
+			try
+			{
+				_method = getCSeq().getMethod();
+			}
+			catch (Exception e)
+			{
+				LOG.debug(e);
+			}
 		}
-		catch (ServletParseException e)
-		{
-			LOG.debug(e);
-			return null;
-		}
+		return _method;
 	}
 	
 	@Override

@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.ListIterator;
 import java.util.Map;
 
 import javax.servlet.ServletContext;
@@ -18,17 +19,25 @@ import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipSession;
 import javax.servlet.sip.SipSessionBindingEvent;
 import javax.servlet.sip.SipSessionBindingListener;
+import javax.servlet.sip.UAMode;
 import javax.servlet.sip.URI;
 import javax.servlet.sip.ar.SipApplicationRoutingRegion;
 
 import org.cipango.server.SipConnection;
+import org.cipango.server.SipConnector;
+import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
 import org.cipango.server.SipServer;
+import org.cipango.server.servlet.SipServletHolder;
+import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.ClientTransaction;
 import org.cipango.server.transaction.ClientTransactionListener;
 import org.cipango.server.transaction.ServerTransaction;
+import org.cipango.server.util.ReadOnlyAddress;
 import org.cipango.sip.AddressImpl;
+import org.cipango.sip.SipFields;
+import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
@@ -56,18 +65,27 @@ public class Session implements SipSessionIf
 	private long _lastAccessed;
 	
 	private DialogInfo _dialog;
-	private String _handler;
+	private SipServletHolder _handler;
+	
+	private boolean _invalidateWhenReady = true;
 	
 	public Session(ApplicationSession applicationSession, String id, SipRequest request)
 	{
-		_created = System.currentTimeMillis();
-		
+		this(applicationSession, 
+				id,
+				request.getCallId(),
+				request.to().clone(),
+				(Address) request.getFrom().clone());
+	}
+	
+	public Session(ApplicationSession applicationSession, String id, String callId, Address local, Address remote)
+	{
 		_applicationSession = applicationSession;
 		_id = id;
-		
-		_callId = request.getCallId();
-		_localParty = (Address) request.getTo().clone();
-		_remoteParty = (Address) request.getFrom().clone();
+		_created = System.currentTimeMillis();
+		_callId = callId;
+		_localParty = local;
+		_remoteParty = remote;
 	}
 	
 	public ApplicationSession appSession()
@@ -87,7 +105,7 @@ public class Session implements SipSessionIf
 	
 	protected SipServer getServer()
 	{
-		return null; //_applicationSession.getCallSession().getServer();
+		return _applicationSession.getSessionManager().getSipAppContext().getServer();
 	}
 	
 	private void checkValid()
@@ -146,6 +164,16 @@ public class Session implements SipSessionIf
 			tag = _applicationSession.newUASTag();
 			_localParty.setParameter(AddressImpl.TAG, tag);
 		}
+		_dialog = new DialogInfo();
+	}
+	
+	public void createUA(UAMode mode)
+	{
+		if (_role != Role.UNDEFINED)
+			throw new IllegalStateException("Session is " + _role);
+		
+		_role = mode == UAMode.UAC ? Role.UAC : Role.UAS;
+		_dialog = new DialogInfo();
 	}
 	
 	public void sendResponse(SipResponse response)
@@ -157,7 +185,7 @@ public class Session implements SipSessionIf
 			if (tx == null || tx.isCompleted())
 				throw new IllegalStateException("no valid transaction");
 				
-			updateState(response);
+			updateState(response, false);
 			
 			tx.send(response);
 		}
@@ -184,7 +212,7 @@ public class Session implements SipSessionIf
 		if (!isUA())
 			throw new IllegalStateException("Session is not UA");
 		
-		ClientTransaction tx = sendRequest(request, null);
+		ClientTransaction tx = sendRequest(request, _dialog);
 
 		return tx;
 	}
@@ -194,73 +222,85 @@ public class Session implements SipSessionIf
 		_state = state;
 	}
 	
+	
+	public void invokeServlet(SipResponse response)
+	{
+		try
+		{
+			if (isValid())
+				_applicationSession.getSessionManager().getSipAppContext().handle(response);
+		}
+		catch (Throwable t)
+		{
+			LOG.debug(t);
+		}
+	}
+	
 	public void accessed()
 	{
 		_lastAccessed = System.currentTimeMillis();
 	}
-	
-	private void updateState(SipResponse response)
+		
+	public void updateState(SipResponse response, boolean uac)
 	{
 		SipRequest request = (SipRequest) response.getRequest();
 		int status = response.getStatus();
-		
-		if (request.isInitial() && (request.isInvite() || request.isMethod(SipMethod.SUBSCRIBE)))
+				
+		if (request.isInitial() && (request.isInvite() || request.isSubscribe()))
 		{
 			switch (_state)
 			{
 			case INITIAL:
-				if (status < 300 && response.getToTag() != null)
+				if (status < 300)
 				{
-					switch (_role)
-					{
-						case UAS:
-							_dialog = new DialogInfo();
-							// cseq
-							// secure
-							// route 
-							break;
-						case UAC:
-							// tag
-							// route
-							break;
-						case PROXY:
-							// tag
-					}
+					// In UAS mode, the to tag has been set yet.
+					if ((!uac && isUA()) || response.to().getTag() != null)
+					{	
+						if (_dialog != null)
+							_dialog.createDialog(response, uac);
+// FIXME				else if (isProxy())
+//							createProxyDialog(response);
 						
-					if (status < 200)
-						setState(State.EARLY);
-					else
-						setState(State.CONFIRMED);
+						if (status < 200)
+							setState(State.EARLY);
+						else
+							setState(State.CONFIRMED);
+					}
 				}
-				else 
+				else
 				{
-					if (_role == Role.UAC)
+					if (uac)
 					{
-						//resetDialog();
+						// FIXME _dialog.resetDialog();
 						setState(State.INITIAL);
 					}
 					else
+					{
 						setState(State.TERMINATED);
+					}
 				}
 				break;
 			case EARLY:
 				if (200 <= status && status < 300)
+				{
 					setState(State.CONFIRMED);
+				}
 				else if (status >= 300)
 				{
-					if (_role == Role.UAC)
-						setState(State.INITIAL); // TODO reset ?
+					if (uac)
+						setState(State.INITIAL);
 					else
 						setState(State.TERMINATED);
 				}
 				break;
+			default:
+				break;
 			}
 		}
-		else if (request.isBye())
+		else if (request.isBye() && response.is2xx())
 		{
 			setState(State.TERMINATED);
 		}
-		
 	}
 	
 	private void createDialog(SipResponse response)
@@ -282,9 +322,23 @@ public class Session implements SipSessionIf
 	
 	public SipServletRequest createRequest(String method) 
 	{
-		// TODO Auto-generated method stub
-		return null;
+		checkValid();
+		if (!isUA())
+			throw new IllegalStateException("session is " + _role);
+
+		return _dialog.createRequest(method);
 	}
+	
+	public SipServletHolder getHandler()
+	{
+		return _handler;
+	}
+	
+	public void setHandler(SipServletHolder handler)
+	{
+		_handler = handler;
+	}
+	
 
 	/**
 	 * @see SipSession#getApplicationSession()
@@ -318,9 +372,9 @@ public class Session implements SipSessionIf
 	}
 
 	@Override
-	public String getCallId() {
-		// TODO Auto-generated method stub
-		return null;
+	public String getCallId() 
+	{
+		return _callId;
 	}
 
 	/**
@@ -340,9 +394,9 @@ public class Session implements SipSessionIf
 	}
 
 	@Override
-	public boolean getInvalidateWhenReady() {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean getInvalidateWhenReady() 
+	{
+		return _invalidateWhenReady;
 	}
 
 	/**
@@ -356,8 +410,7 @@ public class Session implements SipSessionIf
 	@Override
 	public Address getLocalParty() 
 	{
-		// TODO Auto-generated method stub
-		return null;
+		return new ReadOnlyAddress(_localParty);
 	}
 
 	@Override
@@ -367,9 +420,9 @@ public class Session implements SipSessionIf
 	}
 
 	@Override
-	public Address getRemoteParty() {
-		// TODO Auto-generated method stub
-		return null;
+	public Address getRemoteParty()
+	{
+		return new ReadOnlyAddress(_remoteParty);
 	}
 	
 	public String getLocalTag()
@@ -456,13 +509,19 @@ public class Session implements SipSessionIf
 	{
 		checkValid();
 		
-		_handler = name; // TODO check it exists
+		SipAppContext context = _applicationSession.getContext();
+		SipServletHolder handler = context.getSipServletHandler().getHolder(name);
+		
+		if (handler == null)
+			throw new ServletException("No handler named " + name);
+		
+		setHandler(handler);
 	}
 
 	@Override
-	public void setInvalidateWhenReady(boolean arg0) {
-		// TODO Auto-generated method stub
-		
+	public void setInvalidateWhenReady(boolean invalidateWhenReady) 
+	{
+		_invalidateWhenReady = invalidateWhenReady;
 	}
 
 	@Override
@@ -470,20 +529,241 @@ public class Session implements SipSessionIf
 		// TODO Auto-generated method stub
 		
 	}
-
+	
 	@Override
 	public void setOutboundInterface(InetAddress arg0) {
-		// TODO Auto-generated method stub
-		
+		// TODO Auto-generated method stub	
 	}
 	
-	class DialogInfo
+	public DialogInfo getUa()
+	{
+		return _dialog;
+	}
+	
+	public class DialogInfo implements ClientTransactionListener
 	{
 		protected long _localCSeq = 1;
 		protected long _remoteCSeq = -1;
-		protected URI remoteTarget;
+		protected URI _remoteTarget;
 		protected LinkedList<String> _routeSet;
 		protected boolean _secure = false;
+		
+		public SipServletRequest createRequest(String method)
+		{
+			SipMethod sipMethod = SipMethod.lookAheadGet(method.getBytes(), 0, method.length());
+			if (sipMethod == SipMethod.ACK || sipMethod == SipMethod.CANCEL)
+				throw new IllegalArgumentException("Forbidden request method " + method);
+		
+			if (_state == State.TERMINATED)
+				throw new IllegalStateException("Cannot create request in TERMINATED state");
+			else if (_state == State.INITIAL && _role == Role.UAS)
+				throw new IllegalStateException("Cannot create request in INITIAL state and UAS mode");
+			
+			return createRequest(sipMethod, method, _localCSeq++);
+		}
+		
+		public SipServletRequest createAck()
+		{
+			return createRequest(SipMethod.ACK, SipMethod.ACK.asString(), _localCSeq);
+		}
+		
+		public SipServletRequest createRequest(SipMethod sipMethod, String method, long cseq)
+		{
+			SipRequest request = new SipRequest();
+			request.setMethod(sipMethod, method);
+			
+			setDialogHeaders(request, cseq);
+			
+			request.setSession(Session.this);
+
+			return request;
+		}
+		
+		protected void setDialogHeaders(SipRequest request, long cseq)
+		{
+			SipFields fields = request.getFields();
+			
+			fields.set(SipHeader.FROM, _localParty);
+			fields.set(SipHeader.TO, _remoteParty);
+			
+			if (_remoteTarget != null)
+				request.setRequestURI((URI) _remoteTarget.clone());
+			else if (request.getRequestURI() == null)
+				request.setRequestURI(request.to().getURI());
+			
+			if (_routeSet != null)
+			{
+				fields.remove(SipHeader.ROUTE.asString());
+				
+				for (String route: _routeSet)
+				{
+					fields.add(SipHeader.ROUTE.asString(), route);
+				}
+			}
+			fields.set(SipHeader.CALL_ID, _callId);
+			fields.set(SipHeader.CSEQ, cseq + " " + request.getMethod());
+			fields.set(SipHeader.MAX_FORWARDS, "70");
+			
+			if (request.needsContact())
+				fields.set(SipHeader.CONTACT, getContact());
+		}
+		
+		protected void createDialog(SipResponse response, boolean uac)
+		{
+			if (uac)
+			{
+				String tag = response.to().getTag();
+                _remoteParty.setParameter(AddressImpl.TAG, tag);
+                
+                //System.out.println("Created dialog: " + tag);
+                setRoute(response, true);
+			}
+			else
+			{
+				String tag = _applicationSession.newUASTag();
+				_localParty.setParameter(AddressImpl.TAG, tag);
+				                
+                SipRequest request = (SipRequest) response.getRequest();
+    			
+				_remoteCSeq = request.getCSeq().getNumber();
+				_secure = request.isSecure() && request.getRequestURI().getScheme().equals("sips");
+				
+				setRoute(request, false);
+			}
+		}
+		
+		protected void setRoute(SipMessage message, boolean reverse)
+		{
+			ListIterator<String> routes = message.getFields().getValues(SipHeader.RECORD_ROUTE.asString());
+			_routeSet = new LinkedList<String>();
+			while (routes.hasNext())
+			{
+				if (reverse)
+					_routeSet.addFirst(routes.next());
+				else
+					_routeSet.addLast(routes.next());
+			}
+		}
+		
+		public Address getContact()
+		{
+			return getContact(getServer().getConnectors()[0]);
+		}
+		
+		public Address getContact(SipConnector connector)
+		{
+			Address address = new AddressImpl((URI) connector.getURI().clone());
+			//address.getURI().setParameter(ID.APP_SESSION_ID_PARAMETER, _appSession.getAppId());
+			return address;
+		}
+
+		@Override
+		public void handleResponse(SipResponse response)
+		{
+			if (response.getStatus() == 100)
+				return;
+
+// FIXME			
+//			if (!isSameDialog(response))
+//			{
+//				Session derived = _appSession.getSession(response);
+//				if (derived == null)
+//				{
+//					derived = _appSession.createDerivedSession(Session.this);
+//					if (_linkedSessionId != null)
+//					{
+//						Session linkDerived = _appSession.createDerivedSession(getLinkedSession());
+//						linkDerived.setLinkedSession(derived);
+//						derived.setLinkedSession(linkDerived);
+//					}
+//				}
+//				derived._ua.handleResponse(response);
+//				return;
+//			}
+			
+			response.setSession(Session.this);
+			
+			accessed();
+			
+//	FIXME		if (response.isInvite() && response.is2xx())
+//			{
+//				long cseq = response.getCSeq().getNumber();
+//				ClientInvite invite = getClientInvite(cseq, true);
+//				
+//				if (invite._2xx != null || invite._ack != null)
+//				{
+//					if (invite._ack != null)
+//					{
+//						try
+//						{
+//							ClientTransaction tx = (ClientTransaction) invite._ack.getTransaction();
+//							getServer().getConnectorManager().send(invite._ack, tx.getConnection());
+//						}
+//						catch (Exception e)
+//						{
+//							LOG.ignore(e);
+//						}
+//					}
+//					return;
+//				}
+//				else
+//				{
+//					invite._2xx = response;
+//				}
+//			}
+//			else if (response.isReliable1xx())
+//			{
+//				long rseq = response.getRSeq();
+//				if (_remoteRSeq != -1 && (_remoteRSeq + 1 != rseq))
+//				{
+//					if (LOG.isDebugEnabled())
+//						LOG.debug("Dropping 100rel with rseq {} since expecting {}", rseq, _remoteRSeq+1);
+//					return;
+//				}
+//				_remoteRSeq = rseq;
+//				long cseq = response.getCSeq().getNumber();
+//				ClientInvite invite = getClientInvite(cseq, true);
+//				invite.addReliable1xx(response);
+//			}
+//			else
+//				response.setCommitted(true);
+			
+			updateState(response, true);
+			
+			if (isTargetRefresh(response))
+				setRemoteTarget(response);
+			
+			if (isValid())
+				invokeServlet(response);
+			
+		}
+		
+		private boolean isTargetRefresh(SipMessage message)
+		{
+			if (message instanceof SipResponse)
+			{
+				SipResponse response = (SipResponse) message;
+				if (response.getStatus() >= 300)
+					return false;
+			}
+			// NOTIFY is target refresh according to bug 699 in RFC 6665
+			return message.isInvite() || message.isSubscribe() || message.isNotify() 
+					|| message.isNotify() || message.isMethod(SipMethod.REFER);
+		}
+		
+		protected void setRemoteTarget(SipMessage message) 
+		{
+			Address contact = (Address) message.getFields().get(SipHeader.CONTACT);
+			if (contact != null)
+				_remoteTarget = contact.getURI();
+		}
+
+		@Override
+		public void customizeRequest(SipRequest request, SipConnection connection)
+		{
+			// TODO Auto-generated method stub
+			
+		}
 	}
 	
 	@Override 

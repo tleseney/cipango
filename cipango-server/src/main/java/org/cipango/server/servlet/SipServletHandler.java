@@ -11,7 +11,6 @@ import javax.servlet.ServletException;
 import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.handler.AbstractSipHandler;
-
 import org.cipango.server.sipapp.SipServletMapping;
 import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.MultiException;
@@ -28,26 +27,31 @@ public class SipServletHandler extends AbstractSipHandler
 	private ServletContext _servletContext;
 	private SipServletHolder _mainServlet;
 	private SipServletMapping[] _servletMappings;
+	private SipServletHolder _defaultServlet;
 	
-	public SipServletHolder addSipServlet(String className)
-	{
-		SipServletHolder holder = newSipServletHolder();
-		holder.setClassName(className);
-		holder.setName(className + "-" + _servlets.length);
-		addServlet(holder);
-		return holder;
-	}
+
 	
 	@Override
 	protected void doStart() throws Exception
 	{
 		super.doStart();
 		initialize();
+		if (_servlets != null && _servlets.length > 0)
+			_defaultServlet = _servlets[0];
 	}
 	
 	public SipServletHolder[] getServlets()
 	{
 		return _servlets;
+	}
+	
+	public SipServletHolder addServlet(String className)
+	{
+		SipServletHolder holder = newSipServletHolder();
+		holder.setClassName(className);
+		holder.setName(className + "-" + _servlets.length);
+		addServlet(holder);
+		return holder;
 	}
 	
 	public void addServlet(SipServletHolder holder)
@@ -137,16 +141,26 @@ public class SipServletHandler extends AbstractSipHandler
 		
 	public void handle(SipMessage message) throws IOException, ServletException
 	{
+		SipServletHolder holder;
+		
 		if (message.isRequest())
 		{
 			SipRequest request = (SipRequest) message;
 			
-			SipServletHolder holder = getHolder(request);
+			holder = getHolder(request);
 			
 			if (holder != null)
 				holder.handle(request);
 			else
 				notFound(request);
+		}
+		else
+		{
+			holder = message.session().getHandler();
+			if (holder != null)
+				holder.handle(message);
+			else
+				LOG.warn("No holder for response:\n{}", message);
 		}
 	}
 	
@@ -157,7 +171,24 @@ public class SipServletHandler extends AbstractSipHandler
 	
 	protected SipServletHolder getHolder(SipRequest request)
 	{
-		return _servlets[0];
+		if (request.isInitial())
+		{
+			if (_mainServlet != null)
+				return _mainServlet;
+			
+			if (_servletMappings != null)
+			{
+				for (int i = 0; i < _servletMappings.length; i++)
+				{
+					SipServletMapping mapping = _servletMappings[i];
+					if (mapping.getMatchingRule().matches(request))
+						return (SipServletHolder) _nameMap.get(mapping.getServletName());
+				}
+			}
+			return null;
+		}
+		else
+			return request.session().getHandler();
 	}
 	
 	protected void notFound(SipRequest request) throws IOException
@@ -203,8 +234,16 @@ public class SipServletHandler extends AbstractSipHandler
 		return _mainServlet;
 	}
 	
-	 public SipServletHolder getServlet(String name)
-	    {
-	        return (SipServletHolder) _nameMap.get(name);
-	    }
+	public SipServletHolder getServlet(String name)
+	{
+		return (SipServletHolder) _nameMap.get(name);
+	}
+
+	public SipServletHolder getDefaultServlet()
+	{
+		if (_mainServlet == null)
+			return _defaultServlet;
+		else
+			return _mainServlet;
+	}
 }

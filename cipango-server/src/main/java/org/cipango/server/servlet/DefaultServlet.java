@@ -61,4 +61,10 @@ public class DefaultServlet extends SipServlet
 	{
 		request.createResponse(200).send();
 	}
+
+	@Override
+	protected void doResponse(SipServletResponse response) throws ServletException, IOException
+	{
+		System.out.println("Got response: " + response);
+	}
 }

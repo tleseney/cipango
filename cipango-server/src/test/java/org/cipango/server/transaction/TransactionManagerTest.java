@@ -3,6 +3,9 @@ package org.cipango.server.transaction;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import javax.servlet.sip.SipApplicationSession;
+import javax.servlet.sip.SipFactory;
+import javax.servlet.sip.SipServlet;
 import javax.servlet.sip.SipServletResponse;
 
 import junit.framework.Assert;
@@ -15,13 +18,13 @@ import org.cipango.server.SipServer;
 import org.cipango.server.nio.TestSipHandler;
 import org.cipango.server.nio.UdpConnector;
 import org.cipango.server.servlet.DefaultServlet;
+import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.session.ApplicationSession;
 import org.cipango.server.session.Session;
 import org.cipango.server.session.SessionManager;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.Transaction.State;
 import org.cipango.sip.AddressImpl;
-import org.cipango.sip.CSeq;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipURIImpl;
@@ -56,7 +59,7 @@ public class TransactionManagerTest
 		_testServer.addConnector(connector);
 		_testContext = new SipAppContext();	
 		_testServer.setHandler(_testContext);
-		_testContext.getSipServletHandler().addSipServlet(DefaultServlet.class.getName());
+		_testContext.getSipServletHandler().addServlet(DefaultServlet.class.getName());
 		_testServer.start();
 
 	}
@@ -65,6 +68,7 @@ public class TransactionManagerTest
 	public void tearDown() throws Exception
 	{
         _server.stop();
+        _testServer.stop();
 	}
 	
 	@Test
@@ -81,9 +85,9 @@ public class TransactionManagerTest
 		addr = new AddressImpl("<sip:test@localhost>");
 		addr.parse();
 		request.getFields().add(SipHeader.TO.asString(), addr, true);
-		request.getFields().add(SipHeader.CSEQ.asString(), new CSeq("1 MESSAGE"), true);
+		request.getFields().add(SipHeader.CSEQ.asString(), "1 MESSAGE", true);
 		
-		SessionManager sessionManager = new SessionManager();
+		SessionManager sessionManager = new SessionManager(new SipAppContext());
 		ApplicationSession appSession = new ApplicationSession(sessionManager, "123");
 		Session session = appSession.createSession(request);
 		request.setSession(session);
@@ -100,6 +104,73 @@ public class TransactionManagerTest
 		Assert.assertEquals(State.COMPLETED, tx.getState());
 	}
 	
+	@Test
+	public void testClientTxWithSession() throws Exception
+	{
+		SipAppContext context = new SipAppContext();	
+		context.setServer(_server);
+		_server.setHandler(context);
+		TestServlet testServlet = new TestServlet();
+		SipServletHolder holder = new SipServletHolder();
+		holder.setServlet(testServlet);
+		context.getSipServletHandler().addServlet(holder);
+		
+		context.start();
+		SipFactory factory = context.getSipFactory();
+		SipApplicationSession appSession = factory.createApplicationSession();
+		SipRequest request = (SipRequest) factory.createRequest(appSession, "MESSAGE", "<sip:cipango@localhost>", "<sip:test@localhost>");
+		request.setRequestURI(factory.createURI("sip:localhost:45061"));
+		request.send();
+		//System.out.println(request);
+		Via via = request.getTopVia();
+		Assert.assertNotNull(via);
+		Assert.assertEquals(_connector.getHost(), via.getHost());
+		Assert.assertEquals(_connector.getPort(), via.getPort());
+		Assert.assertEquals(_connector.getTransport().getName(), via.getTransport());
+		testServlet.assertDone(1);
+		//System.out.println(request.getSession().getRemoteParty());
+		//System.out.println(request.getSession());
+		//System.out.println(request.getApplicationSession());
+	}
+	
+	
+	public static class TestServlet extends SipServlet
+	{
+		private Queue<SipServletResponse> _responses = new LinkedList<SipServletResponse>();
+		@Override
+		public void doResponse(SipServletResponse response)
+		{
+			//System.out.println(response);
+			synchronized (_responses)
+			{
+				_responses.add(response);
+				_responses.notify();
+			}
+		}
+		
+		public void assertDone(int msgExpected) throws Exception
+		{			
+			long end = System.currentTimeMillis() + 5000;
+			
+			synchronized (_responses)
+			{
+				while (end > System.currentTimeMillis() && _responses.size() < msgExpected)
+				{
+					try
+					{
+						_responses.wait(end - System.currentTimeMillis());
+					}
+					catch (InterruptedException e)
+					{
+					}
+				}
+			}
+			
+			if (_responses.size() != msgExpected)
+				Assert.fail("Received " + _responses.size() + " messages when expected " + msgExpected);
+		}
+		
+	}
 	
 	public static class TestTxListener implements ClientTransactionListener
 	{
@@ -107,6 +178,7 @@ public class TransactionManagerTest
 		@Override
 		public void handleResponse(SipResponse response)
 		{
+			//System.out.println(response);
 			synchronized (_responses)
 			{
 				_responses.add(response);

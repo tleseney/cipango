@@ -360,7 +360,7 @@ public class SelectChannelConnector extends AbstractSipConnector
 		sipServer.addConnector(connector);
 		
 		SipAppContext context = new SipAppContext();
-		context.getSipServletHandler().addSipServlet(DefaultServlet.class.getName());
+		context.getSipServletHandler().addServlet(DefaultServlet.class.getName());
 		
 		sipServer.setHandler(context);
 		

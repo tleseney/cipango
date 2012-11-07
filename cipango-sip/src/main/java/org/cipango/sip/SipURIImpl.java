@@ -69,6 +69,13 @@ public class SipURIImpl implements SipURI
 	
 	private Map<String, String> _headers;
 	
+	public SipURIImpl(String user, String host, int port)
+	{
+		_user = user;
+		_host = host;
+		_port = port;
+	}
+	
 	public SipURIImpl(String host, int port)
 	{
 		_host = host;

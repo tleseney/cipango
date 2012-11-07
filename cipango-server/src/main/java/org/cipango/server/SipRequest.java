@@ -55,8 +55,6 @@ public class SipRequest extends SipMessage implements SipServletRequest
 {
 	private static final Logger LOG = Log.getLogger(SipRequest.class);
 	
-	private SipMethod _sipMethod;
-	private String _method;
 	private URI _requestUri;
 	
 	private Transaction _transaction;
@@ -153,34 +151,10 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	
 	//
 	
-	public boolean isRegister()
-	{
-		return _sipMethod == SipMethod.REGISTER;
-	}
-	
-	public boolean isInvite()
-	{
-		return _sipMethod == SipMethod.INVITE;
-	}
-	
-	public boolean isAck()
-	{
-		return _sipMethod == SipMethod.ACK;
-	}
-	
-	public boolean isCancel()
-	{
-		return _sipMethod == SipMethod.CANCEL;
-	}
-	
-	public boolean isBye()
-	{
-		return _sipMethod == SipMethod.BYE;
-	}
-	public boolean isMethod(SipMethod method)
-	{
-		return _sipMethod == method;
-	}
+	public boolean needsContact() 
+    {
+    	return isInvite() || isSubscribe() || isMethod(SipMethod.NOTIFY) || isMethod(SipMethod.REFER) || isMethod(SipMethod.UPDATE);
+    }
 	
 	public String getParameter(String name) 
 	{
@@ -347,7 +321,7 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	
 	public boolean isInitial() 
 	{
-		return getTo().getParameter(AddressImpl.TAG) == null && !isCancel();
+		return getToTag() == null && !isCancel();
 	}
 	
 	@Override

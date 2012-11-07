@@ -9,20 +9,22 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.servlet.sip.Address;
 import javax.servlet.sip.ServletTimer;
 import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipApplicationSessionBindingEvent;
 import javax.servlet.sip.SipApplicationSessionBindingListener;
 import javax.servlet.sip.SipSession;
+import javax.servlet.sip.UAMode;
 import javax.servlet.sip.URI;
 
 import org.cipango.server.SipRequest;
-import org.cipango.util.StringUtil;
+import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.util.TimerTask;
 
-public class ApplicationSession implements SipApplicationSession
+public class ApplicationSession implements SipApplicationSession, AppSessionIf
 {
-	private String _id;
+	private final String _id;
 	
 	private List<Session> _sessions = new ArrayList<Session>(1);
 	
@@ -36,7 +38,7 @@ public class ApplicationSession implements SipApplicationSession
 	
 	private Map<String, Object> _attributes;
 	
-	private SessionManager _sessionManager;
+	private final SessionManager _sessionManager;
 	
 	public ApplicationSession(SessionManager sessionManager, String id)
 	{
@@ -55,8 +57,17 @@ public class ApplicationSession implements SipApplicationSession
 	
 	public Session createSession(SipRequest initial)
 	{
-		Session session = new Session(this, "sipsessionid", initial);
+		Session session = new Session(this, _sessionManager.newSessionId(), initial);
 		_sessions.add(session);
+		return session;
+	}
+	
+	public Session createUacSession(String callId, Address from, Address to)
+	{
+		Session session = new Session(this, _sessionManager.newSessionId(), callId, from, to);
+	
+		_sessions.add(session);
+		session.createUA(UAMode.UAC);
 		return session;
 	}
 	
@@ -65,7 +76,7 @@ public class ApplicationSession implements SipApplicationSession
 		return _sessionManager.newSessionId();
 	}
 	
-	protected String newUASTag()
+	public String newUASTag()
 	{
 		return _sessionManager.newUASTag(this);
 	}
@@ -128,8 +139,13 @@ public class ApplicationSession implements SipApplicationSession
 	public int getTimeoutMs()
 	{
 		return _timeoutMs;
-		
 	}
+	
+	public SipAppContext getContext()
+	{
+		return _sessionManager.getSipAppContext();
+	}
+	
 	/**
 	 * @see SipApplicationSession#getCreationTime()
 	 */
@@ -370,10 +386,23 @@ public class ApplicationSession implements SipApplicationSession
 		// TODO Auto-generated method stub
 		
 	}
+	
+	@Override
+	public String toString()
+    {
+    	return _id + "/" + getApplicationName() + "(" + _sessions.size() + ")";
+    }
+	
+	@Override
+	public ApplicationSession getAppSession()
+	{
+		return this;
+	}
 
 	class ExpiryTimeout implements Runnable
 	{
 		public void run() { expired(); }
 	}
+
 	
 }

@@ -26,6 +26,7 @@ import org.cipango.server.util.ReadOnlyAddress;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.CSeq;
 import org.cipango.sip.SipFields;
+import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipFields.Field;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipVersion;
@@ -34,9 +35,12 @@ import org.eclipse.jetty.http.HttpFields;
 import org.eclipse.jetty.util.LazyList;
 import org.eclipse.jetty.util.QuotedStringTokenizer;
 import org.eclipse.jetty.util.StringUtil;
+import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.log.Logger;
 
 public abstract class SipMessage implements SipServletMessage
 {
+	private static final Logger LOG = Log.getLogger(SipMessage.class);
 	private static final Collection<Locale> __defaultLocale = Collections.singleton(Locale.getDefault());
 	
 	protected SipFields _fields = new SipFields();
@@ -51,8 +55,61 @@ public abstract class SipMessage implements SipServletMessage
 	
 	protected Session _session;
 	
+	protected SipMethod _sipMethod;
+	protected String _method;
+	
 	private byte[] _content;
 	
+	public boolean isRegister()
+	{
+		return getSipMethod() == SipMethod.REGISTER;
+	}
+	
+	public boolean isInvite()
+	{
+		return getSipMethod() == SipMethod.INVITE;
+	}
+	
+	public boolean isAck()
+	{
+		return getSipMethod() == SipMethod.ACK;
+	}
+	
+	public boolean isCancel()
+	{
+		return getSipMethod() == SipMethod.CANCEL;
+	}
+	
+	public boolean isBye()
+	{
+		return getSipMethod() == SipMethod.BYE;
+	}
+	
+	public boolean isSubscribe()
+	{
+		return getSipMethod() == SipMethod.SUBSCRIBE;
+	}
+	
+	public boolean isNotify()
+	{
+		return getSipMethod() == SipMethod.NOTIFY;
+	}
+	
+	public boolean isUpdate()
+	{
+		return getSipMethod() == SipMethod.UPDATE;
+	}
+	
+	public boolean isMethod(SipMethod method)
+	{
+		return getSipMethod() == method;
+	}
+	
+	public SipMethod getSipMethod()
+	{
+		return _sipMethod;
+	}
+		
 	protected boolean isSystemHeader(SipHeader header)
 	{
 		return header != null && (header.isSystem() || header == SipHeader.CONTACT && !canSetContact());
@@ -91,6 +148,8 @@ public abstract class SipMessage implements SipServletMessage
 	public abstract boolean isRequest();
 
 	protected abstract boolean canSetContact();
+	public abstract boolean needsContact();
+	
 	public abstract Transaction getTransaction(); 
 	
 	public Via getTopVia()
@@ -98,18 +157,32 @@ public abstract class SipMessage implements SipServletMessage
 		return (Via) _fields.get(SipHeader.VIA);
 	}
 	
-	public CSeq getCSeq() throws ServletParseException
+	public CSeq getCSeq() 
     {
-    	String cseq = _fields.getString(SipHeader.CSEQ);
-    	if (cseq != null)
-    		return new CSeq(cseq);
-    	return null;
+		try 
+		{
+			String cseq = _fields.getString(SipHeader.CSEQ);
+	    	if (cseq != null)
+	    		return new CSeq(cseq);
+	    	return null;
+		} 
+		catch (ServletParseException e) 
+		{
+			LOG.ignore(e);
+			return null;
+		}
+    	
     }
 	
 	public String getToTag()
 	{
 		AddressImpl to = (AddressImpl) _fields.get(SipHeader.TO);
 		return to.getTag();
+	}
+	
+	public AddressImpl to()
+	{
+		return (AddressImpl) _fields.get(SipHeader.TO);
 	}
 	
 	public Session session()
@@ -275,15 +348,18 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public SipApplicationSession getApplicationSession() {
-		// TODO Auto-generated method stub
-		return null;
+	public SipApplicationSession getApplicationSession()
+	{
+		if (_session == null)
+			return null; 
+		// FIXME return scope session
+		return _session.getApplicationSession();
 	}
 
 	@Override
-	public SipApplicationSession getApplicationSession(boolean create) {
-		// TODO Auto-generated method stub
-		return null;
+	public SipApplicationSession getApplicationSession(boolean create)
+	{
+		return getApplicationSession();
 	}
 
 	@Override

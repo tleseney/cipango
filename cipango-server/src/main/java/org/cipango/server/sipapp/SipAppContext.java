@@ -15,6 +15,8 @@ package org.cipango.server.sipapp;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -22,9 +24,12 @@ import java.util.EventListener;
 import java.util.List;
 
 import javax.servlet.RequestDispatcher;
-import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
+import javax.servlet.sip.Address;
+import javax.servlet.sip.AuthInfo;
+import javax.servlet.sip.Parameterable;
+import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipApplicationSessionAttributeListener;
 import javax.servlet.sip.SipApplicationSessionListener;
@@ -32,19 +37,33 @@ import javax.servlet.sip.SipErrorListener;
 import javax.servlet.sip.SipFactory;
 import javax.servlet.sip.SipServlet;
 import javax.servlet.sip.SipServletListener;
+import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipSession;
 import javax.servlet.sip.SipSessionAttributeListener;
 import javax.servlet.sip.SipSessionListener;
 import javax.servlet.sip.SipSessionsUtil;
+import javax.servlet.sip.SipURI;
 import javax.servlet.sip.TimerListener;
 import javax.servlet.sip.TimerService;
+import javax.servlet.sip.URI;
+import javax.servlet.sip.ar.SipApplicationRoutingDirective;
 
 import org.cipango.server.SipMessage;
+import org.cipango.server.SipRequest;
 import org.cipango.server.handler.AbstractSipHandler;
 import org.cipango.server.servlet.SipDispatcher;
 import org.cipango.server.servlet.SipServletHandler;
 import org.cipango.server.servlet.SipServletHolder;
+import org.cipango.server.session.AppSessionIf;
+import org.cipango.server.session.ApplicationSession;
+import org.cipango.server.session.Session;
 import org.cipango.server.session.SessionHandler;
+import org.cipango.sip.AddressImpl;
+import org.cipango.sip.ParameterableImpl;
+import org.cipango.sip.SipMethod;
+import org.cipango.sip.SipURIImpl;
+import org.cipango.sip.URIFactory;
+import org.cipango.sip.URIImpl;
 import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.LazyList;
 import org.eclipse.jetty.util.component.LifeCycle;
@@ -105,7 +124,7 @@ public class SipAppContext extends AbstractSipHandler
     private SipSessionAttributeListener[] _sessionAttributeListeners = new SipSessionAttributeListener[0];
     private SipServletListener[] _servletListeners = new SipServletListener[0];
     
-    private SipFactory _sipFactory;
+    private final SipFactory _sipFactory;
     private TimerService _timerService;
     private SipSessionsUtil _sipSessionsUtil = new SessionUtil();
     
@@ -114,9 +133,10 @@ public class SipAppContext extends AbstractSipHandler
 	
 	public SipAppContext()
 	{
-		_sessionHandler = new SessionHandler();
+		_sessionHandler = new SessionHandler(this);
 		_servletHandler = new SipServletHandler();
 		_metaData = new MetaData();
+		_sipFactory = new Factory();
 	}
 	
 
@@ -507,6 +527,162 @@ public class SipAppContext extends AbstractSipHandler
 			return null;
 		}
 
+    }
+    
+    class Factory implements SipFactory
+    {
+
+		@Override
+		public Address createAddress(String address) throws ServletParseException
+		{
+			try
+			{
+				AddressImpl addr = new AddressImpl(address);
+				addr.parse();
+				return addr;
+			}
+			catch (ParseException e)
+			{
+				throw new ServletParseException(e);
+			}
+		}
+
+		@Override
+		public Address createAddress(URI uri)
+		{
+			return new AddressImpl(uri);
+		}
+
+		@Override
+		public Address createAddress(URI uri, String displayName)
+		{
+			AddressImpl addr = new AddressImpl(uri);
+			addr.setDisplayName(displayName);
+			return addr;
+		}
+
+		@Override
+		public SipApplicationSession createApplicationSession()
+		{
+			return _sessionHandler.getSessionManager().createApplicationSession();
+		}
+
+		@Override
+		public SipApplicationSession createApplicationSessionByKey(String arg0)
+		{
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public AuthInfo createAuthInfo()
+		{
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public Parameterable createParameterable(String s) throws ServletParseException
+		{
+			try
+			{
+				return new ParameterableImpl(s);
+			}
+			catch (ParseException e)
+			{
+				throw new ServletParseException(e);
+			}
+		}
+
+		@Override
+		public SipServletRequest createRequest(SipServletRequest srcRequest, boolean sameCallId) 
+        {
+//        	SipRequest origRequest = (SipRequest) srcRequest;
+//        	ApplicationSession appSession = origRequest.appSession();
+//        	Address local = (Address) origRequest.getFrom().clone();
+//        	local.setParameter(AddressImpl.TAG, appSession.newUASTag());
+//        	
+//        	Address remote = (Address) origRequest.to().clone();
+//        	remote.removeParameter(AddressImpl.TAG);
+//        	
+//        	String callId = null;
+//        	
+//        	if (sameCallId)
+//        		callId = origRequest.getCallId();
+//        	else
+//        		callId = appSession.getSessionManager().newCallId();
+//        	            
+//            Session session = appSession.createUacSession(callId, local, remote);
+//            session.setHandler(getSipServletHandler().getDefaultServlet());
+//
+// FIXME           SipRequest request = session.getUa().createRequest((SipRequest) srcRequest);
+//            request.setRoutingDirective(SipApplicationRoutingDirective.CONTINUE, srcRequest);
+//            
+//            return request;
+			return null;
+        }
+
+		public SipServletRequest createRequest(SipApplicationSession sipAppSession, String method,
+				Address from, Address to)
+		{
+			ApplicationSession appSession = ((AppSessionIf) sipAppSession).getAppSession();
+			
+			SipMethod sipMethod = SipMethod.lookAheadGet(ByteBuffer.wrap(method.getBytes()));
+			
+			if (sipMethod == SipMethod.ACK || sipMethod == SipMethod.CANCEL)
+				throw new IllegalArgumentException("Method cannot be ACK nor CANCEL");
+
+			Address local = (Address) from.clone();
+			Address remote = (Address) to.clone();
+
+			local.setParameter(AddressImpl.TAG, appSession.newUASTag());
+			remote.removeParameter(AddressImpl.TAG);
+
+			String cid = appSession.getSessionManager().newCallId();
+
+			Session session = appSession.createUacSession(cid, local, remote);
+			session.setHandler(getSipServletHandler().getDefaultServlet());
+
+			SipRequest request = (SipRequest) session.createRequest(method);
+			request.setRoutingDirective(SipApplicationRoutingDirective.NEW, null);
+
+			return request;
+		}
+
+		@Override
+		public SipServletRequest createRequest(SipApplicationSession appSession, 
+                String method, URI from, URI to) 
+        {
+            return createRequest(appSession, method, createAddress(from), createAddress(to));
+        }
+		
+		@Override
+        public SipServletRequest createRequest(SipApplicationSession appSession,
+                String method, String from, String to) throws ServletParseException 
+        {
+            return createRequest(appSession, method, createAddress(from), createAddress(to));
+        }
+        
+
+		@Override
+		public SipURI createSipURI(String user, String host)
+		{
+			return new SipURIImpl(user, host, -1);
+		}
+
+		@Override
+		public URI createURI(String uri) throws ServletParseException
+		{
+			try
+			{
+				return URIFactory.parseURI(uri);
+			}
+			catch (ParseException e)
+			{
+				throw new ServletParseException(e);
+			}
+		}
+    	
     }
 	
 	 public interface Decorator extends org.eclipse.jetty.servlet.ServletContextHandler.Decorator

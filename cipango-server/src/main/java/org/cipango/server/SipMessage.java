@@ -176,8 +176,12 @@ public abstract class SipMessage implements SipServletMessage
 	
 	public String getToTag()
 	{
-		AddressImpl to = (AddressImpl) _fields.get(SipHeader.TO);
-		return to.getTag();
+		return to().getTag();
+	}
+	
+	public AddressImpl from()
+	{
+		return (AddressImpl) _fields.get(SipHeader.FROM);
 	}
 	
 	public AddressImpl to()

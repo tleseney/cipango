@@ -315,7 +315,7 @@ public class StandardDescriptorProcessor extends IterativeDescriptorProcessor
         if (tNode != null)
         {
             int timeout = Integer.parseInt(tNode.toString(false, true));
-           getContext(context).setSessionTimeout(timeout);
+           getContext(context).getSessionHandler().getSessionManager().setSessionTimeout(timeout);
         }
     }
     

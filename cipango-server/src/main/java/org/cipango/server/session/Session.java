@@ -30,6 +30,7 @@ import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
 import org.cipango.server.SipServer;
 import org.cipango.server.servlet.SipServletHolder;
+import org.cipango.server.session.SessionManager.SipSessionIf;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.ClientTransaction;
 import org.cipango.server.transaction.ClientTransactionListener;
@@ -178,6 +179,7 @@ public class Session implements SipSessionIf
 	
 	public void sendResponse(SipResponse response)
 	{		
+		accessed();
 		if (isUA())
 		{
 			ServerTransaction tx = (ServerTransaction) response.getTransaction();
@@ -239,6 +241,7 @@ public class Session implements SipSessionIf
 	public void accessed()
 	{
 		_lastAccessed = System.currentTimeMillis();
+		_applicationSession.accessed();
 	}
 		
 	public void updateState(SipResponse response, boolean uac)
@@ -311,6 +314,21 @@ public class Session implements SipSessionIf
 				
 				
 		}
+	}
+	
+	public boolean isDialog(String callId, String fromTag, String toTag)
+	{
+		if (!_callId.equals(callId))
+			return false;
+		
+		String localTag = _localParty.getParameter(AddressImpl.TAG);
+		String remoteTag = _remoteParty.getParameter(AddressImpl.TAG);
+		
+		if (fromTag.equals(localTag) && toTag.equals(remoteTag))
+			return true;
+		if (toTag.equals(localTag) && fromTag.equals(remoteTag))
+			return true;
+		return false;
 	}
 	
 	public Address getContact(SipConnection connection)
@@ -453,9 +471,15 @@ public class Session implements SipSessionIf
 	}
 
 	@Override
-	public void invalidate() {
-		// TODO Auto-generated method stub
+	public void invalidate() 
+	{
+		checkValid();
 		
+		if (LOG.isDebugEnabled())
+			LOG.debug("invalidating SipSession {}", this);
+		
+		_valid = false;
+		_applicationSession.removeSession(this);
 	}
 
 	@Override
@@ -561,10 +585,10 @@ public class Session implements SipSessionIf
 			
 			return createRequest(sipMethod, method, _localCSeq++);
 		}
-		
-		public SipServletRequest createAck()
+				
+		public SipServletRequest createRequest(SipMethod sipMethod, long cseq)
 		{
-			return createRequest(SipMethod.ACK, SipMethod.ACK.asString(), _localCSeq);
+			return createRequest(sipMethod, sipMethod.asString(), cseq);
 		}
 		
 		public SipServletRequest createRequest(SipMethod sipMethod, String method, long cseq)
@@ -770,5 +794,11 @@ public class Session implements SipSessionIf
 	public String toString()
 	{
 		return String.format("%s{l(%s)<->r(%s),%s,%s}", getId(), _localParty, _remoteParty, _state, _role);
+	}
+
+	@Override
+	public Session getSession()
+	{
+		return this;
 	}
 }

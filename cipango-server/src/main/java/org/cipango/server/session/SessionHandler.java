@@ -15,6 +15,7 @@
 package org.cipango.server.session;
 
 import java.io.IOException;
+import java.util.EventListener;
 
 import javax.servlet.ServletException;
 import javax.servlet.sip.SipServletResponse;
@@ -88,6 +89,8 @@ public class SessionHandler extends AbstractSipHandler
 					notFound(request, "No Application Session");
 					return;
 				}
+				
+				session = appSession.getSession(request);
 			}
 			
 			if (session == null)
@@ -123,5 +126,21 @@ public class SessionHandler extends AbstractSipHandler
 	{
 		return _sessionManager;
 	}
+	
+    public void addEventListener(EventListener listener)
+    {
+        _sessionManager.addEventListener(listener);
+    }
+    
+
+    public void removeEventListener(EventListener listener)
+    {
+        _sessionManager.removeEventListener(listener);
+    }
+
+    public void clearEventListeners()
+    {
+        _sessionManager.clearEventListeners();
+    }
 	
 }

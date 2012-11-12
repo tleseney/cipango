@@ -113,10 +113,17 @@ public enum SipMethod
 		 return null;
 	}
 	 
-	 public static SipMethod lookAheadGet(ByteBuffer buffer)
-	    {
-	        if (buffer.hasArray())
-	            return lookAheadGet(buffer.array(),buffer.arrayOffset()+buffer.position(),buffer.arrayOffset()+buffer.limit());
-	        return null;
-	    }
+	public static SipMethod lookAheadGet(ByteBuffer buffer)
+	{
+		if (buffer.hasArray())
+			return lookAheadGet(buffer.array(), buffer.arrayOffset() + buffer.position(),
+					buffer.arrayOffset() + buffer.limit());
+		return null;
+	}
+	
+	public static SipMethod get(String method)
+	{
+		byte[] b = (method + " ").getBytes();
+		return lookAheadGet(b, 0, b.length);
+	}
 }

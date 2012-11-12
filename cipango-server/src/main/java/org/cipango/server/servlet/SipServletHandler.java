@@ -7,6 +7,7 @@ import java.util.Map;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
+import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
@@ -174,15 +175,22 @@ public class SipServletHandler extends AbstractSipHandler
 		if (request.isInitial())
 		{
 			if (_mainServlet != null)
+			{
+				request.session().setHandler(_mainServlet);
 				return _mainServlet;
-			
+			}
+						
 			if (_servletMappings != null)
 			{
 				for (int i = 0; i < _servletMappings.length; i++)
 				{
 					SipServletMapping mapping = _servletMappings[i];
 					if (mapping.getMatchingRule().matches(request))
-						return (SipServletHolder) _nameMap.get(mapping.getServletName());
+					{
+						SipServletHolder holder = _nameMap.get(mapping.getServletName());
+						request.session().setHandler(holder);
+						return holder;
+					}
 				}
 			}
 			return null;
@@ -193,7 +201,8 @@ public class SipServletHandler extends AbstractSipHandler
 	
 	protected void notFound(SipRequest request) throws IOException
 	{
-		request.createResponse(404).send();
+		if (!request.isAck())
+			request.createResponse(SipServletResponse.SC_NOT_FOUND).send();
 	}
 	
 	public ServletContext getServletContext()

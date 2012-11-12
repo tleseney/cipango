@@ -58,7 +58,7 @@ public class SipApplicationAnnotation extends DiscoveredAnnotation
 		_context.setDistributable(annotation.distributable());
 		_context.setDisplayName(annotation.displayName());
 		context.setProxyTimeout(annotation.proxyTimeout());
-		context.setSessionTimeout(annotation.sessionTimeout());
+		context.getSessionHandler().getSessionManager().setSessionTimeout(annotation.sessionTimeout());
         context.getMetaData().setMainServletName(annotation.mainServlet());
     }
 }

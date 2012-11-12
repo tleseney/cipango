@@ -128,6 +128,28 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		return null;
 	}
 	
+	public SipRequest createRequest(SipMethod method) 
+    {
+		SipRequest request = new SipRequest();
+		
+		request._session = _session;
+        request.setTransaction(getTransaction());
+		request._fields.set(SipHeader.FROM, getFrom().clone());
+		request._fields.set(SipHeader.TO, to().clone());
+		
+		request.setMethod(method, method.asString());
+		request.setRequestURI(getRequestURI());
+		request._fields.copy(_fields, SipHeader.CALL_ID);
+		
+        request._fields.set(SipHeader.CSEQ, getCSeq().getNumber() + " " + method.asString());
+           
+		request._fields.set(SipHeader.VIA, getTopVia());
+		request._fields.copy(_fields, SipHeader.MAX_FORWARDS);
+        request._fields.copy(_fields, SipHeader.ROUTE);
+		
+		return request;
+	}
+	
 	/**
 	 * @see SipServletRequest#createResponse(int)
 	 */
@@ -141,7 +163,7 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	 */
 	public SipServletResponse createResponse(int status, String reason) 
 	{
-		if (SipMethod.ACK == _sipMethod)
+		if (isAck())
 			throw new IllegalStateException("Cannot create response to ACK");
 		
 		//TODO

@@ -41,7 +41,7 @@ public class TimerTask implements Comparable<TimerTask>
 	public String toString()
 	{
 		long delay = _executionTime - System.currentTimeMillis();
-		if (delay > 1000)
+		if (delay > 1000 || delay < -1000)
 			return _runnable + "@" + (_executionTime - System.currentTimeMillis()) / 1000 + "s";
 		else
 			return _runnable + "@" + (_executionTime - System.currentTimeMillis()) + "ms";

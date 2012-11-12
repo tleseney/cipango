@@ -26,6 +26,7 @@ public class SipGrammar
 	public static final byte[] CRLF = {CR, LF};
 
 	public static final String MAGIC_COOKIE = "z9hG4bK";
+	public static final String REL_100 = "100rel";
 	
 	public static final BitSet getBitSet(String s)
 	{

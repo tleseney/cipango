@@ -671,6 +671,10 @@ public class SipParser
 	public void reset()
 	{
 		_state = State.START;
+		_method = null;
+		_methodString = null;
+		_uri = null;
+		_status = 0;
 	}
 	
 	public String toString()

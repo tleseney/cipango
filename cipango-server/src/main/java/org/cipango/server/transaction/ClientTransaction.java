@@ -18,10 +18,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 
-import javax.servlet.sip.Address;
 import javax.servlet.sip.SipServletResponse;
-import javax.servlet.sip.SipURI;
-import javax.servlet.sip.URI;
 
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipConnector;
@@ -29,7 +26,9 @@ import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
 import org.cipango.server.Transport;
+import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipHeader;
+import org.cipango.sip.SipMethod;
 import org.cipango.sip.Via;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
@@ -71,22 +70,22 @@ public class ClientTransaction extends Transaction
 	
 	private void ack(SipResponse response) 
     {
-//	FIXME	SipRequest ack = _request.createRequest(SipMethod.ACK);
-//		
-//		if (ack.to().getParameter("tag") == null) 
-//        {
-//			String tag = response.to().getParameter("tag");
-//			if (tag != null) 
-//				ack.to().setParameter("tag", tag);
-//		}
-//		try 
-//        {
-//			getServer().send(ack, getConnection());
-//		} 
-//        catch (IOException e) 
-//        {
-//			LOG.ignore(e);
-//		}
+		SipRequest ack = _request.createRequest(SipMethod.ACK);
+		
+		if (ack.to().getTag() == null) 
+        {
+			String tag = response.to().getTag();
+			if (tag != null) 
+				ack.to().setParameter(AddressImpl.TAG, tag);
+		}
+		try 
+        {
+			getServer().sendRequest(ack, getConnection());
+		} 
+        catch (IOException e) 
+        {
+			LOG.ignore(e);
+		}
 	}
 	
 	public void cancel(SipRequest cancel)
@@ -328,10 +327,10 @@ public class ClientTransaction extends Transaction
 	{
 		// could not use request.createResponse() because the request is committed. 
 		SipResponse responseB = new SipResponse(_request, SipServletResponse.SC_REQUEST_TIMEOUT, null);
-//FIXME		if (responseB.getTo().getParameter(SipParams.TAG) == null)
-//			responseB.setToTag(ID.newTag());
+		if (responseB.to().getTag() == null)
+			responseB.to().setParameter(AddressImpl.TAG, responseB.appSession().newUASTag());
 		
-//		AccessLog accessLog = getServer().getConnectorManager().getAccessLog();
+// FIXME		AccessLog accessLog = getServer().getConnectorManager().getAccessLog();
 //		if (accessLog != null)
 //			accessLog.messageReceived(responseB, new TimeoutConnection());
 		

@@ -24,16 +24,15 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.sip.Proxy;
 import javax.servlet.sip.ProxyBranch;
 import javax.servlet.sip.Rel100Exception;
-import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.AddressImpl;
-import org.cipango.sip.CSeq;
 import org.cipango.sip.SipFields;
 import org.cipango.sip.SipGenerator;
+import org.cipango.sip.SipGrammar;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipStatus;
@@ -173,16 +172,82 @@ public class SipResponse extends SipMessage implements SipServletResponse
 	}
 
 	@Override
-	public SipServletRequest createAck() {
-		// TODO Auto-generated method stub
-		return null;
+	public SipServletRequest createAck() 
+	{
+		if (!isInvite()) 
+			throw new IllegalStateException("Not INVITE method");
+        
+        if (_status > 100 && _status < 200)
+        {   // For Sip servlet 1.0 compliance
+            try
+			{
+				return createPrack();
+			}
+			catch (Rel100Exception e)
+			{
+				throw new IllegalStateException(e.getMessage(), e);
+			}
+        }
+        else if (is2xx())
+        {
+        	setCommitted(true);
+            return _session.getUa().createRequest(SipMethod.ACK, getCSeq().getNumber());
+        }
+        else 
+            throw new IllegalStateException("non 2xx or 1xx response");
 	}
 
 	@Override
-	public SipServletRequest createPrack() throws Rel100Exception {
-		// TODO Auto-generated method stub
-		return null;
+	public SipServletRequest createPrack() throws Rel100Exception 
+	{
+		if (isCommitted())
+			throw new IllegalStateException("Already committed");
+		
+		if (!isInvite()) 
+			throw new Rel100Exception(Rel100Exception.NOT_INVITE);
+		
+		if (_status > 100 && _status < 200)
+        {
+            long rseq = getRSeq();
+            if (!isReliable1xx()) 
+        		throw new Rel100Exception(Rel100Exception.NOT_100rel);
+        	
+            SipRequest request = (SipRequest) _session.createRequest(SipMethod.PRACK.asString()); // TODO do not use API method
+            request.getFields().set(SipHeader.RACK, rseq + " " + getCSeq());
+            setCommitted(true);
+            return request;
+        }
+		else 
+            throw new Rel100Exception(Rel100Exception.NOT_1XX);
 	}
+	
+	public boolean isReliable1xx()
+	{
+		if (_status > 100 && _status < 200)
+		{
+			if (getRSeq() == -1)
+				return false;
+			Iterator<String> it = _fields.getValues(SipHeader.REQUIRE.asString());
+			while (it.hasNext()) {
+				String val = it.next();
+				if (SipGrammar.REL_100.equalsIgnoreCase(val)) {
+					return true;
+				}
+			}
+            return false;
+		}
+		return false;
+	}
+	
+    public void setRSeq(long rseq)
+    {
+        getFields().set(SipHeader.RSEQ, Long.toString(rseq));
+    }
+    
+    public long getRSeq()
+    {
+        return getFields().getLong(SipHeader.RSEQ);
+    }
 
 	@Override
 	public Iterator<String> getChallengeRealms() {
@@ -241,7 +306,7 @@ public class SipResponse extends SipMessage implements SipServletResponse
 		if (_sipMethod == null)
 		{
 			String method = getMethod();
-			_sipMethod = SipMethod.lookAheadGet(ByteBuffer.wrap(method.getBytes()));
+			_sipMethod = SipMethod.get(method);
 		}
 		return _sipMethod;
 	}

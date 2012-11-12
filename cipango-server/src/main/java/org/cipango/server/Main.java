@@ -1,5 +1,7 @@
 package org.cipango.server;
 
+import java.net.InetAddress;
+
 import org.cipango.server.nio.UdpConnector;
 import org.cipango.server.servlet.DefaultServlet;
 import org.cipango.server.sipapp.SipAppContext;
@@ -39,11 +41,13 @@ public class Main
 		SipServer sipServer = new SipServer();
 		
 		UdpConnector connector = new UdpConnector(sipServer);
-		connector.setHost("192.168.2.127");
+		connector.setHost(InetAddress.getLocalHost().getHostName());
 		
 		sipServer.addConnector(connector);
 		
 		SipAppContext context = new SipAppContext();
+		context.getSessionHandler().getSessionManager().setSessionTimeout(1);
+		context.setName("Default");
 		context.getSipServletHandler().addServlet(DefaultServlet.class.getName());
 		
 		sipServer.setHandler(context);

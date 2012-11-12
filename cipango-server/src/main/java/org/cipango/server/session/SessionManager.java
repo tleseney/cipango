@@ -1,34 +1,48 @@
 package org.cipango.server.session;
 
+import java.lang.reflect.Method;
 import java.net.InetAddress;
+import java.util.Date;
+import java.util.EventListener;
 import java.util.List;
+import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.servlet.ServletContext;
+import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipApplicationSessionAttributeListener;
 import javax.servlet.sip.SipApplicationSessionBindingEvent;
 import javax.servlet.sip.SipApplicationSessionEvent;
 import javax.servlet.sip.SipApplicationSessionListener;
+import javax.servlet.sip.SipSession;
 import javax.servlet.sip.SipSessionAttributeListener;
 import javax.servlet.sip.SipSessionBindingEvent;
+import javax.servlet.sip.SipSessionListener;
 
 import org.cipango.server.sipapp.SipAppContext;
+import org.cipango.sip.SipGrammar;
 import org.cipango.util.StringUtil;
+import org.cipango.util.TimerTask;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
+import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.log.Logger;
 
 public class SessionManager extends AbstractLifeCycle
 {
+	private static final Logger LOG = Log.getLogger(SessionManager.class);
+	protected static Method __appSessionCreated;
+    protected static Method __appSessionDestroyed;
+	
 	private Random _random = new Random();
 	private ConcurrentHashMap<String, ApplicationSession> _appSessions = new ConcurrentHashMap<String, ApplicationSession>();
 	
-	protected final List<SipSessionAttributeListener> _sessionAttributeListeners = new CopyOnWriteArrayList<SipSessionAttributeListener>();
-	protected final List<SipApplicationSessionAttributeListener> _applicationSessionAttributeListeners = new CopyOnWriteArrayList<SipApplicationSessionAttributeListener>();
-	
-	protected final List<SipApplicationSessionListener> _applicationSessionListeners = new CopyOnWriteArrayList<SipApplicationSessionListener>();
+	private final List<SipSessionAttributeListener> _sessionAttributeListeners = new CopyOnWriteArrayList<SipSessionAttributeListener>();
+	private final List<SipApplicationSessionAttributeListener> _applicationSessionAttributeListeners = new CopyOnWriteArrayList<SipApplicationSessionAttributeListener>();	
+	private final List<SipApplicationSessionListener> _applicationSessionListeners = new CopyOnWriteArrayList<SipApplicationSessionListener>();
+	private final List<SipSessionListener> _sessionListeners = new CopyOnWriteArrayList<SipSessionListener>();
 	
 	private Timer _timer;
 	private long _scavengePeriodMs = 30000;
@@ -37,6 +51,24 @@ public class SessionManager extends AbstractLifeCycle
 	protected ClassLoader _loader;
 	private final SipAppContext _sipAppContext;
 	private final String _localhost;
+	private Queue<TimerTask> _timerQueue = new PriorityQueue<TimerTask>();
+
+	private int _sessionTimeout = -1;
+	
+	static
+	{
+		try
+		{
+			__appSessionCreated = SipApplicationSessionListener.class.getMethod("sessionCreated",
+					SipApplicationSessionEvent.class);
+			__appSessionDestroyed = SipApplicationSessionListener.class.getMethod("sessionDestroyed",
+					SipApplicationSessionEvent.class);
+		}
+		catch (NoSuchMethodException e)
+		{
+			throw new ExceptionInInitializerError(e);
+		}
+	}
 	
 	public SessionManager(SipAppContext sipAppContext)
 	{
@@ -61,10 +93,9 @@ public class SessionManager extends AbstractLifeCycle
 		// Web app context could be null in some tests.
 		if (_sipAppContext != null && _sipAppContext.getWebAppContext() != null)
 			_loader = _sipAppContext.getWebAppContext().getClassLoader();
-		if (_timer == null)
-		{
-			_timer = new Timer("session-scavenger", true);
-		}
+		
+		_timer = new Timer();
+		new Thread(_timer, "Timer-" + _sipAppContext.getName()).start();
 		setScavengePeriod(getScavengePeriod());
 	}
 	
@@ -77,6 +108,10 @@ public class SessionManager extends AbstractLifeCycle
 	{
 		ApplicationSession appSession = new ApplicationSession(this, newApplicationSessionId());
 		_appSessions.put(appSession.getId(), appSession);
+		appSession.setExpires(_sessionTimeout);
+		if (!_applicationSessionListeners.isEmpty())
+			getSipAppContext().fire(_applicationSessionListeners, __appSessionCreated,  new SipApplicationSessionEvent(appSession));
+
 		return appSession;
 	}
 	
@@ -94,6 +129,14 @@ public class SessionManager extends AbstractLifeCycle
 	}
 	
 	public String newSessionId()
+	{
+		long r = _random.nextInt();
+		if (r<0)
+			r = -r;
+		return StringUtil.toBase62String2(r);
+	}
+	
+	public String newTimerId()
 	{
 		long r = _random.nextInt();
 		if (r<0)
@@ -122,63 +165,55 @@ public class SessionManager extends AbstractLifeCycle
 		long r = _random.nextInt();
 		if (r<0)
 			r = -r;
-		return "z9hG4bK" + StringUtil.toBase62String2(r);
+		return SipGrammar.MAGIC_COOKIE + StringUtil.toBase62String2(r);
 	}
 	
 	public void removeApplicationSession(ApplicationSession session)
 	{
 		_appSessions.remove(session.getId());
+		if (!_applicationSessionListeners.isEmpty())
+			getSipAppContext().fire(_applicationSessionListeners, __appSessionDestroyed,  new SipApplicationSessionEvent(session));
 	}
 	
 	protected void scavenge()
 	{
 		if (!isRunning())
 			return;
-				
+			
 		try
 		{
-			long now = System.currentTimeMillis();
 			for (ApplicationSession session : _appSessions.values())
 			{
-				long expirationTime = session.getExpirationTime();
-				
-				if (expirationTime != 0 && expirationTime < now)
-				{
+				if (session.isValid() && session.getExpirationTime() == Long.MIN_VALUE)
 					doSessionExpired(session);
-				}
 			}
 		}
 		catch (Exception e)
 		{
-			e.printStackTrace();
+			LOG.warn("Failed to scavenge application sessions", e);
 		}
-		//System.out.println("#applications: " + _appSessions.size());
+		//LOG.info("#applications: " + _appSessions.size());
 	}
 	
 	protected void doSessionExpired(ApplicationSession applicationSession)
-	{
-		ClassLoader oldClassLoader = null;
-		Thread currentThread = null;
-		
-		if (_loader != null)
-		{
-			currentThread = Thread.currentThread();
-			oldClassLoader = currentThread.getContextClassLoader();
-			currentThread.setContextClassLoader(_loader);
-		}
-			
+	{	
+		// Do not change the class loader as it has been already done in the timer thread start.
 		for (SipApplicationSessionListener l : _applicationSessionListeners)
 		{
-			l.sessionExpired(new SipApplicationSessionEvent(applicationSession));
+			try
+			{
+				l.sessionExpired(new SipApplicationSessionEvent(applicationSession));
+			}
+			catch (Throwable e)
+			{
+				LOG.debug("Got exception while invoking session SipApplicationSessionListener " + l, e);
+			}
 		}
 		
 		if (applicationSession.getExpirationTime() < 0)
 			applicationSession.invalidate();
-		
-		if (_loader != null)
-			currentThread.setContextClassLoader(oldClassLoader);
-		
 	}
+	
 	public void doSessionAttributeListeners(Session session, String name, Object old, Object value)
 	{
 		if (!_sessionAttributeListeners.isEmpty())
@@ -241,21 +276,168 @@ public class SessionManager extends AbstractLifeCycle
 			{
 				if (_task != null)
 					_task.cancel();
-				_task = new TimerTask() 
+				
+				Runnable runnable = new Runnable()
 				{
 					@Override
 					public void run() 
 					{
 						scavenge();
+						if (isRunning())
+							_task = schedule(this, _scavengePeriodMs);
 					}
 				};
-				_timer.schedule(_task, _scavengePeriodMs, _scavengePeriodMs);
+				
+				_task = schedule(runnable, _scavengePeriodMs);
 			}
 		}
+	}
+	
+	public TimerTask schedule(Runnable runnable, long delay)
+	{
+		TimerTask task = new TimerTask(runnable, System.currentTimeMillis() + delay);
+		synchronized (_timerQueue)
+		{
+			_timerQueue.offer(task);
+			_timerQueue.notifyAll();
+		}
+		return task;
 	}
 
 	public SipAppContext getSipAppContext()
 	{
 		return _sipAppContext;
 	}
+
+	public List<SipApplicationSessionListener> getApplicationSessionListeners()
+	{
+		return _applicationSessionListeners;
+	}
+	
+    public void addEventListener(EventListener listener)
+    {
+        if (listener instanceof SipApplicationSessionAttributeListener)
+        	_applicationSessionAttributeListeners.add((SipApplicationSessionAttributeListener) listener);
+        if (listener instanceof SipApplicationSessionListener)
+        	_applicationSessionListeners.add((SipApplicationSessionListener) listener);
+        if (listener instanceof SipSessionAttributeListener)
+        	_sessionAttributeListeners.add((SipSessionAttributeListener) listener);
+        if (listener instanceof SipSessionListener)
+        	_sessionListeners.add((SipSessionListener) listener);
+    }
+    
+    public void removeEventListener(EventListener listener)
+    {
+    	if (listener instanceof SipApplicationSessionAttributeListener)
+        	_applicationSessionAttributeListeners.remove((SipApplicationSessionAttributeListener) listener);
+        if (listener instanceof SipApplicationSessionListener)
+        	_applicationSessionListeners.remove((SipApplicationSessionListener) listener);
+        if (listener instanceof SipSessionAttributeListener)
+        	_sessionAttributeListeners.remove((SipSessionAttributeListener) listener);
+        if (listener instanceof SipSessionListener)
+        	_sessionListeners.remove((SipSessionListener) listener);
+    }
+
+    public void clearEventListeners()
+    {
+       _applicationSessionAttributeListeners.clear();
+       _applicationSessionListeners.clear();
+       _sessionAttributeListeners.clear();
+       _sessionListeners.clear();
+    }
+
+	public List<SipSessionAttributeListener> getSessionAttributeListeners()
+	{
+		return _sessionAttributeListeners;
+	}
+
+	public List<SipApplicationSessionAttributeListener> getApplicationSessionAttributeListeners()
+	{
+		return _applicationSessionAttributeListeners;
+	}
+
+	public List<SipSessionListener> getSessionListeners()
+	{
+		return _sessionListeners;
+	}
+	
+	public int getSessionTimeout()
+	{
+		return _sessionTimeout;
+	}
+
+	public void setSessionTimeout(int sessionTimeout)
+	{
+		_sessionTimeout = sessionTimeout;
+	}
+	
+	class Timer implements Runnable
+	{
+		public void run()
+		{
+			ClassLoader oldClassLoader = null;
+			Thread currentThread = null;
+			if (_loader != null)
+			{
+				currentThread = Thread.currentThread();
+				oldClassLoader = currentThread.getContextClassLoader();
+				currentThread.setContextClassLoader(_loader);
+			}
+			else
+				LOG.warn("Could not set right class loader for timer of context {}", getSipAppContext());
+			
+			TimerTask task;
+			long delay;
+			do
+			{
+				try
+				{	
+					synchronized (_timerQueue)
+					{
+						do
+						{
+							task = _timerQueue.peek();
+						}
+						while (task != null && task.isCancelled());
+						
+						delay = task != null ? task.getExecutionTime() - System.currentTimeMillis() : Long.MAX_VALUE;
+						
+						if (delay > 0)
+							_timerQueue.wait(delay); 
+						else
+							_timerQueue.poll();
+					}
+					if (delay <= 0)
+					{
+						try
+						{
+							if (!task.isCancelled())
+								task.getRunnable().run();
+						}
+						catch (Throwable e)
+						{
+							LOG.debug("Failed to execute timer " + task, e);
+						}
+					}
+				}
+				catch (InterruptedException e) { continue; }
+			}
+			while (isRunning());
+			
+			if (_loader != null)
+				currentThread.setContextClassLoader(oldClassLoader);
+			
+		}
+	}
+		
+	public static interface AppSessionIf extends SipApplicationSession
+	{
+		ApplicationSession getAppSession();
+	}
+	
+	public interface SipSessionIf extends SipSession
+	{
+		Session getSession();
+	}
+
 }

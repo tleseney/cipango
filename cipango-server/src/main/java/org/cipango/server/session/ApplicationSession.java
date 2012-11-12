@@ -1,5 +1,7 @@
 package org.cipango.server.session;
 
+import java.io.Serializable;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -9,24 +11,39 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.servlet.http.HttpSession;
 import javax.servlet.sip.Address;
 import javax.servlet.sip.ServletTimer;
 import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipApplicationSessionBindingEvent;
 import javax.servlet.sip.SipApplicationSessionBindingListener;
+import javax.servlet.sip.SipApplicationSessionEvent;
+import javax.servlet.sip.SipApplicationSessionListener;
+import javax.servlet.sip.SipErrorEvent;
+import javax.servlet.sip.SipErrorListener;
 import javax.servlet.sip.SipSession;
+import javax.servlet.sip.SipSessionEvent;
+import javax.servlet.sip.SipSessionListener;
+import javax.servlet.sip.TimerListener;
 import javax.servlet.sip.UAMode;
 import javax.servlet.sip.URI;
 
+import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
+import org.cipango.server.session.SessionManager.AppSessionIf;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.util.TimerTask;
+import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.log.Logger;
 
 public class ApplicationSession implements SipApplicationSession, AppSessionIf
 {
+	private static final Logger LOG = Log.getLogger(ApplicationSession.class);
+	
 	private final String _id;
 	
-	private List<Session> _sessions = new ArrayList<Session>(1);
+	private final List<Session> _sessions = new ArrayList<Session>(1);
+	private List<?> _otherSessions;
 	
 	private final long _created;
 	private long _accessed;
@@ -34,18 +51,45 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 	private int _timeoutMs = 30000;
 	
 	private boolean _valid = true;
-	private TimerTask _expiryTimer;
 	
 	private Map<String, Object> _attributes;
 	
 	private final SessionManager _sessionManager;
+	private List<ServletTimer> _timers;
+    
+    protected boolean _invalidateWhenReady = true;
+	
+	protected static Method __noAck;
+    protected static Method __noPrack;
+    protected static Method __appSessionReadyToInvalidate;
+    protected static Method __sessionCreated;
+    protected static Method __sessionReadyToInvalidate;
+    protected static Method __sessionDestroyed;
+    
+    static 
+    {
+        try 
+        {
+            __noAck = SipErrorListener.class.getMethod("noAckReceived", SipErrorEvent.class);
+            __noPrack = SipErrorListener.class.getMethod("noPrackReceived", SipErrorEvent.class);
+             __appSessionReadyToInvalidate = 
+            	SipApplicationSessionListener.class.getMethod("sessionReadyToInvalidate", SipApplicationSessionEvent.class);
+            __sessionCreated = SipSessionListener.class.getMethod("sessionCreated", SipSessionEvent.class);
+            __sessionReadyToInvalidate = SipSessionListener.class.getMethod("sessionReadyToInvalidate", SipSessionEvent.class);
+            __sessionDestroyed = SipSessionListener.class.getMethod("sessionDestroyed", SipSessionEvent.class);
+        } 
+        catch (NoSuchMethodException e)
+        {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
 	
 	public ApplicationSession(SessionManager sessionManager, String id)
 	{
 		_sessionManager = sessionManager;
 		
 		_created = System.currentTimeMillis();
-		_accessed = _created;
+		_accessed = 0;
 		
 		_id = id;
 	}
@@ -136,6 +180,25 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 		}
     }
 	
+	public void removeSession(Object session)
+	{
+		if (session instanceof Session)
+		{
+			_sessions.remove((Session) session);
+			
+			List<SipSessionListener> listeners = getSessionManager().getSessionListeners();
+			if (!listeners.isEmpty())
+			{
+				SipSessionEvent event = new SipSessionEvent((SipSession) session);
+				getContext().fire(listeners, __sessionDestroyed, event);
+			}
+		}
+		else if (_otherSessions != null)
+		{
+			_otherSessions.remove(session);
+		}
+	}
+	
 	public int getTimeoutMs()
 	{
 		return _timeoutMs;
@@ -154,6 +217,11 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 		checkValid();
 		return _created;
 	}
+	
+	protected void accessed()
+	{
+		_accessed = System.currentTimeMillis();
+	}
 
 	@Override
 	public long getExpirationTime() 
@@ -164,7 +232,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 			return 0;
 		
 		long expirationTime = _accessed + _timeoutMs;
-		
+				
 		if (expirationTime < System.currentTimeMillis())
 			return Long.MIN_VALUE;
 		
@@ -202,45 +270,45 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 			return Integer.MAX_VALUE;
 		
 		return deltaMinutes;
-		
-		/*
-		if (_expiryTimer != null)
-		{
-			//_callSession.cancel(_expiryTimer);
-			_expiryTimer = null;
-		}
-		
-		_expiryDelay = deltaMinutes;
-		
-		if (_expiryDelay > 0)
-		{
-			//_expiryTimer = _callSession.schedule(new ExpiryTimeout(), _expiryDelay * 60000l);
-			return _expiryDelay;
-		}
-		return Integer.MAX_VALUE;
-		*/
 	}
 	
 	/**
 	 * @see SipApplicationSession#invalidate()
 	 */
-	public void invalidate() 
+	public void invalidate()
 	{
-		_sessionManager.removeApplicationSession(this);
-		try
+		checkValid();
+
+		if (LOG.isDebugEnabled())
+			LOG.debug("invalidating SipApplicationSession: " + this);
+
+		synchronized (this)
 		{
-			if (_expiryTimer != null)
+			_sessionManager.removeApplicationSession(this);
+			try
 			{
-				//_callSession.cancel(_expiryTimer);
-				_expiryTimer = null;
+				while (_attributes != null && _attributes.size() > 0)
+				{
+					ArrayList<String> keys = new ArrayList<String>(_attributes.keySet());
+					Iterator<String> iter = keys.iterator();
+					while (iter.hasNext())
+					{
+						String key = iter.next();
+
+						Object value;
+						synchronized (this)
+						{
+							value = _attributes.remove(key);
+						}
+						_sessionManager.doApplicationSessionAttributeListeners(this, key, value, null);
+					}
+				}
 			}
-			//_callSession.removeApplicationSession(this);
+			finally
+			{
+				_valid = false;
+			}
 		}
-		finally
-		{
-			_valid = false;
-		}
-		
 	}
 
 	private void checkValid()
@@ -248,36 +316,27 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 		if (!_valid)
 			throw new IllegalStateException("SipApplicationSession has been invalidated");
 	}
-	
-	private void expired()
-	{
-		if (_valid)
-		{
-			// TODO call listeners
-			if (_valid)
-			{
-				if (getExpirationTime() == Long.MIN_VALUE)
-					invalidate();
-			}
-		}
-	}
-	
+		
 	@Override
-	public void encodeURI(URI arg0) {
+	public void encodeURI(URI uri) 
+	{
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public URL encodeURL(URL arg0) {
+	public URL encodeURL(URL url) 
+	{
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public String getApplicationName() {
-		// TODO Auto-generated method stub
-		return null;
+	public String getApplicationName()
+	{
+		if (getContext() == null)
+			return null;
+		return getContext().getName();
 	}
 
 	public synchronized Object getAttribute(String name) 
@@ -304,54 +363,139 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 	}
 
 	@Override
-	public boolean getInvalidateWhenReady() {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean getInvalidateWhenReady() 
+	{
+		checkValid();
+		return _invalidateWhenReady;
 	}
 
 	
 
 	@Override
-	public Object getSession(String arg0, Protocol arg1) {
-		// TODO Auto-generated method stub
+	public Object getSession(String id, Protocol protocol) 
+	{
+		checkValid();
+		
+		if (id == null || protocol == null)
+			throw new NullPointerException((id == null) ? "null id" : "null protocol");
+		
+		if (protocol == Protocol.SIP)
+		{
+			for (Session session : _sessions)
+			{
+				if (session.getId().equals(id))
+					return session;
+			}
+		}
+		else if (protocol == Protocol.HTTP)
+		{
+			if (_otherSessions != null)
+			{
+				for (Object session : _otherSessions)
+				{
+					if (session instanceof HttpSession && ((HttpSession) session).getId().equals(id))
+						return session;
+				}
+			}
+		}
 		return null;
 	}
 
 	@Override
-	public Iterator<?> getSessions() {
-		// TODO Auto-generated method stub
+	public Iterator<?> getSessions() 
+	{
+		checkValid();
+		
+		List<Object> list = new ArrayList<Object>(_sessions);
+		if (_otherSessions != null)
+			list.addAll(_otherSessions);
+		
+		return list.iterator();
+	}
+
+	@Override
+	public Iterator<?> getSessions(String protocol) 
+	{
+		checkValid();
+		
+		if (protocol == null)
+			throw new NullPointerException("null protocol");
+		
+		if ("sip".equalsIgnoreCase(protocol))
+			return _sessions.iterator();
+		
+		if ("http".equalsIgnoreCase(protocol))
+		{
+			if (_otherSessions == null)
+				return Collections.emptyIterator();
+			List<HttpSession> sessions = new ArrayList<HttpSession>();
+			for (Object session : _otherSessions)
+			{
+				if (session instanceof HttpSession)
+					sessions.add((HttpSession) session);
+			}
+			return sessions.iterator();
+		}
+		throw new IllegalArgumentException("Unknown protocol " + protocol);
+	}
+
+	@Override
+	public SipSession getSipSession(String id)
+	{
+		checkValid();
+		
+		for (Session session : _sessions)
+		{
+			if (session.getId().equals(id))
+				return session;
+		}
 		return null;
 	}
 
 	@Override
-	public Iterator<?> getSessions(String arg0) {
-		// TODO Auto-generated method stub
+	public ServletTimer getTimer(String id)
+	{
+		checkValid();
+		
+		if (_timers != null)
+		{
+			for (ServletTimer timer : _timers)
+				if (timer.getId().equals(id))
+					return timer;
+		}
 		return null;
 	}
 
 	@Override
-	public SipSession getSipSession(String arg0) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public ServletTimer getTimer(String arg0) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Collection<ServletTimer> getTimers() {
-		// TODO Auto-generated method stub
-		return null;
+	public Collection<ServletTimer> getTimers() 
+	{
+		checkValid();
+		if (_timers == null)
+			return Collections.emptyList();
+		
+		return new ArrayList<ServletTimer>(_timers);
 	}
 
 	
 	@Override
-	public boolean isReadyToInvalidate() {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean isReadyToInvalidate()
+	{
+		checkValid();
+		
+		if (_accessed == 0)
+			return false;
+		
+		for (int i = 0; i < _sessions.size(); i++)
+		{
+			Session session = _sessions.get(i);
+			if (!session.isReadyToInvalidate())
+				return false;
+		}
+		
+		if (_otherSessions != null && !_otherSessions.isEmpty())
+			return false;
+		
+		return (_timers == null || _timers.isEmpty());
 	}
 
 	/**
@@ -382,8 +526,10 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 	}
 
 	@Override
-	public void setInvalidateWhenReady(boolean arg0) {
-		// TODO Auto-generated method stub
+	public void setInvalidateWhenReady(boolean invalidateWhenReady) 
+	{
+		checkValid();
+		_invalidateWhenReady = invalidateWhenReady;
 		
 	}
 	
@@ -398,11 +544,145 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 	{
 		return this;
 	}
-
-	class ExpiryTimeout implements Runnable
-	{
-		public void run() { expired(); }
-	}
-
 	
+    private void addTimer(Timer timer)
+    {
+    	if (_timers == null)
+    		_timers = new ArrayList<ServletTimer>(1);
+    	
+    	_timers.add(timer);
+    }
+    
+    private void removeTimer(Timer timer)
+    {
+    	if (_timers != null)
+    		_timers.remove(timer);
+    }
+    
+	public synchronized Session getSession(SipMessage message)
+	{
+		String ftag = message.from().getTag();
+		String ttag = message.to().getTag();
+		String callId = message.getCallId();
+		
+		for (int i = 0; i < _sessions.size(); i++)
+		{
+			Session session = _sessions.get(i);
+			if (session.isDialog(callId, ftag, ttag))
+				return session;
+		}
+		return null;
+	}
+	
+    public class Timer implements ServletTimer, Runnable
+    {
+		private Serializable _info;
+        private long _period;
+        private TimerTask _timerTask;
+        private boolean _persistent;
+        private final String _id;
+        
+        public Timer(long delay, boolean persistent, Serializable info)
+        {
+        	this(delay, -1, false, persistent, info);
+        }
+        
+        public Timer(long delay, long period, boolean fixedDelay, boolean isPersistent, Serializable info)
+        {
+        	this(delay, period, fixedDelay, isPersistent, info, getSessionManager().newTimerId());
+        }
+        
+        public Timer(long delay, long period, boolean fixedDelay, boolean isPersistent, Serializable info, String id)
+        {
+            addTimer(this);
+            _info = info;
+            _period = period;
+            _timerTask = getSessionManager().schedule(this, delay);
+            _persistent = isPersistent;
+            _id = id;
+        }
+        
+        public SipApplicationSession getApplicationSession()
+        {
+            return ApplicationSession.this;
+        }
+
+        public Serializable getInfo()
+        {
+            return _info;
+        }
+
+        public long scheduledExecutionTime()
+        {
+            return _timerTask.getExecutionTime();
+        }
+
+        public String getId()
+		{
+			return _id;
+		}
+
+		public long getTimeRemaining()
+		{
+			return getExpirationTime() - System.currentTimeMillis();
+		}
+		
+		public long getPeriod()
+		{
+			return _period;
+		}
+		
+		public boolean isPersistent()
+		{
+			return _persistent;
+		}
+		
+        public void cancel()
+        {
+        	_timerTask.cancel();
+        	removeTimer(this);
+           _period = -1;
+        }
+        
+        @Override
+        public String toString()
+        {
+        	long remaining = getTimeRemaining();
+        	
+        	return "ServletTimer {" + _info + "}@" + ((Math.abs(remaining) > 2000) ? remaining/1000 + "s" : remaining + "ms"); 
+        }
+        
+        public void run()
+        {
+        	// Do not change the class loader as it has been already done in the timer thread start (See SessionManager.Timer).
+        	List<TimerListener> listeners = getContext().getTimerListeners();
+        	
+        	if (!listeners.isEmpty())
+        	{
+        		for (TimerListener l :listeners)
+        		{
+        			try
+        			{
+        				l.timeout(this);
+        			}
+        			catch (Throwable t)
+        			{
+        				LOG.debug("Failed to invoke listener " + l, t);
+        			}
+        		}
+        	}
+        	else
+        		LOG.warn("The timer {} has been created by application {} but no timer listeners defined",
+        				toString(), getApplicationName());
+
+        	if (_period != -1)
+            {
+                _timerTask = getSessionManager().schedule(this, _period);
+            }
+            else
+            {
+               removeTimer(this);
+            }
+        }
+    }
 }

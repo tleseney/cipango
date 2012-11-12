@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.EventListener;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletContext;
@@ -54,18 +55,15 @@ import org.cipango.server.handler.AbstractSipHandler;
 import org.cipango.server.servlet.SipDispatcher;
 import org.cipango.server.servlet.SipServletHandler;
 import org.cipango.server.servlet.SipServletHolder;
-import org.cipango.server.session.AppSessionIf;
 import org.cipango.server.session.ApplicationSession;
 import org.cipango.server.session.Session;
 import org.cipango.server.session.SessionHandler;
+import org.cipango.server.session.SessionManager.AppSessionIf;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.ParameterableImpl;
 import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipURIImpl;
 import org.cipango.sip.URIFactory;
-import org.cipango.sip.URIImpl;
-import org.eclipse.jetty.util.ArrayUtil;
-import org.eclipse.jetty.util.LazyList;
 import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
@@ -101,14 +99,11 @@ public class SipAppContext extends AbstractSipHandler
 	private String _defaultsDescriptor=SIP_DEFAULTS_XML;
 	private final List<String> _overrideDescriptors = new ArrayList<String>();
 	
-  
-
-	private int _sessionTimeout = -1;
     private int _proxyTimeout = -1;
 	
 
 
-	private SessionHandler _sessionHandler;
+	private final SessionHandler _sessionHandler;
 	private SipServletHandler _servletHandler;
 	private int _specVersion;
 	
@@ -116,13 +111,9 @@ public class SipAppContext extends AbstractSipHandler
 	private ServletContext _sContext;
 	private MetaData _metaData;
 	
-    private TimerListener[] _timerListeners = new TimerListener[0];
-    private SipApplicationSessionListener[] _appSessionListeners = new SipApplicationSessionListener[0];
-    private SipErrorListener[] _errorListeners = new SipErrorListener[0];
-    private SipApplicationSessionAttributeListener[] _appSessionAttributeListeners = new SipApplicationSessionAttributeListener[0];
-    private SipSessionListener[] _sessionListeners = new SipSessionListener[0];
-    private SipSessionAttributeListener[] _sessionAttributeListeners = new SipSessionAttributeListener[0];
-    private SipServletListener[] _servletListeners = new SipServletListener[0];
+    private final List<TimerListener> _timerListeners = new CopyOnWriteArrayList<TimerListener>();
+    private final List<SipErrorListener> _errorListeners = new CopyOnWriteArrayList<SipErrorListener>();
+    private final List<SipServletListener> _servletListeners =  new CopyOnWriteArrayList<SipServletListener>();
     
     private final SipFactory _sipFactory;
     private TimerService _timerService;
@@ -185,100 +176,113 @@ public class SipAppContext extends AbstractSipHandler
 		return name;
     }
 		
-	public SipApplicationSessionListener[] getSipApplicationSessionListeners()
-	{
-		return _appSessionListeners;
-	}
 
-	public TimerListener[] getTimerListeners()
-	{
-		return _timerListeners;
-	}
-
-	public SipErrorListener[] getSipErrorListeners()
-	{
-		return _errorListeners;
-	}
-
-	public SipApplicationSessionAttributeListener[] getSipApplicationSessionAttributeListeners()
-	{
-		return _appSessionAttributeListeners;
-	}
-
-	public SipSessionListener[] getSipSessionListeners()
-	{
-		return _sessionListeners;
-	}
-
-	public SipSessionAttributeListener[] getSessionAttributeListeners()
-	{
-		return _sessionAttributeListeners;
-	}
 	
 	public SipServletHandler getSipServletHandler()
 	{
 		return _servletHandler;
 	}
-	
-    /** 
-     * Add EventListener
-     * Conveniance method that calls {@link #setEventListeners(EventListener[])}
-     * @param listener
-     */
-    public void addEventListener(EventListener listener)
-    {
-        setEventListeners((EventListener[])ArrayUtil.addToArray(getEventListeners(), listener, EventListener.class));
-    }
-	
+		
 	public EventListener[] getEventListeners()
     {
         return _context.getEventListeners();
     }
+	
+
+    public void addEventListener(EventListener listener)
+    {
+    	if (_context != null)
+    		_context.addEventListener(listener);
+    	
+    	if (listener instanceof TimerListener)
+            _timerListeners.add((TimerListener) listener);
+        if (listener instanceof SipErrorListener)
+            _errorListeners.add((SipErrorListener) listener);
+        if (listener instanceof SipServletListener)
+        	_servletListeners.add((SipServletListener) listener);
+    	
+        if ((listener instanceof SipApplicationSessionAttributeListener)
+            || (listener instanceof SipSessionListener)
+            || (listener instanceof SipSessionAttributeListener)
+            || (listener instanceof SipApplicationSessionListener))
+        {
+            if (_sessionHandler!=null)
+                _sessionHandler.addEventListener(listener);
+        }
+    }
+    
+    public void removeEventListener(EventListener listener)
+    {
+    	if (_context != null)
+    		_context.removeEventListener(listener);
+    	
+    	if (listener instanceof TimerListener)
+            _timerListeners.remove((TimerListener) listener);
+        if (listener instanceof SipErrorListener)
+            _errorListeners.remove((SipErrorListener) listener);
+        if (listener instanceof SipServletListener)
+        	_servletListeners.remove((SipServletListener) listener);
+    	
+        if ((listener instanceof SipApplicationSessionAttributeListener)
+            || (listener instanceof SipSessionListener)
+            || (listener instanceof SipSessionAttributeListener)
+            || (listener instanceof SipApplicationSessionListener))
+        {
+            if (_sessionHandler!=null)
+                _sessionHandler.removeEventListener(listener);
+        }
+    }
 
     public void setEventListeners(EventListener[] eventListeners)
     {   	
-        _context.setEventListeners(eventListeners);
-        
-        Object timerListeners = null;
-        Object appSessionListeners = null;
-        Object errorListeners = null;
-        Object appSessionAttributeListeners = null;
-        Object sessionListeners = null;
-        Object sessionAttributesListeners = null;
-        Object servletListeners = null;
-        
-        for (int i = 0; eventListeners != null && i < eventListeners.length; i++)
-        {
-            EventListener listener = eventListeners[i];
-            if (listener instanceof TimerListener)
-                timerListeners = LazyList.add(timerListeners, listener);
-            if (listener instanceof SipApplicationSessionListener)
-                appSessionListeners = LazyList.add(appSessionListeners, listener);
-            if (listener instanceof SipErrorListener)
-                errorListeners = LazyList.add(errorListeners, listener);
-            if (listener instanceof SipApplicationSessionAttributeListener)
-            	appSessionAttributeListeners = LazyList.add(appSessionAttributeListeners, listener);
-            if (listener instanceof SipSessionListener)
-            	sessionListeners = LazyList.add(sessionListeners, listener);
-            if (listener instanceof SipSessionAttributeListener)
-            	sessionAttributesListeners = LazyList.add(sessionAttributesListeners, listener);
-            if (listener instanceof SipServletListener)
-            	servletListeners = LazyList.add(servletListeners, listener);
-        }
-        _timerListeners = (TimerListener[]) 
-            LazyList.toArray(timerListeners, TimerListener.class);
-        _appSessionListeners = (SipApplicationSessionListener[]) 
-            LazyList.toArray(appSessionListeners, SipApplicationSessionListener.class);
-        _errorListeners = (SipErrorListener[])
-            LazyList.toArray(errorListeners, SipErrorListener.class);
-        _appSessionAttributeListeners = (SipApplicationSessionAttributeListener[])
-        	LazyList.toArray(appSessionAttributeListeners, SipApplicationSessionAttributeListener.class);
-        _sessionListeners = (SipSessionListener[])
-        	LazyList.toArray(sessionListeners, SipSessionListener.class);
-        _sessionAttributeListeners = (SipSessionAttributeListener[])
-        	LazyList.toArray(sessionAttributesListeners, SipSessionAttributeListener.class);
-        _servletListeners = (SipServletListener[])
-        	LazyList.toArray(servletListeners, SipServletListener.class);
+    	if (_context != null)
+    		_context.setEventListeners(eventListeners);
+    	if (_sessionHandler!=null)
+            _sessionHandler.clearEventListeners();
+    	
+    	_timerListeners.clear();
+    	_errorListeners.clear();
+    	_servletListeners.clear();
+
+         if (eventListeners!=null)
+             for (EventListener listener : eventListeners)
+                 addEventListener(listener);
+    }
+    
+    public ClassLoader getClassLoader()
+    {
+    	if (getWebAppContext() == null)
+    		return null;
+    	return getWebAppContext().getClassLoader();
+    }
+    
+    public void fire(List<? extends EventListener> listeners, Method method, Object... args)
+    {
+		ClassLoader oldClassLoader = null;
+		Thread currentThread = null;
+		
+		if (getClassLoader() != null)
+		{
+			currentThread = Thread.currentThread();
+			oldClassLoader = currentThread.getContextClassLoader();
+			currentThread.setContextClassLoader(getClassLoader());
+		}
+
+		for (EventListener l :listeners)
+		{
+			try
+			{
+				method.invoke(l, args);
+			}
+			catch (Throwable t)
+			{
+				LOG.debug("Failed to invoke listener " + l, t);
+			}
+		}
+		if (getClassLoader() != null)
+		{
+			currentThread.setContextClassLoader(oldClassLoader);
+		}
     }
 	
 	public void handle(SipMessage message) throws IOException, ServletException 
@@ -287,16 +291,6 @@ public class SipAppContext extends AbstractSipHandler
 		// TODO Auto-generated method stub
 	}
 	
-	public int getSessionTimeout()
-	{
-		return _sessionTimeout;
-	}
-
-	public void setSessionTimeout(int sessionTimeout)
-	{
-		_sessionTimeout = sessionTimeout;
-	}
-
 	public int getProxyTimeout()
 	{
 		return _proxyTimeout;
@@ -376,6 +370,28 @@ public class SipAppContext extends AbstractSipHandler
 	public SipSessionsUtil getSipSessionsUtil()
 	{
 		return _sipSessionsUtil;
+	}
+	
+	public Method getSipApplicationKeyMethod()
+	{
+		return _sipApplicationKeyMethod;
+	}
+
+	public void setSipApplicationKeyMethod(Method sipApplicationKeyMethod)
+	{
+		_sipApplicationKeyMethod = sipApplicationKeyMethod;
+	}
+
+
+	public SessionHandler getSessionHandler()
+	{
+		return _sessionHandler;
+	}
+
+
+	public List<TimerListener> getTimerListeners()
+	{
+		return _timerListeners;
 	}
 
 	class SContext extends ServletContextProxy
@@ -503,7 +519,7 @@ public class SipAppContext extends AbstractSipHandler
 		
 	}
 	
-    class SessionUtil implements SipSessionsUtil
+    private class SessionUtil implements SipSessionsUtil
     {
 
 		@Override
@@ -529,7 +545,7 @@ public class SipAppContext extends AbstractSipHandler
 
     }
     
-    class Factory implements SipFactory
+    private class Factory implements SipFactory
     {
 
 		@Override
@@ -627,7 +643,7 @@ public class SipAppContext extends AbstractSipHandler
 		{
 			ApplicationSession appSession = ((AppSessionIf) sipAppSession).getAppSession();
 			
-			SipMethod sipMethod = SipMethod.lookAheadGet(ByteBuffer.wrap(method.getBytes()));
+			SipMethod sipMethod = SipMethod.get(method);
 			
 			if (sipMethod == SipMethod.ACK || sipMethod == SipMethod.CANCEL)
 				throw new IllegalArgumentException("Method cannot be ACK nor CANCEL");
@@ -685,18 +701,10 @@ public class SipAppContext extends AbstractSipHandler
     	
     }
 	
-	 public interface Decorator extends org.eclipse.jetty.servlet.ServletContextHandler.Decorator
-    {
-		 void decorateServletHolder(SipServletHolder servlet) throws ServletException;
-    }
-
-	public Method getSipApplicationKeyMethod()
+	public interface Decorator extends org.eclipse.jetty.servlet.ServletContextHandler.Decorator
 	{
-		return _sipApplicationKeyMethod;
+		void decorateServletHolder(SipServletHolder servlet) throws ServletException;
 	}
 
-	public void setSipApplicationKeyMethod(Method sipApplicationKeyMethod)
-	{
-		_sipApplicationKeyMethod = sipApplicationKeyMethod;
-	}
+
 }

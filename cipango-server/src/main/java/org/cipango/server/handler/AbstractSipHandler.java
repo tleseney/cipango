@@ -3,9 +3,9 @@ package org.cipango.server.handler;
 
 import org.cipango.server.SipHandler;
 import org.cipango.server.SipServer;
-import org.eclipse.jetty.util.component.AbstractLifeCycle;
+import org.eclipse.jetty.util.component.ContainerLifeCycle;
 
-public abstract class AbstractSipHandler extends AbstractLifeCycle implements SipHandler
+public abstract class AbstractSipHandler extends ContainerLifeCycle implements SipHandler
 {
 	private SipServer _server;
 	

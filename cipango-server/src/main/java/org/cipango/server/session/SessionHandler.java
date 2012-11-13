@@ -20,36 +20,32 @@ import java.util.EventListener;
 import javax.servlet.ServletException;
 import javax.servlet.sip.SipServletResponse;
 
-import org.cipango.server.SipHandler;
 import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
-import org.cipango.server.handler.AbstractSipHandler;
+import org.cipango.server.SipResponse;
+import org.cipango.server.handler.SipHandlerWrapper;
 import org.cipango.server.sipapp.SipAppContext;
+import org.eclipse.jetty.util.annotation.ManagedAttribute;
+import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
-public class SessionHandler extends AbstractSipHandler
+public class SessionHandler extends SipHandlerWrapper
 {
 	private static final Logger LOG = Log.getLogger(SessionHandler.class);
 	private final SessionManager _sessionManager;
-	private SipHandler _handler;
 	
 	public SessionHandler(SipAppContext context)
 	{
 		_sessionManager = new SessionManager(context);
+		addBean(_sessionManager);
 	}
 	
-	public void setHandler(SipHandler handler)
-	{
-		_handler = handler;
-	}
 	
 	@Override
 	protected void doStart() throws Exception
 	{
 		_sessionManager.start();
-		_handler.start();
-		
 		super.doStart();
 	}
 	
@@ -110,13 +106,16 @@ public class SessionHandler extends AbstractSipHandler
 		if (!request.isAck())
 			try
 			{
-				request.createResponse(SipServletResponse.SC_CALL_LEG_DONE, reason).send();
+				// In this case, there is no session, so could not use response.send()
+				SipResponse response = (SipResponse) request.createResponse(SipServletResponse.SC_CALL_LEG_DONE, reason);
+				_sessionManager.getSipAppContext().getServer().sendResponse(response, request.getConnection());
 			}
-			catch (IOException e)
+			catch (Exception e)
 			{
 				LOG.ignore(e);
 			}
 	}
+	
 	protected String getApplicationId(String s)
 	{
 		return s.substring(s.lastIndexOf('-'));

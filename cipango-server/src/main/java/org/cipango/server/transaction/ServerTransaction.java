@@ -186,7 +186,6 @@ public class ServerTransaction extends Transaction
 		setState(State.TERMINATED);
 		
 		_transactionManager.transactionTerminated(this);
-		//getCallSession().removeTransaction(this);
 	}
 	
 	private void doSend(SipResponse response) throws IOException
@@ -203,7 +202,7 @@ public class ServerTransaction extends Transaction
 				_gDelay = _gDelay * 2;
 				startTimer(Timer.G, Math.min(_gDelay, __T2));
 				break;
-			case H: // noAck ?
+			case H: // TODO noAck ?
 				cancelTimer(Timer.G);
 				terminate();
 				break;

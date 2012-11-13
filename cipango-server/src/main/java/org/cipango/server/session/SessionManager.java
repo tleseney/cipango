@@ -1,8 +1,9 @@
 package org.cipango.server.session;
 
+import static java.lang.Math.round;
+
 import java.lang.reflect.Method;
 import java.net.InetAddress;
-import java.util.Date;
 import java.util.EventListener;
 import java.util.List;
 import java.util.PriorityQueue;
@@ -26,10 +27,16 @@ import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.sip.SipGrammar;
 import org.cipango.util.StringUtil;
 import org.cipango.util.TimerTask;
+import org.eclipse.jetty.util.annotation.ManagedAttribute;
+import org.eclipse.jetty.util.annotation.ManagedObject;
+import org.eclipse.jetty.util.annotation.ManagedOperation;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
+import org.eclipse.jetty.util.statistic.CounterStatistic;
+import org.eclipse.jetty.util.statistic.SampleStatistic;
 
+@ManagedObject("Session manager")
 public class SessionManager extends AbstractLifeCycle
 {
 	private static final Logger LOG = Log.getLogger(SessionManager.class);
@@ -54,6 +61,9 @@ public class SessionManager extends AbstractLifeCycle
 	private Queue<TimerTask> _timerQueue = new PriorityQueue<TimerTask>();
 
 	private int _sessionTimeout = -1;
+	
+    private final CounterStatistic _sessionsStats = new CounterStatistic();
+    private final SampleStatistic _sessionTimeStats = new SampleStatistic();
 	
 	static
 	{
@@ -91,7 +101,7 @@ public class SessionManager extends AbstractLifeCycle
 		super.doStart();
 
 		// Web app context could be null in some tests.
-		if (_sipAppContext != null && _sipAppContext.getWebAppContext() != null)
+		if (_sipAppContext.getWebAppContext() != null)
 			_loader = _sipAppContext.getWebAppContext().getClassLoader();
 		
 		_timer = new Timer();
@@ -108,6 +118,7 @@ public class SessionManager extends AbstractLifeCycle
 	{
 		ApplicationSession appSession = new ApplicationSession(this, newApplicationSessionId());
 		_appSessions.put(appSession.getId(), appSession);
+		_sessionsStats.increment();
 		appSession.setExpires(_sessionTimeout);
 		if (!_applicationSessionListeners.isEmpty())
 			getSipAppContext().fire(_applicationSessionListeners, __appSessionCreated,  new SipApplicationSessionEvent(appSession));
@@ -171,6 +182,10 @@ public class SessionManager extends AbstractLifeCycle
 	public void removeApplicationSession(ApplicationSession session)
 	{
 		_appSessions.remove(session.getId());
+		
+		_sessionsStats.decrement();
+		_sessionTimeStats.set(round((System.currentTimeMillis() - session.getCreationTime())/1000.0));
+		
 		if (!_applicationSessionListeners.isEmpty())
 			getSipAppContext().fire(_applicationSessionListeners, __appSessionDestroyed,  new SipApplicationSessionEvent(session));
 	}
@@ -361,6 +376,7 @@ public class SessionManager extends AbstractLifeCycle
 		return _sessionListeners;
 	}
 	
+	@ManagedAttribute("Session timeout")
 	public int getSessionTimeout()
 	{
 		return _sessionTimeout;
@@ -370,6 +386,73 @@ public class SessionManager extends AbstractLifeCycle
 	{
 		_sessionTimeout = sessionTimeout;
 	}
+	
+	@ManagedAttribute("Active application sessions")
+	public long getSessions()
+	{
+		return _sessionsStats.getCurrent();
+	}
+	
+	@ManagedAttribute("Total application sessions")
+	public long getSessionsTotal()
+	{
+		return _sessionsStats.getTotal();
+	}
+	
+	@ManagedAttribute("Max active application sessions")
+	public long getSessionsMax()
+	{
+		return _sessionsStats.getMax();
+	}
+	
+    /**
+     * @return maximum amount of time session remained valid
+     */
+	@ManagedAttribute("Maximum amount of time session remained valid")
+    public long getSessionTimeMax()
+    {
+        return _sessionTimeStats.getMax();
+    }
+    
+    /**
+     * Reset statistics values
+     */
+	@ManagedOperation("Stats reset")
+    public void statsReset()
+    {
+    	_sessionsStats.reset(getSessions());
+    	_sessionTimeStats.reset();
+    }
+
+    /* ------------------------------------------------------------ */
+    /**
+     * @return maximum amount of time session remained valid
+     */
+	@ManagedAttribute("maximum amount of time session remained valid")
+    public long getSessionTimeTotal()
+    {
+        return _sessionTimeStats.getTotal();
+    }
+    
+    /* ------------------------------------------------------------ */
+    /**
+     * @return mean amount of time session remained valid
+     */
+	@ManagedAttribute("mean amount of time session remained valid")
+    public double getSessionTimeMean()
+    {
+        return _sessionTimeStats.getMean();
+    }
+    
+    /* ------------------------------------------------------------ */
+    /**
+     * @return standard deviation of amount of time session remained valid
+     */
+	@ManagedAttribute("standard deviation of amount of time session remained valid")
+    public double getSessionTimeStdDev()
+    {
+        return _sessionTimeStats.getStdDev();
+    }
 	
 	class Timer implements Runnable
 	{

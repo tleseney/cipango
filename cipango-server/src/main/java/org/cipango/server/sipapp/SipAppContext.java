@@ -13,9 +13,8 @@
 // ========================================================================
 package org.cipango.server.sipapp;
 
-import java.io.IOException;
+import java.io.Serializable;
 import java.lang.reflect.Method;
-import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,6 +30,7 @@ import javax.servlet.sip.Address;
 import javax.servlet.sip.AuthInfo;
 import javax.servlet.sip.Parameterable;
 import javax.servlet.sip.ServletParseException;
+import javax.servlet.sip.ServletTimer;
 import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipApplicationSessionAttributeListener;
 import javax.servlet.sip.SipApplicationSessionListener;
@@ -49,9 +49,8 @@ import javax.servlet.sip.TimerService;
 import javax.servlet.sip.URI;
 import javax.servlet.sip.ar.SipApplicationRoutingDirective;
 
-import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
-import org.cipango.server.handler.AbstractSipHandler;
+import org.cipango.server.handler.SipHandlerWrapper;
 import org.cipango.server.servlet.SipDispatcher;
 import org.cipango.server.servlet.SipServletHandler;
 import org.cipango.server.servlet.SipServletHolder;
@@ -64,12 +63,19 @@ import org.cipango.sip.ParameterableImpl;
 import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipURIImpl;
 import org.cipango.sip.URIFactory;
+import org.eclipse.jetty.security.SecurityHandler;
+import org.eclipse.jetty.server.handler.HandlerWrapper;
+import org.eclipse.jetty.servlet.ServletHandler;
+import org.eclipse.jetty.util.annotation.ManagedAttribute;
+import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.component.LifeCycle;
+import org.eclipse.jetty.util.component.ContainerLifeCycle.Managed;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.webapp.WebAppContext;
 
-public class SipAppContext extends AbstractSipHandler 
+@ManagedObject("SIP application context")
+public class SipAppContext extends SipHandlerWrapper 
 {
 	private static final Logger LOG = Log.getLogger(SipAppContext.class);
 	
@@ -128,17 +134,40 @@ public class SipAppContext extends AbstractSipHandler
 		_servletHandler = new SipServletHandler();
 		_metaData = new MetaData();
 		_sipFactory = new Factory();
+		_timerService = new TimerServiceImpl();
 	}
 	
-
-	@Override
 	protected void doStart() throws Exception
 	{
-		
-		_sessionHandler.setHandler(_servletHandler);
-		_sessionHandler.start();
+		relinkHandlers();
 		super.doStart();
 	}
+	
+	private void relinkHandlers()
+	{
+		SipHandlerWrapper handler = this;
+
+		// Skip any injected handlers
+		while (handler.getHandler() instanceof HandlerWrapper)
+		{
+			SipHandlerWrapper wrapper = (SipHandlerWrapper) handler.getHandler();
+			if (wrapper instanceof SessionHandler)
+				break;
+			handler = wrapper;
+		}
+
+		if (getSessionHandler() != null)
+		{
+			handler.setHandler(_sessionHandler);
+			handler = _sessionHandler;
+		}
+
+		if (getServletHandler() != null)
+		{
+			handler.setHandler(_servletHandler);
+		}
+	}
+
 	
 	public void setWebAppContext(WebAppContext context)
 	{
@@ -284,13 +313,7 @@ public class SipAppContext extends AbstractSipHandler
 			currentThread.setContextClassLoader(oldClassLoader);
 		}
     }
-	
-	public void handle(SipMessage message) throws IOException, ServletException 
-	{
-		_sessionHandler.handle(message);
-		// TODO Auto-generated method stub
-	}
-	
+		
 	public int getProxyTimeout()
 	{
 		return _proxyTimeout;
@@ -320,11 +343,13 @@ public class SipAppContext extends AbstractSipHandler
 		return _overrideDescriptors;
 	}
 		
+	@ManagedAttribute(value="Web app context", readonly=true)
 	public WebAppContext getWebAppContext()
 	{
 		return _context;
 	}
 	
+	@ManagedAttribute(value="specification version", readonly=true)
 	public int getSpecVersion()
 	{
 		return _specVersion;
@@ -335,6 +360,7 @@ public class SipAppContext extends AbstractSipHandler
 		_specVersion = specVersion;
 	}
 
+	@ManagedAttribute(value="context servlet handler", readonly=true)
 	public SipServletHandler getServletHandler()
 	{
 		return _servletHandler;
@@ -382,7 +408,7 @@ public class SipAppContext extends AbstractSipHandler
 		_sipApplicationKeyMethod = sipApplicationKeyMethod;
 	}
 
-
+	@ManagedAttribute(value="context session handler", readonly=true)
 	public SessionHandler getSessionHandler()
 	{
 		return _sessionHandler;
@@ -393,7 +419,7 @@ public class SipAppContext extends AbstractSipHandler
 	{
 		return _timerListeners;
 	}
-
+	
 	class SContext extends ServletContextProxy
 	{
 		
@@ -699,6 +725,23 @@ public class SipAppContext extends AbstractSipHandler
 			}
 		}
     	
+    }
+    
+    private class TimerServiceImpl implements TimerService
+    {
+        public ServletTimer createTimer(SipApplicationSession session, long delay, boolean isPersistent, Serializable info) 
+        {
+        	// TODO scope
+        	ApplicationSession appSession = ((AppSessionIf) session).getAppSession();
+            return appSession.new Timer(delay, isPersistent, info);
+        }
+
+        public ServletTimer createTimer(SipApplicationSession session, long delay, long period, boolean fixedDelay, boolean isPersistent, Serializable info) 
+        {
+        	// TODO scope
+        	ApplicationSession appSession = ((AppSessionIf) session).getAppSession();
+            return appSession.new Timer(delay, period, fixedDelay, isPersistent, info);
+        }
     }
 	
 	public interface Decorator extends org.eclipse.jetty.servlet.ServletContextHandler.Decorator

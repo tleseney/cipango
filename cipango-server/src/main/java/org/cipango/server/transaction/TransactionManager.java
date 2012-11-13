@@ -9,9 +9,13 @@ import org.cipango.server.SipResponse;
 import org.cipango.server.processor.SipProcessorWrapper;
 import org.cipango.server.processor.TransportProcessor;
 import org.cipango.util.TimerQueue;
+import org.eclipse.jetty.util.annotation.ManagedAttribute;
+import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
+import org.eclipse.jetty.util.statistic.CounterStatistic;
 
+@ManagedObject("Transaction manager")
 public class TransactionManager extends SipProcessorWrapper
 {
 	private final Logger LOG = Log.getLogger(TransactionManager.class);
@@ -20,6 +24,9 @@ public class TransactionManager extends SipProcessorWrapper
 	private ConcurrentHashMap<String, ClientTransaction> _clientTransactions = new ConcurrentHashMap<String, ClientTransaction>();
 	private TimerQueue<TimerTask> _timerQueue = new TimerQueue<TransactionManager.TimerTask>();
 	private TransportProcessor _transportProcessor;
+	
+	private final CounterStatistic _serverTxStats = new CounterStatistic();
+	private final CounterStatistic _clientTxStats = new CounterStatistic();
 	
 	public void setTransportProcessor(TransportProcessor processor)
 	{
@@ -54,6 +61,9 @@ public class TransactionManager extends SipProcessorWrapper
 			newTransaction.setTransactionManager(this);
 			
 			transaction = _serverTransactions.putIfAbsent(branch, newTransaction);
+			
+			if (transaction == null)
+				_serverTxStats.increment();
 		}
 		
 		if (transaction != null)
@@ -90,11 +100,13 @@ public class TransactionManager extends SipProcessorWrapper
 	public void transactionTerminated(ServerTransaction transaction)
 	{
 		_serverTransactions.remove(transaction.getBranch());
+		_serverTxStats.decrement();
 	}
 	
 	public void transactionTerminated(ClientTransaction transaction)
 	{
 		_clientTransactions.remove(transaction.getBranch());
+		_clientTxStats.decrement();
 	}
 	
 	public TimerTask schedule(Runnable runnable, long delay)
@@ -117,6 +129,7 @@ public class TransactionManager extends SipProcessorWrapper
 	protected void addClientTransaction(ClientTransaction tx)
 	{
 		_clientTransactions.put(tx.getBranch(), tx);
+		_clientTxStats.increment();
 	}
 	
 	public ClientTransaction sendRequest(SipRequest request, ClientTransactionListener listener) 
@@ -134,6 +147,42 @@ public class TransactionManager extends SipProcessorWrapper
 			LOG.warn(e);
 		}
 		return ctx;
+	}
+	
+	@ManagedAttribute("Current active client transactions")
+	public long getClientTransactions()
+	{
+		return _clientTxStats.getCurrent();
+	}
+	
+	@ManagedAttribute("Max simultaneous client transactions")
+	public long getClientTransactionsMax()
+	{
+		return _clientTxStats.getMax();
+	}
+	
+	@ManagedAttribute("Total client transactions")
+	public long getClientTransactionsTotal()
+	{
+		return _clientTxStats.getTotal();
+	}
+	
+	@ManagedAttribute("Current active server transactions")
+	public long getServerTransactions()
+	{
+		return _serverTxStats.getCurrent();
+	}
+	
+	@ManagedAttribute("Max simultaneous server transactions")
+	public long getServerTransactionsMax()
+	{
+		return _serverTxStats.getMax();
+	}
+	
+	@ManagedAttribute("Total server transactions")
+	public long getServerTransactionsTotal()
+	{
+		return _serverTxStats.getTotal();
 	}
 	
 	class Timer implements Runnable

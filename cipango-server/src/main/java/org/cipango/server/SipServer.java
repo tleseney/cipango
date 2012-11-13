@@ -7,6 +7,7 @@ import javax.servlet.ServletException;
 import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
 
+import org.cipango.server.handler.AbstractSipHandler;
 import org.cipango.server.nio.UdpConnector;
 import org.cipango.server.processor.TransportProcessor;
 import org.cipango.server.transaction.TransactionManager;
@@ -72,12 +73,12 @@ public class SipServer extends ContainerLifeCycle
 		_transactionManager = new TransactionManager();
 		_processor = new TransportProcessor(_transactionManager);
 		_transactionManager.setTransportProcessor((TransportProcessor) _processor);
+		addBean(_transactionManager);
+		addBean(_processor);
 		
 		_processor.setServer(this);
 		_processor.start();
-		
-		_handler.start();
-		
+				
 		MultiException mex = new MultiException();
 
         try
@@ -88,6 +89,8 @@ public class SipServer extends ContainerLifeCycle
         {
             mex.add(e);
         }
+        
+		_handler.start();
         
 		if (_connectors != null)
 		{
@@ -160,6 +163,9 @@ public class SipServer extends ContainerLifeCycle
 	
 	public void setHandler(SipHandler handler)
 	{
+		if (handler != null)
+			handler.setServer(this);
+		updateBean(_handler, handler);
 		_handler = handler;
 	}
 	

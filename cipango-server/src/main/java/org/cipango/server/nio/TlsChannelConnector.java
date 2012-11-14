@@ -1,10 +1,15 @@
 package org.cipango.server.nio;
 
+import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
 
 import javax.net.ssl.SSLEngine;
 
+import org.cipango.server.SipConnection;
 import org.cipango.server.SipServer;
 import org.cipango.server.Transport;
 import org.cipango.server.servlet.DefaultServlet;
@@ -12,7 +17,6 @@ import org.cipango.server.sipapp.SipAppContext;
 import org.eclipse.jetty.io.ByteBufferPool;
 import org.eclipse.jetty.io.Connection;
 import org.eclipse.jetty.io.EndPoint;
-import org.eclipse.jetty.io.ssl.SslConnection;
 import org.eclipse.jetty.util.annotation.Name;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
@@ -24,6 +28,7 @@ public class TlsChannelConnector extends SelectChannelConnector
 {
 	private static final Logger LOG = Log.getLogger(TlsChannelConnector.class);
 	private final SslContextFactory _sslContextFactory;
+	private final List<String> _pendingClientConnections;
 
 	public TlsChannelConnector(
             @Name("sipServer") SipServer server,
@@ -56,6 +61,7 @@ public class TlsChannelConnector extends SelectChannelConnector
     {
 		super(server, executor, scheduler, pool, acceptors, selectors);
 		_sslContextFactory = factory;
+		_pendingClientConnections = new ArrayList<String>();
     }
 	
 	@Override
@@ -77,14 +83,24 @@ public class TlsChannelConnector extends SelectChannelConnector
 //		if (session.getPacketBufferSize() > getInputBufferSize())
 //			setInputBufferSize(session.getPacketBufferSize());
 	}
-	
+
+	@Override
+    protected SipConnection newConnection(InetAddress address, int port) throws IOException
+    {
+		_pendingClientConnections.add(address.getHostAddress() + ":" + port);
+		return super.newConnection(address, port);
+    }
+    
 	@Override
 	protected Connection newConnection(EndPoint endpoint)
     {
 		SSLEngine engine = _sslContextFactory.newSSLEngine(endpoint.getRemoteAddress());
-		engine.setUseClientMode(false);
+		InetSocketAddress remote = endpoint.getRemoteAddress();
+		boolean client = _pendingClientConnections.remove(
+				remote.getAddress().getHostAddress() + ":" + remote.getPort());
+		engine.setUseClientMode(client);
 
-		SslConnection sslConnection = newSslConnection(endpoint, engine);
+		TlsChannelConnection sslConnection = newSslConnection(endpoint, engine);
 		//configure(sslConnection, TlsChannelConnector.this, endPoint);
 
 		EndPoint decryptedEndPoint = sslConnection.getDecryptedEndPoint();
@@ -93,10 +109,10 @@ public class TlsChannelConnector extends SelectChannelConnector
 
 		return sslConnection;
     }
-	
-	protected SslConnection newSslConnection(EndPoint endPoint, SSLEngine engine)
+
+	protected TlsChannelConnection newSslConnection(EndPoint endPoint, SSLEngine engine)
 	{
-		return new SslConnection(getByteBufferPool(), getExecutor(), endPoint, engine);
+		return new TlsChannelConnection(getByteBufferPool(), getExecutor(), endPoint, engine, this);
 	}
 
 	public static void main(String[] args) throws Exception 

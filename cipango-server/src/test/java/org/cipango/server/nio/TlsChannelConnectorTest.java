@@ -2,17 +2,14 @@ package org.cipango.server.nio;
 
 import java.io.File;
 import java.io.OutputStream;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 
+import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.junit.Before;
 import org.junit.BeforeClass;
-
-import sun.security.ssl.SSLServerSocketFactoryImpl;
 
 public class TlsChannelConnectorTest extends AbstractConnectorTest
 {
@@ -58,10 +55,8 @@ public class TlsChannelConnectorTest extends AbstractConnectorTest
 	@Override
 	protected void createPeer() throws Exception
 	{
-		final ServerSocket socket = new SSLServerSocketFactoryImpl().createServerSocket();
-		
-		socket.bind(new InetSocketAddress(InetAddress.getByName(_connector.getHost()),
-				_connector.getPort() + 1));
+		SSLServerSocket socket = __sslCtxFactory.newSslServerSocket(
+				_connector.getHost(), _connector.getPort() + 1, 0);
 		_peer = new SelectChannelConnectorTest.TestServerSocket(socket);
 		_peer.start();
 	}

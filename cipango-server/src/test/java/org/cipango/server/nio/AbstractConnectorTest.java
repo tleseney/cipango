@@ -125,7 +125,7 @@ public abstract class AbstractConnectorTest
 		
 		SipConnection connection = _connector.getConnection(_peer.getInetAddress(), _peer.getPort());
 		assertNotNull(connection);
-		
+
 		SipMessage orig = getAsMessage(SERIALIZED_REGISTER);
 		connection.send(orig);
 		SipMessage message = _peer.getMessage();

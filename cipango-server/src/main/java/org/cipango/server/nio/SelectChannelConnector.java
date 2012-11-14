@@ -250,19 +250,10 @@ public class SelectChannelConnector extends AbstractSipConnector
     
     public SipConnection getConnection(InetAddress address, int port) throws IOException
 	{
-		String key = getKey(address, port);
-		SipConnection connection = _connections.get(key);
+		SipConnection connection = _connections.get(getKey(address, port));
 		if (connection == null)
 		{
-			synchronized (this)
-			{
-				connection = _connections.get(key);
-				if (connection == null)
-				{
-					connection = newConnection(address, port);
-					_connections.put(key, connection);
-				}
-			}
+			connection = newConnection(address, port);
 		}
 		return connection;
 	}
@@ -288,7 +279,6 @@ public class SelectChannelConnector extends AbstractSipConnector
     protected Connection newConnection(EndPoint endpoint)
     {
     	SelectSipConnection connection = new SelectSipConnection(this, endpoint);
-    	_connections.put(getKey(connection), connection);
     	return connection;
     }
     
@@ -330,6 +320,7 @@ public class SelectChannelConnector extends AbstractSipConnector
 				EndPoint endpoint, Object attachment)
 		{
         	Connection connection = SelectChannelConnector.this.newConnection(endpoint);
+        	_connections.put(getKey(connection), (SipConnection) connection);
         	synchronized (channel)
 			{
 				channel.notify();

@@ -92,6 +92,9 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 		_accessed = 0;
 		
 		_id = id;
+		
+		if (getContext().getSpecVersion() == SipAppContext.VERSION_10)
+			_invalidateWhenReady = false;
 	}
 	
 	public SessionManager getSessionManager()

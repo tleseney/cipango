@@ -13,6 +13,7 @@ import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.handler.AbstractSipHandler;
 import org.cipango.server.sipapp.SipServletMapping;
+import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.MultiException;
 import org.eclipse.jetty.util.log.Log;
@@ -35,6 +36,9 @@ public class SipServletHandler extends AbstractSipHandler
 	@Override
 	protected void doStart() throws Exception
 	{
+		// FIXME check if the ContextHandler.getCurrentContext() returns in all cases the right value.
+		_servletContext=ContextHandler.getCurrentContext();
+		
 		super.doStart();
 		initialize();
 		if (_servlets != null && _servlets.length > 0)
@@ -96,6 +100,7 @@ public class SipServletHandler extends AbstractSipHandler
 			{
 				try
 				{
+					servlet.setServletHandler(this);
 					servlet.start();
 				}
 				catch (Exception e)

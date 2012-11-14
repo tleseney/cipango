@@ -10,7 +10,6 @@ import javax.servlet.Servlet;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
-import javax.servlet.SingleThreadModel;
 import javax.servlet.UnavailableException;
 import javax.servlet.sip.SipServlet;
 import javax.servlet.sip.SipServletRequest;
@@ -207,6 +206,11 @@ public class SipServletHolder extends AbstractLifeCycle
     {
         _initParams.clear();
         _initParams.putAll(map);
+    }
+    
+    public void setServletHandler(SipServletHandler servletHandler)
+    {
+        _servletHandler = servletHandler;
     }
     
 	

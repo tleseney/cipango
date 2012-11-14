@@ -7,7 +7,6 @@ import javax.servlet.ServletException;
 import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
 
-import org.cipango.server.handler.AbstractSipHandler;
 import org.cipango.server.nio.UdpConnector;
 import org.cipango.server.processor.TransportProcessor;
 import org.cipango.server.transaction.TransactionManager;
@@ -165,7 +164,16 @@ public class SipServer extends ContainerLifeCycle
 	{
 		if (handler != null)
 			handler.setServer(this);
-		updateBean(_handler, handler);
+
+		// FIXME Could not use the method updateBean as the handler might be already started if it is a SipAppContext
+		if (_handler != handler)
+		{
+			if (_handler != null)
+				removeBean(_handler);
+			
+			if (handler != null)
+				addBean(handler, true);
+		}
 		_handler = handler;
 	}
 	

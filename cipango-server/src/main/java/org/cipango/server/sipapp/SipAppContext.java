@@ -63,13 +63,10 @@ import org.cipango.sip.ParameterableImpl;
 import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipURIImpl;
 import org.cipango.sip.URIFactory;
-import org.eclipse.jetty.security.SecurityHandler;
 import org.eclipse.jetty.server.handler.HandlerWrapper;
-import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.component.LifeCycle;
-import org.eclipse.jetty.util.component.ContainerLifeCycle.Managed;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.webapp.WebAppContext;
@@ -475,7 +472,6 @@ public class SipAppContext extends SipHandlerWrapper
 	//	            _sipSecurityHandler.start(); // FIXME when should it be started
 	//	        }
 				_metaData.resolve(SipAppContext.this);
-				_sessionHandler.setHandler(_servletHandler);
 				      		
 				_servletHandler.start();
 				
@@ -516,7 +512,6 @@ public class SipAppContext extends SipHandlerWrapper
 		}
 
 		@Override
-
 		public void lifeCycleStopping(LifeCycle event)
 		{
 			try

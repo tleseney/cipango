@@ -12,7 +12,6 @@ public class DefaultServlet extends SipServlet
 	@Override
 	public void init()
 	{
-		System.out.println("servlet initialized");
 	}
 	
 	protected void doRequest(SipServletRequest request) throws ServletException, IOException
@@ -36,7 +35,6 @@ public class DefaultServlet extends SipServlet
 	protected void doRegister(SipServletRequest request) throws ServletException, IOException
 	{
 		SipServletResponse response = request.createResponse(200);
-		response.addHeader("Server", getServletConfig().getServletName());
 		response.send();
 	}
 	
@@ -44,7 +42,6 @@ public class DefaultServlet extends SipServlet
 	protected void doMessage(SipServletRequest request) throws ServletException, IOException
 	{
 		SipServletResponse response = request.createResponse(200);
-		response.addHeader("Server", getServletConfig().getServletName());
 		response.send();
 	}
 	
@@ -52,7 +49,6 @@ public class DefaultServlet extends SipServlet
 	protected void doOptions(SipServletRequest request) throws ServletException, IOException
 	{
 		SipServletResponse response = request.createResponse(200);
-		response.addHeader("Server", getServletConfig().getServletName());
 		response.send();
 	}
 	
@@ -60,11 +56,11 @@ public class DefaultServlet extends SipServlet
 	protected void doBye(SipServletRequest request) throws ServletException, IOException
 	{
 		request.createResponse(200).send();
+		request.getApplicationSession().invalidate();
 	}
 
 	@Override
 	protected void doResponse(SipServletResponse response) throws ServletException, IOException
 	{
-		System.out.println("Got response: " + response);
 	}
 }

@@ -15,6 +15,7 @@ package org.cipango.server;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.util.Enumeration;
@@ -39,6 +40,7 @@ import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipURI;
 import javax.servlet.sip.TooManyHopsException;
 import javax.servlet.sip.URI;
+import javax.servlet.sip.ar.SipApplicationRouterInfo;
 import javax.servlet.sip.ar.SipApplicationRoutingDirective;
 import javax.servlet.sip.ar.SipApplicationRoutingRegion;
 
@@ -58,6 +60,12 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	private URI _requestUri;
 	
 	private Transaction _transaction;
+	private Address _poppedRoute;
+	
+	private Serializable _stateInfo;    private SipApplicationRouterInfo _nextRouterInfo;
+    private SipApplicationRoutingDirective _directive;
+    private SipApplicationRoutingRegion _region;
+    private URI _subscriberURI;
 	
 	public boolean isRequest()
 	{
@@ -118,7 +126,7 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	
 	public void setPoppedRoute(Address route)
 	{
-		// TODO
+		_poppedRoute = route;
 	}
 	
 	@Override
@@ -298,11 +306,13 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	{
 		return (int) _fields.getLong(SipHeader.MAX_FORWARDS);
 	}
+	
 	@Override
-	public Address getPoppedRoute() {
-		// TODO Auto-generated method stub
-		return null;
+	public Address getPoppedRoute() 
+	{
+		return _poppedRoute;
 	}
+	
 	@Override
 	public Proxy getProxy() throws TooManyHopsException 
 	{
@@ -318,27 +328,43 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	{
 		return null;
 	}
+	
 	@Override
-	public SipApplicationRoutingRegion getRegion() {
-		// TODO Auto-generated method stub
-		return null;
+	public SipApplicationRoutingRegion getRegion() 
+	{
+		return _region;
 	}
+	
 	@Override
 	public URI getRequestURI() 
 	{
 		return _requestUri;
 	}
 	
-	@Override
-	public SipApplicationRoutingDirective getRoutingDirective()
-			throws IllegalStateException {
-		// TODO Auto-generated method stub
-		return null;
+	public SipApplicationRoutingDirective getRoutingDirective() throws IllegalStateException
+	{
+		if (!isInitial())
+			throw new IllegalStateException("SipServletRequest is not initial");
+		return _directive;
 	}
+
+	public void setRoutingDirective(SipApplicationRoutingDirective directive, SipServletRequest origRequest)
+			throws IllegalStateException
+	{
+		if (!isInitial())
+			throw new IllegalStateException("SipServletRequest is not initial");
+		if (directive != SipApplicationRoutingDirective.NEW && 
+				(origRequest == null || !origRequest.isInitial()))
+			throw new IllegalStateException("origRequest is not initial");
+		if (isCommitted())
+			throw new IllegalStateException("SipServletRequest is committed");
+		_directive = directive;
+	}
+	
 	@Override
-	public URI getSubscriberURI() {
-		// TODO Auto-generated method stub
-		return null;
+	public URI getSubscriberURI() 
+	{
+		return _subscriberURI;
 	}
 	
 	public boolean isInitial() 
@@ -373,12 +399,6 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	public void setRequestURI(URI uri) 
 	{
 		_requestUri = uri;
-	}
-	@Override
-	public void setRoutingDirective(SipApplicationRoutingDirective routingDirective,
-			SipServletRequest origRequest) throws IllegalStateException {
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
@@ -428,6 +448,26 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	{
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	public Serializable getStateInfo()
+	{
+		return _stateInfo;
+	}
+	
+	public void setStateInfo(Serializable stateInfo)
+	{
+		_stateInfo = stateInfo;
+	}
+	
+	public void setRegion(SipApplicationRoutingRegion region)
+	{
+		_region = region;
+	}
+	
+	public void setSubscriberURI(URI uri)
+	{
+		_subscriberURI = uri;
 	}
 	
 	@Override

@@ -40,8 +40,10 @@ import org.eclipse.jetty.util.statistic.SampleStatistic;
 public class SessionManager extends AbstractLifeCycle
 {
 	private static final Logger LOG = Log.getLogger(SessionManager.class);
-	protected static Method __appSessionCreated;
-    protected static Method __appSessionDestroyed;
+	public static final char CONTEXT_ID_SEPARATOR = '.';
+	
+	protected static final Method __appSessionCreated;
+    protected static final Method __appSessionDestroyed;
 	
 	private Random _random = new Random();
 	private ConcurrentHashMap<String, ApplicationSession> _appSessions = new ConcurrentHashMap<String, ApplicationSession>();
@@ -64,7 +66,7 @@ public class SessionManager extends AbstractLifeCycle
 	
     private final CounterStatistic _sessionsStats = new CounterStatistic();
     private final SampleStatistic _sessionTimeStats = new SampleStatistic();
-	
+    	
 	static
 	{
 		try
@@ -103,12 +105,12 @@ public class SessionManager extends AbstractLifeCycle
 		// Web app context could be null in some tests.
 		if (_sipAppContext.getWebAppContext() != null)
 			_loader = _sipAppContext.getWebAppContext().getClassLoader();
-		
+			
 		_timer = new Timer();
 		new Thread(_timer, "Timer-" + _sipAppContext.getName()).start();
 		setScavengePeriod(getScavengePeriod());
 	}
-	
+		
 	public ServletContext getContext()
 	{
 		return _sipAppContext.getServletContext();
@@ -116,8 +118,18 @@ public class SessionManager extends AbstractLifeCycle
 	
 	public ApplicationSession createApplicationSession()
 	{
-		ApplicationSession appSession = new ApplicationSession(this, newApplicationSessionId());
-		_appSessions.put(appSession.getId(), appSession);
+		ApplicationSession appSession;
+		synchronized (this)
+		{
+			String id = null;
+			while (id == null || appIdInUse(id))
+			{
+				id = newApplicationSessionId();
+			}
+			appSession = new ApplicationSession(this, id);
+			_appSessions.put(id, appSession);
+		}
+		
 		_sessionsStats.increment();
 		appSession.setExpires(_sessionTimeout);
 		if (!_applicationSessionListeners.isEmpty())
@@ -136,7 +148,15 @@ public class SessionManager extends AbstractLifeCycle
 		long r = _random.nextInt();
 		if (r<0)
 			r = -r;
-		return StringUtil.toBase62String2(r);
+		return _sipAppContext.getContextId() + CONTEXT_ID_SEPARATOR + StringUtil.toBase62String2(r);
+	}
+	
+	public boolean appIdInUse(String id)
+	{
+		synchronized (this)
+		{
+			return _appSessions.containsKey(id);
+		}
 	}
 	
 	public String newSessionId()

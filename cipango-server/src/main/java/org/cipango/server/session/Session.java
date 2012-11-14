@@ -334,7 +334,7 @@ public class Session implements SipSessionIf
 	public Address getContact(SipConnection connection)
 	{
 		URI uri = connection.getConnector().getURI();
-		uri.setParameter("appid", _applicationSession.getId());
+		uri.setParameter(SessionHandler.APP_ID, _applicationSession.getId());
 		return new AddressImpl(connection.getConnector().getURI());
 	}
 	

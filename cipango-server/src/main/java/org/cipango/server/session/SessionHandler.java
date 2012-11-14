@@ -25,6 +25,7 @@ import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
 import org.cipango.server.handler.SipHandlerWrapper;
 import org.cipango.server.sipapp.SipAppContext;
+import org.cipango.server.transaction.ServerTransaction;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.log.Log;
@@ -32,6 +33,7 @@ import org.eclipse.jetty.util.log.Logger;
 
 public class SessionHandler extends SipHandlerWrapper
 {
+	public static final String APP_ID = "appid";
 	private static final Logger LOG = Log.getLogger(SessionHandler.class);
 	private final SessionManager _sessionManager;
 	
@@ -64,7 +66,7 @@ public class SessionHandler extends SipHandlerWrapper
 			}
 			else
 			{
-				String appId = request.getParameter("appid");
+				String appId = request.getParameter(APP_ID);
 				if (appId == null)
 				{
 					String tag = request.getToTag();
@@ -108,7 +110,8 @@ public class SessionHandler extends SipHandlerWrapper
 			{
 				// In this case, there is no session, so could not use response.send()
 				SipResponse response = (SipResponse) request.createResponse(SipServletResponse.SC_CALL_LEG_DONE, reason);
-				_sessionManager.getSipAppContext().getServer().sendResponse(response, request.getConnection());
+				// FIXME to tag
+				((ServerTransaction) response.getTransaction()).send(response);
 			}
 			catch (Exception e)
 			{

@@ -15,6 +15,7 @@ package org.cipango.server.sipapp;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
+import java.security.MessageDigest;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,6 +64,7 @@ import org.cipango.sip.ParameterableImpl;
 import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipURIImpl;
 import org.cipango.sip.URIFactory;
+import org.cipango.util.StringUtil;
 import org.eclipse.jetty.server.handler.HandlerWrapper;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
@@ -124,6 +126,8 @@ public class SipAppContext extends SipHandlerWrapper
     
     protected final List<Decorator> _decorators= new ArrayList<Decorator>();
     private Method _sipApplicationKeyMethod;
+    
+    private String _id;
 	
 	public SipAppContext()
 	{
@@ -187,11 +191,31 @@ public class SipAppContext extends SipHandlerWrapper
 	public void setName(String name)
 	{
 		_name = name;
+		
+		try
+		{
+			MessageDigest md = MessageDigest.getInstance("MD5");
+			byte[] bytes = md.digest(name.getBytes(StringUtil.__UTF8_CHARSET));
+			int i = 0;
+			for (byte b : bytes)
+				i =  i * 33 + b;
+			_id = StringUtil.toBase62String2(Math.abs(i)).substring(0, 3);
+		}
+		catch (Exception e)
+		{
+			LOG.warn("Unable to create ID", e);
+		}
 	}
 	
 	public String getName()
 	{
 		return _name;
+	}
+	
+	@ManagedAttribute("Context ID")
+	public String getContextId()
+	{
+		return _id;
 	}
 	
     public String getDefaultName()
@@ -486,7 +510,7 @@ public class SipAppContext extends SipHandlerWrapper
 				if (!_context.isAvailable())
 		    	{
 		    		if (_name == null)
-						_name = getDefaultName();
+						setName(getDefaultName());
 	//				Events.fire(Events.DEPLOY_FAIL, 
 	//	        			"Unable to deploy application " + getName()
 	//	        			+ ": " + _context.getUnavailableException().getMessage());

@@ -34,6 +34,7 @@ public class SipServer extends ContainerLifeCycle
 	
 	private SipHandler _handler;
 	private SipProcessor _processor;
+	private TransportProcessor _transportProcessor;
 	private TransactionManager _transactionManager;
 		
 	static 
@@ -68,13 +69,13 @@ public class SipServer extends ContainerLifeCycle
 	{
 		LOG.info("cipango-" + __version);
 		
-		//_processor = new TransportProcessor(new SessionProcessor(new TransactionProcessor(new SipSessionProcessor())));
 		_transactionManager = new TransactionManager();
-		_processor = new TransportProcessor(_transactionManager);
-		_transactionManager.setTransportProcessor((TransportProcessor) _processor);
+		_transportProcessor = new TransportProcessor(_transactionManager);
+		_transactionManager.setTransportProcessor(_transportProcessor);
 		addBean(_transactionManager);
 		addBean(_processor);
 		
+		_processor = _transportProcessor;
 		_processor.setServer(this);
 		_processor.start();
 				
@@ -88,7 +89,7 @@ public class SipServer extends ContainerLifeCycle
         {
             mex.add(e);
         }
-        
+               
 		_handler.start();
         
 		if (_connectors != null)
@@ -106,12 +107,20 @@ public class SipServer extends ContainerLifeCycle
 			}
 		}
 		
+//	TODO if (contexts != null)
+//		{
+//			for (SipAppContext context : contexts)
+//				context.serverStarted();
+//		}
+		
 		mex.ifExceptionThrow();
 	}
 	
 	protected void doStop() throws Exception
 	{
 		MultiException mex = new MultiException();
+		
+		_handler.stop();
 		
 		if (_connectors != null)
 		{
@@ -127,6 +136,8 @@ public class SipServer extends ContainerLifeCycle
 				}
 			}
 		}
+			
+		super.doStop();
 		
 		mex.ifExceptionThrow();
 	}
@@ -348,6 +359,11 @@ public class SipServer extends ContainerLifeCycle
 	public TransactionManager getTransactionManager()
 	{
 		return _transactionManager;
+	}
+
+	public TransportProcessor getTransportProcessor()
+	{
+		return _transportProcessor;
 	}
 
 }

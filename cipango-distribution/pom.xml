@@ -95,18 +95,19 @@
                   <artifactId>cipango-callflow</artifactId>
                   <classifier>config</classifier>
                 </artifactItem>
+                
+-->
                 <artifactItem>
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-dar</artifactId>
                   <classifier>config</classifier>
                 </artifactItem>
-								-->
                 <artifactItem>
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-deploy</artifactId>
                   <classifier>config</classifier>
                 </artifactItem>
-								<!--
+<!--
                 <artifactItem>
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-diameter</artifactId>
@@ -159,13 +160,13 @@
                   <destFileName>cipango-console.war</destFileName>
                   <outputDirectory>${assembly-directory}/sipapps</outputDirectory>
                 </artifactItem>
-<!--
+
                 <artifactItem>
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-dar</artifactId>
                   <outputDirectory>${assembly-directory}/lib/ext</outputDirectory>
                 </artifactItem>
-								-->
+                
                 <artifactItem>
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-deploy</artifactId>
@@ -180,7 +181,7 @@
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-jmx</artifactId>
                 </artifactItem>
-								-->
+-->
                 <artifactItem>
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-plus</artifactId>
@@ -258,13 +259,11 @@
       <version>${project.version}</version>
       <type>war</type>
     </dependency>
-<!--
     <dependency>
       <groupId>org.cipango</groupId>
       <artifactId>cipango-dar</artifactId>
       <version>${project.version}</version>
     </dependency>
--->
     <dependency>
       <groupId>org.cipango</groupId>
       <artifactId>cipango-deploy</artifactId>

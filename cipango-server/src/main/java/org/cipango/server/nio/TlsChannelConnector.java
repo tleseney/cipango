@@ -83,11 +83,19 @@ public class TlsChannelConnector extends SelectChannelConnector
 //		if (session.getPacketBufferSize() > getInputBufferSize())
 //			setInputBufferSize(session.getPacketBufferSize());
 	}
+	
+	@Override
+	protected void doStop() throws Exception
+	{
+		_sslContextFactory.stop();
+		super.doStop();
+	}
+
 
 	@Override
     protected SipConnection newConnection(InetAddress address, int port) throws IOException
     {
-		_pendingClientConnections.add(address.getHostAddress() + ":" + port);
+		_pendingClientConnections.add(getKey(address, port));
 		return super.newConnection(address, port);
     }
     
@@ -96,8 +104,7 @@ public class TlsChannelConnector extends SelectChannelConnector
     {
 		SSLEngine engine = _sslContextFactory.newSSLEngine(endpoint.getRemoteAddress());
 		InetSocketAddress remote = endpoint.getRemoteAddress();
-		boolean client = _pendingClientConnections.remove(
-				remote.getAddress().getHostAddress() + ":" + remote.getPort());
+		boolean client = _pendingClientConnections.remove(getKey(remote.getAddress(), remote.getPort()));
 		engine.setUseClientMode(client);
 
 		TlsChannelConnection sslConnection = newSslConnection(endpoint, engine);

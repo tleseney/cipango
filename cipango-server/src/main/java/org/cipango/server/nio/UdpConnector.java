@@ -98,7 +98,9 @@ public class UdpConnector extends AbstractSipConnector
 
 	public void close() throws IOException
 	{
-		_channel.close();
+		if (_channel != null)
+			_channel.close();
+		_channel = null;
 	}
 	
 	public InetAddress getAddress()

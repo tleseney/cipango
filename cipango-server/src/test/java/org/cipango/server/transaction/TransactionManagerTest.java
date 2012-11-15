@@ -120,6 +120,7 @@ public class TransactionManagerTest
 		SipApplicationSession appSession = factory.createApplicationSession();
 		SipRequest request = (SipRequest) factory.createRequest(appSession, "MESSAGE", "<sip:cipango@localhost>", "<sip:test@localhost>");
 		request.setRequestURI(factory.createURI("sip:localhost:45061"));
+		request.getSession().setHandler(holder.getName());
 		request.send();
 		//System.out.println(request);
 		Via via = request.getTopVia();

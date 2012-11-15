@@ -87,20 +87,28 @@ public abstract class AbstractConnectorTest
 	@Test
 	public void testLifeCycle() throws Exception
 	{
-		for (int i = 0; i < 10; i++)
+		for (int i = 0; i < 5; i++)
 		{
-			_connector.stop();
-			assertFalse(_connector.isRunning());
-			_connector.start();
-			assertTrue(_connector.isRunning());
-			Thread.sleep(10);
+			try
+			{
+				_connector.stop();
+				assertFalse(_connector.isRunning());
+				_connector.start();
+				assertTrue(_connector.isRunning());
+				Thread.sleep(10);
+			}
+			catch (Exception e)
+			{
+				System.err.println("Failed at i = " + i);
+				throw e;
+			}
 		}
 	}
 
 	@Test
 	public void testPing() throws Exception
 	{
-		for (int i = 0; i < 100; i++)
+		for (int i = 0; i < 20; i++)
 		{
 			send(_pingEol);
 			send(_pingEolEol);
@@ -243,14 +251,21 @@ public abstract class AbstractConnectorTest
 				_thread.join();
 		}
 
-		public SipMessage getMessage() throws UnsupportedEncodingException
+		public SipMessage getMessage() throws Exception
 		{
 	    	TestMessageBuilder builder = new TestMessageBuilder();
 	    	SipParser parser = new SipParser(builder);
 
+	    	byte[] b;
 	    	while (!builder.finished)
 	    	{
-	    		byte[] b = _read.remove(0);
+	    		
+	    		synchronized (_read)
+				{
+	    			if (_read.isEmpty())
+	    				_read.wait(1000);
+		    		b = _read.remove(0);
+				}
 	    		assertNotNull(b);
 	    		parser.parseNext(ByteBuffer.wrap(new String(b, "UTF-8").getBytes()));
 	    	}
@@ -271,7 +286,12 @@ public abstract class AbstractConnectorTest
                     	continue;
                     byte[] copy = new byte[length];
                     System.arraycopy(b, 0, copy, 0, length);
-                    _read.add(copy);
+
+                    synchronized (_read)
+					{
+                        _read.add(copy);
+                        _read.notify();
+					}
 				}
 			}
 			catch (Exception e)

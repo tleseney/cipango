@@ -13,7 +13,14 @@
 // ========================================================================
 package org.cipango.test;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+
 import javax.servlet.sip.ServletTimer;
+import javax.servlet.sip.SipServletContextEvent;
+import javax.servlet.sip.SipServletListener;
 import javax.servlet.sip.TimerListener;
 import javax.servlet.sip.annotation.SipListener;
 
@@ -21,10 +28,53 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @SipListener
-public class Listener implements TimerListener
+public class Listener implements SipServletListener, TimerListener
 {
-
 	private static final Logger __logger = LoggerFactory.getLogger(Listener.class);
+
+	private static final List<String> __servlets = new ArrayList<String>();
+
+	private static final int SERVLETS_COUNT = 17;
+
+	private static Timer __timer = null;
+
+	public static void checkLoadedServlets()
+	{
+		synchronized (__servlets)
+		{
+			if (__servlets.size() < SERVLETS_COUNT)
+			{
+				__logger.warn("Loaded only {} servlets out of {}. Did you activate annotations?",
+						__servlets.size(), SERVLETS_COUNT);
+				if (__logger.isDebugEnabled())
+				{
+					StringBuilder builder = new StringBuilder("Loaded:");
+					for (String name: __servlets)
+						builder.append(" ").append(name);
+					__logger.debug(builder.toString());
+				}
+			}
+		}
+	}
+
+	public void servletInitialized(SipServletContextEvent event)
+	{
+		synchronized (__servlets)
+		{
+			__servlets.add(event.getSipServlet().getServletName());
+			if (__timer == null)
+			{
+				__timer = new Timer(); 
+				__timer.schedule(new TimerTask() {
+					@Override
+					public void run()
+					{
+						checkLoadedServlets();
+					}
+				}, 2000);
+			}
+		}
+	}
 	
 	public void timeout(ServletTimer timer)
 	{
@@ -38,5 +88,4 @@ public class Listener implements TimerListener
 			__logger.warn("Failed to handle timer " + timer.getInfo(), e);
 		}
 	}
-
 }

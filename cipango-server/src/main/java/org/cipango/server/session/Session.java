@@ -23,6 +23,7 @@ import javax.servlet.sip.UAMode;
 import javax.servlet.sip.URI;
 import javax.servlet.sip.ar.SipApplicationRoutingRegion;
 
+import org.cipango.server.RequestCustomizer;
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipConnector;
 import org.cipango.server.SipMessage;
@@ -202,7 +203,9 @@ public class Session implements SipSessionIf
 		accessed();
 		
 		SipServer server = getServer();
-		//server.customizeRequest(request);
+		
+		if (server.getHandler() instanceof RequestCustomizer)
+			((RequestCustomizer) server.getHandler()).customizeRequest(request);
 		
 		request.setCommitted(true);
 		

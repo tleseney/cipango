@@ -18,6 +18,7 @@ import org.cipango.server.Transport;
 import org.cipango.server.servlet.DefaultServlet;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.Transaction;
+import org.eclipse.jetty.io.AbstractConnection;
 import org.eclipse.jetty.io.ArrayByteBufferPool;
 import org.eclipse.jetty.io.ByteBufferPool;
 import org.eclipse.jetty.io.Connection;
@@ -327,6 +328,19 @@ public class SelectChannelConnector extends AbstractSipConnector
 			}
         	return connection;
 		}
+        
+        @Override
+        protected void doStop() throws Exception
+        {
+        	for (SipConnection connection : _connections.values())
+        	{
+        		connection.toString();
+        		if (connection instanceof AbstractConnection)
+        			((AbstractConnection) connection).close();
+        	}
+        	_connections.clear();
+            super.doStop();
+        }
     }
     
 	public static void main(String[] args) throws Exception 

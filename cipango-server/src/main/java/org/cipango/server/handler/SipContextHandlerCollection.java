@@ -15,6 +15,7 @@ import javax.servlet.sip.ar.SipApplicationRouterInfo;
 import javax.servlet.sip.ar.SipApplicationRoutingDirective;
 import javax.servlet.sip.ar.SipRouteModifier;
 
+import org.cipango.server.RequestCustomizer;
 import org.cipango.server.SipConnector;
 import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
@@ -41,7 +42,7 @@ import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.webapp.WebAppContext;
 
 @ManagedObject("Sip context handler collection")
-public class SipContextHandlerCollection extends AbstractSipHandler
+public class SipContextHandlerCollection extends AbstractSipHandler implements RequestCustomizer
 {
 	private static final Logger LOG = Log.getLogger(SipContextHandlerCollection.class);
 	
@@ -52,10 +53,7 @@ public class SipContextHandlerCollection extends AbstractSipHandler
 	private SipAppLifecycleListener _lifecycleListener = new SipAppLifecycleListener();
 	 
 	public SipContextHandlerCollection(@Name("contexts") HandlerCollection contexts)
-	{
-		if (_webHandlerCollection != null)
-			_webHandlerCollection.removeBean(_beanListener);
-		
+	{		
 		if (contexts != null)
 			contexts.addBean(_beanListener);
 
@@ -352,6 +350,31 @@ public class SipContextHandlerCollection extends AbstractSipHandler
 		_applicationRouter = applicationRouter;
 	}
 	
+
+	@Override
+	public void customizeRequest(SipRequest request) throws IOException
+	{
+		if (!request.isInitial())
+    		return;
+    	
+    	SipApplicationRouterInfo routerInfo = _applicationRouter.getNextApplication(
+    			request,
+    			request.getRegion(),
+    			request.getRoutingDirective(),
+    			null,
+    			request.getStateInfo());
+    	
+    	if (routerInfo != null && routerInfo.getNextApplicationName() != null)
+    	{
+    		SipConnector connector = getServer().getConnectors()[0];
+    		SipURI route = new SipURIImpl(null, connector.getHost(), connector.getPort());
+    		RouterInfoUtil.encode(route, routerInfo);
+    		route.setLrParam(true);
+    		
+    		request.pushRoute(route);
+    	}
+	}
+	
 	private class SipAppLifecycleListener implements LifeCycle.Listener
 	{
 
@@ -419,5 +442,6 @@ public class SipContextHandlerCollection extends AbstractSipHandler
 			}
 		}
 	}
+
 	
 }

@@ -170,7 +170,7 @@ public class SipAppContext extends SipHandlerWrapper
 						decorator.decorateServletHolder(holder);
 			}
 	
-			if (!_context.isAvailable())
+			if (_context != null && !_context.isAvailable())
 			{
 				if (_name == null)
 					setName(getDefaultName());
@@ -194,7 +194,7 @@ public class SipAppContext extends SipHandlerWrapper
 	protected void doStop() throws Exception
 	{
 		super.doStop();
-		if (hasSipServlets() && _context.isAvailable())
+		if (hasSipServlets() && _context != null && _context.isAvailable())
 //				getServer().applicationStopped(this);
 		
 				
@@ -262,18 +262,21 @@ public class SipAppContext extends SipHandlerWrapper
 	{
 		_name = name;
 		
-		try
+		if (_name != null)
 		{
-			MessageDigest md = MessageDigest.getInstance("MD5");
-			byte[] bytes = md.digest(name.getBytes(StringUtil.__UTF8_CHARSET));
-			int i = 0;
-			for (byte b : bytes)
-				i =  i * 33 + b;
-			_id = StringUtil.toBase62String2(Math.abs(i)).substring(0, 3);
-		}
-		catch (Exception e)
-		{
-			LOG.warn("Unable to create ID", e);
+			try
+			{
+				MessageDigest md = MessageDigest.getInstance("MD5");
+				byte[] bytes = md.digest(name.getBytes(StringUtil.__UTF8_CHARSET));
+				int i = 0;
+				for (byte b : bytes)
+					i =  i * 33 + b;
+				_id = StringUtil.toBase62String2(Math.abs(i)).substring(0, 3);
+			}
+			catch (Exception e)
+			{
+				LOG.warn("Unable to create ID", e);
+			}
 		}
 	}
 	
@@ -291,7 +294,7 @@ public class SipAppContext extends SipHandlerWrapper
 	
     public String getDefaultName()
     {
-    	String name = _context.getContextPath();
+    	String name = _context == null ? null : _context.getContextPath();
 		if (name != null && name.startsWith("/"))
 			name = name.substring(1);
 		return name;

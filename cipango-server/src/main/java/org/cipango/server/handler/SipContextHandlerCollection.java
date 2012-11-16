@@ -3,6 +3,7 @@ package org.cipango.server.handler;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.servlet.ServletException;
@@ -34,30 +35,32 @@ import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.annotation.Name;
 import org.eclipse.jetty.util.component.Container;
+import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.webapp.WebAppContext;
 
 @ManagedObject("Sip context handler collection")
-public class SipContextHandlerCollection extends AbstractSipHandler implements Container.Listener
+public class SipContextHandlerCollection extends AbstractSipHandler
 {
 	private static final Logger LOG = Log.getLogger(SipContextHandlerCollection.class);
 	
 	private SipAppContext[] _sipContexts;
 	private HandlerCollection _webHandlerCollection;
 	private SipApplicationRouter _applicationRouter;
+	private BeanListener _beanListener = new BeanListener();
+	private SipAppLifecycleListener _lifecycleListener = new SipAppLifecycleListener();
 	 
 	public SipContextHandlerCollection(@Name("contexts") HandlerCollection contexts)
 	{
 		if (_webHandlerCollection != null)
-			_webHandlerCollection.removeBean(this);
+			_webHandlerCollection.removeBean(_beanListener);
 		
 		if (contexts != null)
-			contexts.addBean(this);
+			contexts.addBean(_beanListener);
 
 		_webHandlerCollection = contexts;
 	}
-	
 	
 
     @Override
@@ -75,11 +78,10 @@ public class SipContextHandlerCollection extends AbstractSipHandler implements C
 		if (contexts != null)
 		{
 			for (SipAppContext context : contexts)
-				if (context.hasSipServlets() /* FIXME && context.isAvailable() */)
+				if (isSipDeployed(context))
 					appNames.add(context.getName());
 		}
 		_applicationRouter.applicationDeployed(appNames);
-	    // TODO _applicationRouter.applicationDeployed(appNames);
 	}
     
     
@@ -281,31 +283,6 @@ public class SipContextHandlerCollection extends AbstractSipHandler implements C
 		tx.send(response);
 	}
 	
-
-	@Override
-	public void beanAdded(Container parent, Object child)
-	{
-		if (child instanceof WebAppContext)
-		{
-			WebAppContext context = (WebAppContext) child;
-			SipAppContext  appContext = context.getBean(SipAppContext.class);
-			if (appContext != null)
-				setSipContexts(ArrayUtil.addToArray(getSipContexts(), appContext, SipAppContext.class));
-		}	
-	}
-
-	@Override
-	public void beanRemoved(Container parent, Object child)
-	{
-		if (child instanceof WebAppContext)
-		{
-			WebAppContext context = (WebAppContext) child;
-			SipAppContext  appContext = context.getBean(SipAppContext.class);
-			if (appContext != null)
-				setSipContexts(ArrayUtil.removeFromArray(getSipContexts(), appContext));
-		}
-	}
-
 	public SipAppContext getContext(String name)
 	{
 		if (_sipContexts != null)
@@ -325,16 +302,41 @@ public class SipContextHandlerCollection extends AbstractSipHandler implements C
 		return _sipContexts;
 	}
 
-	public void setSipContexts(SipAppContext[] sipContexts)
+	public void addContext(SipAppContext context)
 	{
-		_sipContexts = sipContexts;
+		LOG.info("Add SIP context {}", context);
+		setSipContexts(ArrayUtil.addToArray(getSipContexts(), context, SipAppContext.class));
 		
-		if (_sipContexts!=null)
-            for (SipAppContext handler:_sipContexts)
+		if (isStarted() && isSipDeployed(context))
+			_applicationRouter.applicationDeployed(Arrays.asList(context.getName()));
+		context.addLifeCycleListener(_lifecycleListener);
+	}
+	
+	protected boolean isSipDeployed(SipAppContext context)
+	{
+		return context.isStarted() && context.hasSipServlets() /* FIXME && context.isAvailable() */;
+	}
+		
+	public void removeContext(SipAppContext context)
+	{
+		LOG.info("Remove SIP context {}", context);
+		setSipContexts(ArrayUtil.removeFromArray(getSipContexts(), context));
+		if (isStarted() && context.hasSipServlets())
+			_applicationRouter.applicationUndeployed(Arrays.asList(context.getName()));
+		context.removeLifeCycleListener(_lifecycleListener);
+	}
+	
+	private void setSipContexts(SipAppContext[] sipContexts)
+	{
+		if (sipContexts!=null)
+            for (SipAppContext handler:sipContexts)
+            {
                 if (handler.getServer()!=getServer())
                     handler.setServer(getServer());
-        
-        updateBeans(_sipContexts, sipContexts);
+            }   
+
+        // FIXME updateBeans(_sipContexts, sipContexts);
+		_sipContexts = sipContexts;
 	}
 
 	@ManagedAttribute(value="SIP application router", readonly=true)
@@ -345,9 +347,77 @@ public class SipContextHandlerCollection extends AbstractSipHandler implements C
 
 	public void setApplicationRouter(SipApplicationRouter applicationRouter)
 	{
-		_applicationRouter = applicationRouter;
 		updateBean(_applicationRouter, applicationRouter);
-	}
 
+		_applicationRouter = applicationRouter;
+	}
+	
+	private class SipAppLifecycleListener implements LifeCycle.Listener
+	{
+
+		@Override
+		public void lifeCycleStarting(LifeCycle event)
+		{
+		}
+
+		@Override
+		public void lifeCycleStarted(LifeCycle event)
+		{
+			SipAppContext context = ((SipAppContext) event);
+			
+			if (isSipDeployed(context))
+			{
+				_applicationRouter.applicationDeployed(Arrays.asList(context.getName()));
+			}
+		}
+
+		@Override
+		public void lifeCycleFailure(LifeCycle event, Throwable cause)
+		{
+		}
+
+		@Override
+		public void lifeCycleStopping(LifeCycle event)
+		{
+		}
+
+		@Override
+		public void lifeCycleStopped(LifeCycle event)
+		{
+			SipAppContext context = ((SipAppContext) event);
+			if (isStarted())
+			{
+				_applicationRouter.applicationUndeployed(Arrays.asList(context.getName()));
+			}
+		}
+		
+	}
+	
+	private class BeanListener implements Container.Listener
+	{
+		@Override
+		public void beanAdded(Container parent, Object child)
+		{
+			if (child instanceof WebAppContext)
+			{
+				WebAppContext context = (WebAppContext) child;
+				SipAppContext  appContext = context.getBean(SipAppContext.class);
+				if (appContext != null)
+					addContext(appContext);
+			}	
+		}
+
+		@Override
+		public void beanRemoved(Container parent, Object child)
+		{
+			if (child instanceof WebAppContext)
+			{
+				WebAppContext context = (WebAppContext) child;
+				SipAppContext  appContext = context.getBean(SipAppContext.class);
+				if (appContext != null)
+					removeContext(appContext);
+			}
+		}
+	}
 	
 }

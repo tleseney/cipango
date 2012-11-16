@@ -4,7 +4,7 @@
 <!-- =============================================================== -->
 <!-- Add a SipAppProvider to the deployment manager                  -->
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-<!-- This scans the webapps directory for war files and directories  -->
+<!-- This scans the sipapps directory for war files and directories  -->
 <!-- to deploy.                                                      -->
 <!-- This configuration must be used with jetty-deploy.xml, which    -->
 <!-- creates the deployment manager instance                         -->
@@ -18,8 +18,17 @@
             <Set name="defaultsDescriptor"><Property name="jetty.home" default="."/>/etc/webdefault.xml</Set>
             <Set name="defaultsSipDescriptor"><Property name="jetty.home" default="."/>/etc/sipdefault.xml</Set>
             <Set name="scanInterval">5</Set>
-            <Set name="contextXmlDir"><Property name="jetty.home" default="." />/contexts</Set>
             <Set name="extractWars">true</Set>
+            <Set name="configurationManager">
+                <New class="org.eclipse.jetty.deploy.PropertiesConfigurationManager">
+                <!-- file of context configuration properties
+                  <Set name="file"><SystemProperty name="jetty.home"/>/etc/some.properties</Set>
+                -->
+                <!-- set a context configuration property
+                  <Call name="put"><Arg>name</Arg><Arg>value</Arg></Call>
+                -->
+                </New>
+              </Set>
           </New>
         </Arg>
       </Call>

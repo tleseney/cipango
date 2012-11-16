@@ -20,7 +20,7 @@ import org.eclipse.jetty.util.Loader;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 
 
-public class SipServletHolder extends AbstractLifeCycle
+public class SipServletHolder extends AbstractLifeCycle implements Comparable<SipServletHolder>
 {
 	private String _name;
 	
@@ -257,5 +257,23 @@ public class SipServletHolder extends AbstractLifeCycle
 	public void setDisplayName(String displayName)
 	{
 		_displayName = displayName;
+	}
+
+	@Override
+	public int compareTo(SipServletHolder sh)
+	{
+		if (sh==this)
+            return 0;
+        if (sh._initOrder<_initOrder)
+            return 1;
+        if (sh._initOrder>_initOrder)
+            return -1;
+
+        int c=(_className!=null && sh._className!=null)?_className.compareTo(sh._className):0;
+        if (c==0)
+            c=_name.compareTo(sh._name);
+        if (c==0)
+            c=this.hashCode()>sh.hashCode()?1:-1;
+            return c;
 	}
 }

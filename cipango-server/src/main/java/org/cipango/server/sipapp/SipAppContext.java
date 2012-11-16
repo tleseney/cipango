@@ -66,6 +66,7 @@ import org.cipango.sip.SipURIImpl;
 import org.cipango.sip.URIFactory;
 import org.cipango.util.StringUtil;
 import org.eclipse.jetty.server.handler.HandlerWrapper;
+import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.component.LifeCycle;
@@ -140,8 +141,67 @@ public class SipAppContext extends SipHandlerWrapper
 	
 	protected void doStart() throws Exception
 	{
-		relinkHandlers();
-		super.doStart();
+		ClassLoader oldClassLoader = null;
+		Thread currentThread = null;
+		try
+		{
+			if (getClassLoader() != null)
+            {
+                currentThread = Thread.currentThread();
+                oldClassLoader = currentThread.getContextClassLoader();
+                currentThread.setContextClassLoader(getClassLoader());
+            }
+			
+			relinkHandlers();
+	
+			// if (_sipSecurityHandler!=null)
+			// {
+			// _sipSecurityHandler.setHandler(_servletHandler);
+			// _sipSecurityHandler.start(); // FIXME when should it be started
+			// }
+			_metaData.resolve(SipAppContext.this);
+	
+			_servletHandler.start();
+	
+			for (Decorator decorator : _decorators)
+			{
+				if (getSipServletHandler().getServlets() != null)
+					for (SipServletHolder holder : getSipServletHandler().getServlets())
+						decorator.decorateServletHolder(holder);
+			}
+	
+			if (!_context.isAvailable())
+			{
+				if (_name == null)
+					setName(getDefaultName());
+				// Events.fire(Events.DEPLOY_FAIL,
+				// "Unable to deploy application " + getName()
+				// + ": " + _context.getUnavailableException().getMessage());
+			}
+			else if (hasSipServlets())
+			{
+				// getServer().applicationStarted(this);
+			}
+			super.doStart();
+		}
+		finally
+		{
+			if (currentThread != null && oldClassLoader != null)
+				currentThread.setContextClassLoader(oldClassLoader);
+		}
+	}
+	
+	protected void doStop() throws Exception
+	{
+		super.doStop();
+		if (hasSipServlets() && _context.isAvailable())
+//				getServer().applicationStopped(this);
+		
+				
+//			if (_sipSecurityHandler != null)
+//				_sipSecurityHandler.stop();
+			
+		_servletHandler.stop();
 	}
 	
 	private void relinkHandlers()
@@ -173,14 +233,24 @@ public class SipAppContext extends SipHandlerWrapper
 	public void setWebAppContext(WebAppContext context)
 	{
 		_context = context;
-		context.addBean(this);
-		_sContext = new SContext(_context.getServletContext());
+		// As WebAppContextListener is added, this class already managed by WebAppContext.
+		context.addBean(this, false);
 		WebAppContextListener l = new WebAppContextListener();
 		context.addLifeCycleListener(l);
 		
 		// Ensure that lifeCycleStarting is call even if context is starting.
 		if (context.isStarting())
 			l.lifeCycleStarting(context);
+
+		_sContext = new SContext(_context.getServletContext());
+
+		if (context.getConfigurationClasses() == context.getDefaultConfigurationClasses())
+		{
+			String[] classes = ArrayUtil.addToArray(context.getDefaultConfigurationClasses(), 
+					"org.cipango.server.sipapp.SipXmlConfiguration",
+					String.class);
+			context.setConfigurationClasses(classes);
+		}
 	}
 	
 	public ServletContext getServletContext()
@@ -207,6 +277,7 @@ public class SipAppContext extends SipHandlerWrapper
 		}
 	}
 	
+	@ManagedAttribute(value="Name", readonly=true)
 	public String getName()
 	{
 		return _name;
@@ -441,6 +512,12 @@ public class SipAppContext extends SipHandlerWrapper
 		return _timerListeners;
 	}
 	
+	@Override
+	public String toString()
+	{
+		return getClass().getSimpleName() + "@" + getName();
+	}
+	
 	class SContext extends ServletContextProxy
 	{
 		
@@ -470,6 +547,9 @@ public class SipAppContext extends SipHandlerWrapper
 		}
 	}
 	
+	/**
+	 * Use the a LifeCycle.Listener as some stuff should be done before and other after WebApp start.
+	 */
 	private class WebAppContextListener implements LifeCycle.Listener
 	{
 
@@ -490,35 +570,7 @@ public class SipAppContext extends SipHandlerWrapper
 		{
 			try
 			{
-	//	        if (_sipSecurityHandler!=null)
-	//	        {
-	//	        	_sipSecurityHandler.setHandler(_servletHandler);	            
-	//	            _sipSecurityHandler.start(); // FIXME when should it be started
-	//	        }
-				_metaData.resolve(SipAppContext.this);
-				      		
-				_servletHandler.start();
-				
-				for (Decorator decorator : _decorators)
-	    	    {
-	    	        if(getSipServletHandler().getServlets()!=null)
-	    	            for (SipServletHolder holder:getSipServletHandler().getServlets())
-	    	                decorator.decorateServletHolder(holder);
-	    	    } 
-
-				
-				if (!_context.isAvailable())
-		    	{
-		    		if (_name == null)
-						setName(getDefaultName());
-	//				Events.fire(Events.DEPLOY_FAIL, 
-	//	        			"Unable to deploy application " + getName()
-	//	        			+ ": " + _context.getUnavailableException().getMessage());
-		    	}
-		    	else if (hasSipServlets())
-		    	{
-	//	    		getServer().applicationStarted(this);
-		    	}
+				SipAppContext.this.start();
 			}
 			catch (Exception e) 
 			{
@@ -540,14 +592,7 @@ public class SipAppContext extends SipHandlerWrapper
 		{
 			try
 			{
-				if (hasSipServlets() && _context.isAvailable())
-	//				getServer().applicationStopped(this);
-				
-						
-	//			if (_sipSecurityHandler != null)
-	//				_sipSecurityHandler.stop();
-					
-				_servletHandler.stop();
+				SipAppContext.this.stop();
 			}
 			catch (Exception e) 
 			{

@@ -1,5 +1,11 @@
 package org.cipango.sip;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
 import javax.servlet.sip.SipURI;
 
 import org.junit.Test;
@@ -211,4 +217,29 @@ public class SipURIImplTest
 
 		}
 	}
+	
+	@Test
+	public void testSerialize() throws Exception
+	{
+		for (int i = 0; i < uris.length; i++) 
+		{
+			SipURI uri1 = sipURI(uris[i][0]);
+			
+			Object o = serializeDeserialize(uri1);
+			assertTrue(o instanceof SipURI);
+			assertEquals(uri1, o);
+			assertEquals(o, uri1);
+		}
+	}
+	
+	public static Object serializeDeserialize(Object o) throws IOException, ClassNotFoundException
+	{
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		ObjectOutputStream oos = new ObjectOutputStream(baos);
+		oos.writeObject(o);
+		ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+		ObjectInputStream ois = new ObjectInputStream(bais);
+		return ois.readObject();
+	}
+	
 }

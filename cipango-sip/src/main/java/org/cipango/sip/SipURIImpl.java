@@ -1,5 +1,7 @@
 package org.cipango.sip;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,8 +17,9 @@ import org.cipango.util.StringUtil;
 import org.eclipse.jetty.util.StringMap;
 import org.eclipse.jetty.util.UrlEncoded;
 
-public class SipURIImpl implements SipURI
+public class SipURIImpl implements SipURI, Serializable
 {
+	private static final long serialVersionUID = 1L;
 	public static final String SIP_SCHEME = "sip:";
 	public static final String SIPS_SCHEME = "sips:";
 	
@@ -708,6 +711,8 @@ public class SipURIImpl implements SipURI
 		return true;
 	}
 	
+	
+	
 	public SipURIImpl clone() 
 	{
 		try
@@ -727,4 +732,23 @@ public class SipURIImpl implements SipURI
 			throw new RuntimeException(e);
 		}
 	}
+	
+	private void writeObject(java.io.ObjectOutputStream out) throws IOException
+	{
+		out.writeUTF(toString());
+	}
+
+	private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException
+	{
+		try
+		{
+			_port = -1;
+			parse(in.readUTF());
+		}
+		catch (ParseException e)
+		{
+			throw new IOException(e);
+		}
+	}
+
 }

@@ -14,14 +14,16 @@
 
 package org.cipango.sip;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.text.ParseException;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
-import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.TelURL;
 
 import org.cipango.util.StringUtil;
@@ -30,12 +32,12 @@ import org.cipango.util.StringUtil;
 // TODO extends from URIImpl
 public class TelURLImpl implements TelURL, Serializable 
 {	
-	static final long serialVersionUID = 5887052588082246867L;
+	private static final long serialVersionUID = 1l;
 	
 	private String _uri;
 	private String _scheme;
 	private String _number;
-	private HashMap<String, String> _params = new HashMap<String, String>();
+	private HashMap<String, String> _params;
 	
 	public static final String PHONE_CONTEXT = "phone-context";
 	private static final BitSet PHONE_DIGITS = StringUtil.toBitSet(StringUtil.DIGITS + '-' + '.' + '(' + ')');
@@ -75,6 +77,7 @@ public class TelURLImpl implements TelURL, Serializable
 	
 	private void parseParams(String sParams) throws ParseException 
 	{
+		_params = new HashMap<String, String>();
 		StringTokenizer st = new StringTokenizer(sParams, ";");
 		while (st.hasMoreTokens()) 
 		{
@@ -159,23 +162,30 @@ public class TelURLImpl implements TelURL, Serializable
 	
 	public String getParameter(String name) 
 	{
+		if (_params == null)
+			return null;
 		return (String) _params.get(name.toLowerCase());
 	}
 	
 	public void removeParameter(String name)
 	{
-		_params.remove(name);	
+		if (_params != null)
+			_params.remove(name);	
 	}
 	
 	public void setParameter(String name, String value)
 	{
 		if (name == null || value == null)
 			throw new NullPointerException("Null value or name");
+		if (_params == null)
+			_params = new HashMap<String, String>();
 		_params.put(name, value);
 	}
 	
 	public synchronized Iterator<String> getParameterNames() 
 	{
+		if (_params == null)
+			return Collections.emptyIterator();
 		return _params.keySet().iterator();
 	}
 	
@@ -192,7 +202,8 @@ public class TelURLImpl implements TelURL, Serializable
 		{
 			throw new RuntimeException("!cloneable " + this);
 		}
-		other._params = (HashMap<String, String>) _params.clone();
+		if (_params != null)
+			other._params = (HashMap<String, String>) _params.clone();
 		return other;
 	}
 	
@@ -240,12 +251,34 @@ public class TelURLImpl implements TelURL, Serializable
 		if (isGlobal() != other.isGlobal())
 			return false;
 				
-		for (String key : _params.keySet())
+		if (_params != null)
 		{
-			String otherValue = other.getParameter(key); 
-			if (otherValue != null && !getParameter(key).equalsIgnoreCase(otherValue))
-				return false;
+			for (Entry<String, String> entry : _params.entrySet())
+			{
+				String otherValue = other.getParameter(entry.getKey()); 
+				if (otherValue != null && !entry.getValue().equalsIgnoreCase(otherValue))
+					return false;
+			}
 		}
 		return true;
 	}
+	
+	private void writeObject(java.io.ObjectOutputStream out) throws IOException
+	{
+		out.writeUTF(toString());
+	}
+
+	private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException
+	{
+		try
+		{
+			_uri = in.readUTF();
+			parse();
+		}
+		catch (ParseException e)
+		{
+			throw new IOException(e);
+		}
+	}
+
 }

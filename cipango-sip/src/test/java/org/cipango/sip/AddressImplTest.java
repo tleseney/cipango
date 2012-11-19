@@ -1,5 +1,6 @@
 package org.cipango.sip;
 
+import java.io.Serializable;
 import java.text.ParseException;
 
 import javax.servlet.sip.Address;
@@ -7,6 +8,7 @@ import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.*;
 
 import org.junit.Test;
@@ -90,5 +92,53 @@ public class AddressImplTest
 		System.out.println(1000l*n / (System.currentTimeMillis() - start));
 		
 		System.out.println(new AddressImpl("sip:+12125551212@server.phone2net.com;tag=887s").getTag2());
+	}
+	
+	@Test
+	public void testSerialize() throws Exception
+	{
+		for (int i = 0; i < addrs.length; i++) 
+		{
+			AddressImpl address = new AddressImpl(addrs[i][0]);
+			address.parse();
+			
+			Object o = SipURIImplTest.serializeDeserialize(address);
+			assertTrue(o instanceof Address);
+			assertEquals(address, o);
+			assertEquals(o, address);
+		}
+	}
+	
+	/**
+	 * Ensure that same instance is retrieved for the URI.
+	 */
+	@Test
+	public void testSerialize2() throws Exception
+	{
+		for (int i = 0; i < addrs.length; i++) 
+		{
+			AddressImpl address = new AddressImpl(addrs[i][0]);
+			address.parse();
+			
+			Address2 address2 = new Address2(address);
+			
+			Address2 serialize = (Address2) SipURIImplTest.serializeDeserialize(address2);
+			
+			assertSame(serialize._addr.getURI(), serialize._uri);
+			
+		}
+	}
+	
+	private static class Address2 implements Serializable
+	{
+		private static final long serialVersionUID = 1L;
+		private Address _addr;
+		private URI _uri;
+		
+		public Address2(Address address)
+		{
+			_addr = address;
+			_uri = address.getURI();
+		}
 	}
 }

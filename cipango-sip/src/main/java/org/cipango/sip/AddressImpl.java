@@ -14,6 +14,8 @@
 
 package org.cipango.sip;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.text.ParseException;
 import java.util.AbstractMap;
 import java.util.BitSet;
@@ -29,8 +31,10 @@ import javax.servlet.sip.URI;
 import org.cipango.util.StringScanner;
 import org.cipango.util.StringUtil;
 
-public class AddressImpl extends Parameters implements Address
+public class AddressImpl extends Parameters implements Address, Serializable
 {	
+	private static final long serialVersionUID = 1L;
+
 	public static final String TAG = "tag";
 	
 	private static final BitSet DISPLAY_NAME_BS = StringUtil.toBitSet(StringUtil.TOKEN + " ");
@@ -382,6 +386,27 @@ public class AddressImpl extends Parameters implements Address
 				return false;
 		}
 		return true;
+	}
+	
+	private void writeObject(java.io.ObjectOutputStream out) throws IOException
+	{
+		out.writeUTF(toString());
+		// Write also URI to ensure if URI is also serialize in other object, the same URI instance will be used.
+		out.writeObject(_uri);
+	}
+
+	private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException
+	{
+		try
+		{
+			_string = in.readUTF();
+			parse();
+			_uri = (URI) in.readObject();
+		}
+		catch (ParseException e)
+		{
+			throw new IOException(e);
+		}
 	}
 	
 	class TagIterator implements Iterator<String>

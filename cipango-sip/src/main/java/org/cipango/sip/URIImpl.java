@@ -14,6 +14,7 @@
 
 package org.cipango.sip;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.text.ParseException;
 import java.util.BitSet;
@@ -28,7 +29,7 @@ import org.cipango.util.StringUtil;
 
 public class URIImpl implements URI, Serializable 
 {	
-	static final long serialVersionUID = -8927516108461106171L;
+	private static final long serialVersionUID = 1l;
 	private static final BitSet ALPHA_BS = StringUtil.toBitSet(StringUtil.ALPHA);
 	private static final BitSet SCHEME_BS = StringUtil.toBitSet(StringUtil.ALPHA + StringUtil.DIGITS + "+-.");
 
@@ -135,7 +136,7 @@ public class URIImpl implements URI, Serializable
 			return false;
 		
 		// FIXME improve equals
-		if (!toString().equals(uri.toString()))
+		if (!toString().equalsIgnoreCase(uri.toString()))
 			return false;
 		
 		return true;
@@ -208,4 +209,24 @@ public class URIImpl implements URI, Serializable
 	{
 		return _params.keySet().iterator();
 	}
+	
+	private void writeObject(java.io.ObjectOutputStream out) throws IOException
+	{
+		out.writeUTF(toString());
+	}
+
+	private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException
+	{
+		try
+		{
+			_params = new HashMap<String, String>();
+			_uri = in.readUTF();
+			parse();
+		}
+		catch (ParseException e)
+		{
+			throw new IOException(e);
+		}
+	}
+
 }

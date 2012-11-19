@@ -13,9 +13,11 @@
 // ========================================================================
 
 package org.cipango.sip;
-import static junit.framework.Assert.*;
+import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNull;
+import static junit.framework.Assert.assertTrue;
+import static junit.framework.Assert.fail;
 
 import java.text.ParseException;
 
@@ -29,7 +31,8 @@ public class UriTest
 	{
 		{"tel:+358-555-1234567;postd=pp22", "tel:+358-555-1234567;POSTD=PP22"},
 		{"tel:+358-555-1234567;postd=pp22;isub=1411", "tel:+358-555-1234567;POSTD=PP22"},
-		{"tel:+(35)8-555-123.4567", "tel:+3585551234567"}
+		{"tel:+(35)8-555-123.4567", "tel:+3585551234567"},
+		{"http://www.nexcom.fr;param1=a", "http://www.NEXCOM.fr;param1=A"}
 	};
 										
 	public static final String[][] DIFFERENT = 
@@ -95,5 +98,19 @@ public class UriTest
 		assertEquals("b", uri.getParameter("param2"));
 		assertNull(uri.getParameter("param1"));
 		assertEquals("http://www.nexcom.fr;param2=b", uri.toString());
+	}
+	
+	@Test
+	public void testSerialize() throws Exception
+	{
+		for (int i = 0; i < EQUALS.length; i++) 
+		{
+			URI uri = URIFactory.parseURI(EQUALS[i][0]);
+			
+			Object o = SipURIImplTest.serializeDeserialize(uri);
+			assertTrue(o instanceof URI);
+			assertEquals(uri, o);
+			assertEquals(o, uri);
+		}
 	}
 }

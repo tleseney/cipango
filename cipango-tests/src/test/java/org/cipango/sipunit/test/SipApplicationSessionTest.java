@@ -17,16 +17,18 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.cipango.sipunit.test.matcher.SipMatchers.*;
 
+import java.util.concurrent.TimeUnit;
+
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.client.Call;
 import org.cipango.client.SipMethods;
 import org.cipango.sipunit.UaTestCase;
-import org.eclipse.jetty.client.ContentExchange;
 import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.client.HttpExchange;
-import org.eclipse.jetty.http.HttpHeaders;
+import org.eclipse.jetty.client.api.ContentResponse;
+import org.eclipse.jetty.client.api.Request;
+import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.HttpStatus;
 import org.junit.Test;
 
@@ -96,24 +98,18 @@ public class SipApplicationSessionTest extends UaTestCase
         HttpClient client = new HttpClient();
 		client.start();
 		 
-		ContentExchange exchange = new ContentExchange(true);
-		exchange.setURL(encodedUrl);	 
-		client.send(exchange);
-		assertThat(exchange.waitForDone(), is(HttpExchange.STATUS_COMPLETED));
-		assertThat(exchange.getResponseStatus(), is(HttpStatus.OK_200));
-
+		ContentResponse httpResponse = client.GET(encodedUrl).get(3, TimeUnit.SECONDS);
+		assertThat(httpResponse.getStatus(), is(HttpStatus.OK_200));
+		
 		request = call.waitForRequest();
 		assertThat(request.getMethod(), is(equalTo(SipMethods.INFO)));
 		_ua.createResponse(request, SipServletResponse.SC_OK).send();
 		
-		String cookie = getCookie(exchange);
-		exchange = new ContentExchange(true);
-
-		exchange.setURL(urlToEncode);
-		exchange.addRequestHeader(HttpHeaders.COOKIE, cookie);
-		client.send(exchange);
-		assertThat(exchange.waitForDone(), is(HttpExchange.STATUS_COMPLETED));
-		assertThat(exchange.getResponseStatus(), is(HttpStatus.OK_200));
+		String cookie = getCookie(httpResponse);
+		Request httpRequest = client.newRequest(urlToEncode);
+		httpRequest.getHeaders().add(HttpHeader.COOKIE, cookie);
+		httpResponse = httpRequest.send().get(3, TimeUnit.SECONDS);
+		assertThat(httpResponse.getStatus(), is(HttpStatus.OK_200));
 		
 		request = call.waitForRequest();
 		assertThat(request.getMethod(), is(equalTo(SipMethods.BYE)));
@@ -122,9 +118,9 @@ public class SipApplicationSessionTest extends UaTestCase
 		checkForFailure();
 	}
 	
-	private String getCookie(ContentExchange exchange)
+	private String getCookie(ContentResponse response)
 	{
-		String cookie = exchange.getResponseFields().getStringField(HttpHeaders.SET_COOKIE);
+		String cookie = response.getHeaders().get(HttpHeader.COOKIE);
 		String[] s = cookie.split(";");
 		for (String string : s)
 		{

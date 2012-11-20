@@ -29,7 +29,7 @@ import javax.servlet.sip.URI;
 
 import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.SipServer;
-import org.cipango.server.nio.TcpConnector;
+import org.cipango.server.nio.SelectChannelConnector;
 import org.cipango.server.nio.UdpConnector;
 import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.sipapp.SipAppContext;
@@ -131,11 +131,11 @@ public class SipClient extends AbstractLifeCycle
 		switch(protocol)
 		{
 		case TCP:
-			connector = new TcpConnector();
-			connector.setTransportParam(true);
+			connector = new SelectChannelConnector(_server);
+			//connector.setTransportParam(true);
 			break;
 		case UDP:
-			connector = new UdpConnector();
+			connector = new UdpConnector(_server);
 			break;
 		}
 		

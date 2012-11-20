@@ -137,6 +137,7 @@
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-client</artifactId>
+      <version>${jetty-version}</version>
 	  <scope>test</scope>
     </dependency>
     <dependency>
@@ -169,11 +170,11 @@
       <version>${hamcrest.version}</version>
       <scope>test</scope>
     </dependency>
-    <!-- <dependency> -->
-    <!--   <groupId>junit</groupId> -->
-    <!--   <artifactId>junit</artifactId> -->
-    <!--   <scope>test</scope> -->
-    <!-- </dependency> -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>compile</scope>
+    </dependency>
     <dependency>
       <groupId>org.cipango</groupId>
       <artifactId>cipango-client</artifactId>

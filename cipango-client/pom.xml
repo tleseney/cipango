@@ -60,16 +60,16 @@
   </build>
   
   <dependencies>
-    <!-- <dependency> -->
-    <!--   <groupId>junit</groupId> -->
-    <!--   <artifactId>junit</artifactId> -->
-    <!--   <scope>test</scope> -->
-    <!-- </dependency> -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>compile</scope>
+    </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest-integration</artifactId>
       <version>${hamcrest.version}</version>
-      <scope>test</scope>
+      <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>org.jmock</groupId>

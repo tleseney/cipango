@@ -21,17 +21,21 @@ import javax.servlet.sip.SipSession;
 import org.cipango.server.session.ApplicationSession;
 import org.cipango.server.session.Session;
 import org.cipango.server.transaction.Transaction;
+import org.cipango.server.util.ContactAddress;
 import org.cipango.server.util.ListIteratorProxy;
 import org.cipango.server.util.ReadOnlyAddress;
+import org.cipango.server.util.ReadOnlyParameterable;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.CSeq;
 import org.cipango.sip.SipFields;
-import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipFields.Field;
 import org.cipango.sip.SipHeader;
+import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipVersion;
 import org.cipango.sip.Via;
 import org.eclipse.jetty.http.HttpFields;
+import org.eclipse.jetty.util.Attributes;
+import org.eclipse.jetty.util.AttributesMap;
 import org.eclipse.jetty.util.LazyList;
 import org.eclipse.jetty.util.QuotedStringTokenizer;
 import org.eclipse.jetty.util.StringUtil;
@@ -59,6 +63,8 @@ public abstract class SipMessage implements SipServletMessage
 	protected String _method;
 	
 	private byte[] _content;
+	
+	private Attributes _attributes;
 	
 	public boolean isRegister()
 	{
@@ -248,9 +254,24 @@ public abstract class SipMessage implements SipServletMessage
 
 	@Override
 	public void addParameterableHeader(String name, Parameterable parameterable,
-			boolean first) {
-		// TODO Auto-generated method stub
+			boolean first) 
+	{
+		if (isCommitted())
+			throw new IllegalStateException("Message is committed");
 		
+		SipHeader header = SipHeader.CACHE.get(name);
+		if (header != null)
+		{
+			if (isSystemHeader(header))
+				throw new IllegalArgumentException(name + " is a system header");
+			
+			name = header.asString();
+		}
+		
+		if (parameterable == null || name == null) 
+			throw new NullPointerException("name or address is null");
+		
+		_fields.add(name, parameterable, first);
 	}
 
 	@Override
@@ -324,7 +345,14 @@ public abstract class SipMessage implements SipServletMessage
 			field = _fields.getField(header);
 		else
 			field = _fields.getField(name);
-		return field == null ? null : field.asAddress();
+		
+		if (field == null)
+			return null;
+		
+		Address address = field.asAddress();
+		if (header == SipHeader.CONTACT && isSystemHeader(header) && !isCommitted())
+			return new ContactAddress(address);
+		return isSystemHeader(header) || isCommitted() ? new ReadOnlyAddress(address) : address;
 	}
 
 	@Override
@@ -338,7 +366,7 @@ public abstract class SipMessage implements SipServletMessage
 		
 		ListIterator<Address> it = _fields.getAddressValues(header, name);
 		
-		if (header.isSystem() || isCommitted())
+		if (isSystemHeader(header) || isCommitted())
 		{
 			return new ListIteratorProxy<Address>(it)
 			{
@@ -367,15 +395,18 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public Object getAttribute(String name) {
-		// TODO Auto-generated method stub
-		return null;
+	public Object getAttribute(String name) 
+	{
+		return _attributes == null ? null : _attributes.getAttribute(name);
 	}
 
 	@Override
-	public Enumeration<String> getAttributeNames() {
-		// TODO Auto-generated method stub
-		return null;
+	public Enumeration<String> getAttributeNames() 
+	{
+		if (_attributes == null) 
+			return Collections.emptyEnumeration();
+		
+		return AttributesMap.getAttributeNamesCopy(_attributes);
 	}
 
 	/**
@@ -505,53 +536,81 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public ListIterator<String> getHeaders(String name) {
+	public ListIterator<String> getHeaders(String name)
+	{
 		return _fields.getValues(name);
 	}
 
 	@Override
-	public String getInitialRemoteAddr() {
+	public String getInitialRemoteAddr()
+	{
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public int getInitialRemotePort() {
+	public int getInitialRemotePort()
+	{
 		// TODO Auto-generated method stub
 		return 0;
 	}
 
 	@Override
-	public String getInitialTransport() {
+	public String getInitialTransport()
+	{
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public String getLocalAddr() {
-		// TODO Auto-generated method stub
-		return null;
+	public String getLocalAddr() 
+	{
+		return _connection != null ?_connection.getLocalAddress().getHostAddress() : null;
 	}
 
 	@Override
-	public int getLocalPort() {
-		// TODO Auto-generated method stub
-		return 0;
+	public int getLocalPort() 
+	{
+		return _connection != null ? _connection.getLocalPort() : -1;
 	}
 
 
 	@Override
-	public Parameterable getParameterableHeader(String name)
-			throws ServletParseException {
-		// TODO Auto-generated method stub
-		return null;
+	public Parameterable getParameterableHeader(String name) throws ServletParseException
+	{
+		SipHeader header = SipHeader.CACHE.get(name);
+				
+		Field field;
+		if (header != null)
+			field = _fields.getField(header);
+		else
+			field = _fields.getField(name);
+		
+		if (field == null)
+			return null;
+		
+		Parameterable p = field.asParameterable();
+		return isSystemHeader(header) ? new ReadOnlyParameterable(p) : p;
 	}
 
 	@Override
-	public ListIterator<? extends Parameterable> getParameterableHeaders(
-			String arg0) throws ServletParseException {
-		// TODO Auto-generated method stub
-		return null;
+	public ListIterator<? extends Parameterable> getParameterableHeaders(String name) throws ServletParseException 
+	{
+		SipHeader header = SipHeader.CACHE.get(name);
+		
+		ListIterator<Parameterable> it = _fields.getParameterableValues(header, name);
+		
+		if (isSystemHeader(header) || isCommitted())
+		{
+			return new ListIteratorProxy<Parameterable>(it)
+			{
+				@Override
+				public Parameterable next() { return new ReadOnlyParameterable(super.next()); }
+				@Override
+				public Parameterable previous() { return new ReadOnlyParameterable(super.previous()); }
+			};
+		}
+		return it;
 	}
 
 	@Override
@@ -652,9 +711,11 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public void removeAttribute(String arg0) {
-		// TODO Auto-generated method stub
-		
+	public void removeAttribute(String name)
+	{
+		if (_attributes != null)
+			_attributes.removeAttribute(name);
+
 	}
 
 	@Override
@@ -694,6 +755,9 @@ public abstract class SipMessage implements SipServletMessage
 		SipHeader header = SipHeader.CACHE.get(name);
 		if (header != null)
 		{
+			if (header.getType() != SipHeader.Type.ADDRESS && header.getType() != SipHeader.Type.STRING )
+				throw new IllegalArgumentException("Header: " + name + " is not of address type");
+			
 			if (isSystemHeader(header))
 				throw new IllegalArgumentException(name + " is a system header");
 			
@@ -707,9 +771,14 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public void setAttribute(String arg0, Object arg1) {
-		// TODO Auto-generated method stub
+	public void setAttribute(String name, Object value) 
+	{
+		if (value == null || name == null) 
+			throw new NullPointerException("name or value is null");
 		
+		if (_attributes == null) 
+			_attributes = new AttributesMap();
+		_attributes.setAttribute(name, value);
 	}
 
 	@Override
@@ -842,9 +911,24 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public void setParameterableHeader(String name, Parameterable parameterable) {
-		// TODO Auto-generated method stub
+	public void setParameterableHeader(String name, Parameterable parameterable)
+	{
+		if (isCommitted())
+			throw new IllegalStateException("Message is committed");
 		
+		SipHeader header = SipHeader.CACHE.get(name);
+		if (header != null)
+		{
+			if (isSystemHeader(header))
+				throw new IllegalArgumentException(name + " is a system header");
+			
+			name = header.asString();
+		}
+		
+		if (name == null) 
+			throw new NullPointerException("name is null");
+		
+		_fields.set(name, parameterable);
 	}
 
 }

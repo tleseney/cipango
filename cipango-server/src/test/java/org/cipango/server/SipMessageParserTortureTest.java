@@ -301,7 +301,7 @@ public class SipMessageParserTortureTest
 	}
 	
 	
-	class TestMessageBuilder extends MessageBuilder
+	public static class TestMessageBuilder extends MessageBuilder
 	{
 		public TestMessageBuilder()
 		{

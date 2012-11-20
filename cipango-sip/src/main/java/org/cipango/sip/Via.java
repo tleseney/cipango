@@ -14,7 +14,6 @@
 
 package org.cipango.sip;
 
-import java.net.InetAddress;
 import java.text.ParseException;
 import java.util.BitSet;
 import java.util.EnumMap;
@@ -202,17 +201,16 @@ public class Via extends Parameters implements Parameterable
 	@Override
 	public String getValue() 
 	{
-		// TODO Auto-generated method stub
-		return null;
+		return getValueBuffer().toString();
 	}
 
 	@Override
 	public void setValue(String value) 
 	{
-		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException();
 	}
 	
-	public String toString()
+	public StringBuilder getValueBuffer()
 	{
 		StringBuilder buffer = new StringBuilder();
 		buffer.append("SIP/2.0/");
@@ -225,6 +223,12 @@ public class Via extends Parameters implements Parameterable
 			buffer.append(_port);
 		}
 		
+		return buffer;
+	}
+	
+	public String toString()
+	{
+		StringBuilder buffer = getValueBuffer();
 		for (Param p : Param.values())
 		{
 			String value = _params.get(p);

@@ -23,7 +23,7 @@ public class SipURIImpl implements SipURI, Serializable
 	public static final String SIP_SCHEME = "sip:";
 	public static final String SIPS_SCHEME = "sips:";
 	
-	enum Param 
+	public enum Param 
 	{ 
 		TRANSPORT, TTL, MADDR, METHOD, USER, LR;
 	

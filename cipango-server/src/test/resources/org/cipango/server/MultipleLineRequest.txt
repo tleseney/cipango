@@ -1,0 +1,24 @@
+OPTIONS sip:user@example.com SIP/2.0
+To: sip:user@example.com
+From: <sip:caller@example.com>;tag=323
+Max-Forwards: 70
+Call-ID: transports.kijh4akdnaqjkwendsasfdj
+Accept: application/sdp, application/x-private
+Accept: text/html
+UnknownHeader: valWith,Comma
+UnknownHeader: val2
+CSeq: 60 OPTIONS
+Via: SIP/2.0/UDP t1.example.com;branch=z9hG4bKkdjuw, SIP/2.0/SCTP t2.example.com;branch=z9hG4bKklasjdhf
+Via: SIP/2.0/TLS t3.example.com;branch=z9hG4bK2980unddj
+Proxy-Authenticate: Digest realm="atlanta.com",
+       domain="sip:ss1.carrier.com", qop="auth",
+       nonce="f84f1cec41e6cbe5aea9c8e88d359",
+       opaque="", stale=FALSE, algorithm=MD5
+Proxy-Authenticate: Digest realm="biloxi.com",
+       domain="sip:nexcom.fr", qop="auth",
+       nonce="f84f25182546e5aea9c8e88d359",
+       opaque="", stale=FALSE, algorithm=MD5
+Route: <sip:127.0.0.1;lr>, <sip:127.0.0.1:5070;lr>
+Route: <sip:127.0.0.1;lr>
+Content-Length: 0
+

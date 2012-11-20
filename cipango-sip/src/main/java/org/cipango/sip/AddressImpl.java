@@ -52,6 +52,13 @@ public class AddressImpl extends Parameters implements Address, Serializable
 		_string = string;
 	}
 	
+	public AddressImpl(String string, boolean parse) throws ParseException 
+	{
+		_string = string;
+		if (parse)
+			parse();
+	}
+	
 	public AddressImpl(URI uri)
 	{
 		_uri = uri;

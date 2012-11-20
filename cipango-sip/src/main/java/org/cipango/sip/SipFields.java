@@ -205,6 +205,23 @@ public class SipFields implements Iterable<SipFields.Field>
     	return _map.keySet().iterator();
     }
 
+    public ListIterator<Parameterable> getParameterableValues(SipHeader header, String name) throws ServletParseException
+    {
+    	Field field = getField(header, name);
+    	
+    	Field f = field;
+    	while (f != null) // Throw ServletParseException if needed 
+    	{
+    		f.asParameterable();
+    		f = f._next;
+    	}
+    	
+    	return new FieldIterator<Parameterable>(field)
+    	{
+    		public Parameterable getValue() { return (Parameterable) _f.getValue(); }
+    	};
+    }
+    
     public ListIterator<Address> getAddressValues(SipHeader header, String name) throws ServletParseException
     {
     	Field field = getField(header, name);
@@ -271,6 +288,24 @@ public class SipFields implements Iterable<SipFields.Field>
     		}
 
     		return (Address) _value;
+    	}
+		
+		public Parameterable asParameterable() throws ServletParseException
+    	{
+    		if (!(_value instanceof Parameterable))
+    		{
+    			Parameterable value;
+    			try
+    			{
+    				value = new ParameterableImpl(_value.toString());
+    			}
+    			catch (ParseException e)
+    			{
+    				throw new ServletParseException(e);
+    			}
+    			_value = value;
+    		}
+    		return (Parameterable) _value;
     	}
 		
 		public void putTo(ByteBuffer buffer, HeaderForm headerForm)

@@ -369,10 +369,10 @@ public class SipResponse extends SipMessage implements SipServletResponse
 	@Override
 	protected boolean canSetContact() 
 	{
-		 return _request.isRegister() 
+		 return isRegister() 
         		||(getStatus() >= 300 && getStatus() < 400) 
         		|| getStatus() == 485
-        		|| (getStatus() == 200 && _request.isMethod(SipMethod.OPTIONS));
+        		|| (getStatus() == 200 && isMethod(SipMethod.OPTIONS));
 	}
 	
 	@Override

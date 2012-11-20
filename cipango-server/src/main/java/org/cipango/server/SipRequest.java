@@ -18,8 +18,12 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -34,6 +38,7 @@ import javax.servlet.sip.Address;
 import javax.servlet.sip.AuthInfo;
 import javax.servlet.sip.B2buaHelper;
 import javax.servlet.sip.Proxy;
+import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
@@ -44,6 +49,8 @@ import javax.servlet.sip.ar.SipApplicationRouterInfo;
 import javax.servlet.sip.ar.SipApplicationRoutingDirective;
 import javax.servlet.sip.ar.SipApplicationRoutingRegion;
 
+import org.cipango.server.transaction.ClientTransaction;
+import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipGenerator;
@@ -56,6 +63,7 @@ import org.eclipse.jetty.util.log.Logger;
 public class SipRequest extends SipMessage implements SipServletRequest 
 {
 	private static final Logger LOG = Log.getLogger(SipRequest.class);
+	private static boolean __strictRoutingEnabled = false;
 	
 	private URI _requestUri;
 	
@@ -66,6 +74,8 @@ public class SipRequest extends SipMessage implements SipServletRequest
     private SipApplicationRoutingDirective _directive;
     private SipApplicationRoutingRegion _region;
     private URI _subscriberURI;
+
+    private boolean _nextHopStrictRouting = false;
 	
 	public boolean isRequest()
 	{
@@ -108,10 +118,16 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	public void send() throws IOException
 	{
 		if (isCommitted())
-			throw new IllegalStateException("request is committed");
-		
-		_session.sendRequest(this);
-		// TODO
+            throw new IllegalStateException("Request is already commited");
+        if (getTransaction() != null && !(getTransaction() instanceof ClientTransaction))
+        	throw new IllegalStateException("Can send request only in UAC mode");
+    	setCommitted(true);
+
+		// TODO scope
+    	if (isCancel())
+    		((ClientTransaction) getTransaction()).cancel(this);
+    	else
+    		_session.sendRequest(this);
 	}
 	
 	public Address getTopRoute()
@@ -132,8 +148,13 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	@Override
 	public SipServletRequest createCancel() 
 	{
-		// TODO Auto-generated method stub
-		return null;
+		if (getTransaction().isCompleted())
+			throw new IllegalStateException("Transaction has completed");
+		
+		SipRequest cancel = createRequest(SipMethod.CANCEL);
+		cancel.to().removeParameter(AddressImpl.TAG);
+		
+		return cancel;
 	}
 	
 	public SipRequest createRequest(SipMethod method) 
@@ -174,7 +195,12 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		if (isAck())
 			throw new IllegalStateException("Cannot create response to ACK");
 		
-		//TODO
+		if (!(getTransaction() instanceof ServerTransaction))
+    		throw new IllegalStateException("Cannot create response if not in UAS mode");
+    	
+    	if (getTransaction().isCompleted()) 
+    		throw new IllegalStateException("Cannot create response if final response has been sent");
+	
 		return new SipResponse(this, status, reason);
 	}
 	
@@ -186,39 +212,76 @@ public class SipRequest extends SipMessage implements SipServletRequest
     	return isInvite() || isSubscribe() || isMethod(SipMethod.NOTIFY) || isMethod(SipMethod.REFER) || isMethod(SipMethod.UPDATE);
     }
 	
+	public SipURI getParamUri()
+	{
+		if (_poppedRoute != null)
+			return (SipURI) _poppedRoute.getURI();
+		else if (_requestUri.isSipURI())
+			return (SipURI) _requestUri;
+		else
+			return null;
+	}
+	
 	public String getParameter(String name) 
 	{
-		// TODO Auto-generated method stub
-		return null;
+		SipURI paramUri = getParamUri();
+		
+		if (paramUri == null) 
+			return null;
+		
+		return paramUri.getParameter(name);
 	}
 	
 	@Override
-	public Enumeration getParameterNames() 
+	public Enumeration<String> getParameterNames() 
 	{
-		// TODO Auto-generated method stub
-		return null;
+		SipURI paramUri = getParamUri();
+		
+		if (paramUri == null) 
+			return Collections.emptyEnumeration();
+		
+		return new IteratorToEnum(paramUri.getParameterNames());
 	}
 	
 	@Override
-	public String[] getParameterValues(String name) {
-		// TODO Auto-generated method stub
-		return null;
+	public String[] getParameterValues(String name) 
+	{
+		String value = getParameter(name);
+		if (value == null) 
+			return null;
+		
+		return new String[] {value};
 	}
+	
 	@Override
 	public Map<String, String[]> getParameterMap() 
 	{
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, String[]> map = new HashMap<String, String[]>();
+		
+		SipURI paramUri = getParamUri();
+		
+		if (paramUri != null) 
+        {
+			Iterator<String> it = paramUri.getParameterNames();
+			while (it.hasNext()) 
+            {
+				String key = it.next();
+				map.put(key, new String[] {paramUri.getParameter(key)});
+			}
+		}
+		return Collections.unmodifiableMap(map);
 	}
+	
 	@Override
 	public String getScheme() 
 	{
 		return _requestUri.getScheme();
 	}
+	
 	@Override
-	public String getServerName() {
-		// TODO Auto-generated method stub
-		return null;
+	public String getServerName() 
+	{
+		return getLocalName();
 	}
 	
 	
@@ -271,28 +334,35 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		return null;
 	}
 	@Override
-	public String getLocalName() {
+	public String getLocalName() 
+	{
+		return getConnection() != null ? getConnection().getLocalAddress().getHostName() : null;
+	}
+
+	@Override
+	public void addAuthHeader(SipServletResponse response, AuthInfo authInfo)
+	{
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void addAuthHeader(SipServletResponse response, String username, String password)
+	{
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public B2buaHelper getB2buaHelper()
+	{
 		// TODO Auto-generated method stub
 		return null;
 	}
+
 	@Override
-	public void addAuthHeader(SipServletResponse response, AuthInfo authInfo) {
-		// TODO Auto-generated method stub
-		
-	}
-	@Override
-	public void addAuthHeader(SipServletResponse response, String username, String password) {
-		// TODO Auto-generated method stub
-		
-	}
-	
-	@Override
-	public B2buaHelper getB2buaHelper() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public Address getInitialPoppedRoute() {
+	public Address getInitialPoppedRoute()
+	{
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -383,10 +453,88 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		pushRoute(new AddressImpl(route));
 	}
 	@Override
-	public void pushRoute(Address route) {
-		// TODO Auto-generated method stub
+	public void pushRoute(Address route) 
+	{
+		if (!route.getURI().isSipURI())
+    		throw new IllegalArgumentException("Only routes with a SIP URI may be pushed"); 
 		
+		boolean strictRouting = !((SipURI) route.getURI()).getLrParam();
+		
+		if (strictRouting && !isStrictRoutingEnabled())
+			throw new IllegalArgumentException("Route does not contains lr param and strict routing disabled");
+		
+		if (isNextHopStrictRouting())
+		{
+			if (strictRouting)
+			{
+				_fields.add(SipHeader.ROUTE.asString(), new AddressImpl(getRequestURI()), true);
+				setRequestURI(route.getURI());
+			}
+			else
+			{
+				Address lastRoute = removeLastRoute();
+				_fields.add(SipHeader.ROUTE.asString(), new AddressImpl(getRequestURI()), true);	
+				setRequestURI(lastRoute.getURI());
+				_fields.add(SipHeader.ROUTE.asString(), route, true);
+			}
+		}
+		else if (strictRouting)
+		{
+			_fields.add(SipHeader.ROUTE.asString(), new AddressImpl(getRequestURI()), false);
+			setRequestURI(route.getURI());
+		}
+		else
+		{
+			_fields.add(SipHeader.ROUTE.asString(), route, true);
+		}
+		setNextHopStrinctRouting(strictRouting);
 	}
+	
+	// For strict routing
+	public Address removeLastRoute()
+	{
+		try
+		{
+			Iterator<Address> it = _fields.getAddressValues(SipHeader.ROUTE, null);
+			List<Address> list = new ArrayList<Address>();
+			Address lastRoute = null;
+			while (it.hasNext())
+			{
+				Address route = it.next();
+				if (it.hasNext())
+					list.add(route);
+				else
+					lastRoute = route;
+			}
+			it = list.iterator();
+			if (it.hasNext())
+				_fields.set(SipHeader.ROUTE, it.next());
+			else
+				return removeTopRoute();
+
+			while (it.hasNext())
+			{
+				Address route = it.next();
+				_fields.add(SipHeader.ROUTE.asString(), route, false);
+			}
+			return lastRoute;
+		}
+		catch (ServletParseException e)
+		{
+			throw new RuntimeException(e);
+		}
+	}
+	
+	public void setNextHopStrinctRouting(boolean nextHopStrictRouting)
+	{
+		_nextHopStrictRouting = nextHopStrictRouting;
+	}
+	
+	public boolean isNextHopStrictRouting()
+	{
+		return _nextHopStrictRouting;
+	}
+	
 	@Override
 	public void setMaxForwards(int maxForwards) 
 	{
@@ -492,4 +640,33 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		}
 	}
 	
+	static class IteratorToEnum  implements Enumeration<String>
+	{
+		private Iterator<String> _it;
+		public IteratorToEnum(Iterator<String> it)
+		{
+			_it = it;
+		}
+
+		public boolean hasMoreElements()
+		{
+			return _it.hasNext();
+		}
+
+		public String nextElement()
+		{
+			return _it.next();
+		}
+	}
+
+	public static boolean isStrictRoutingEnabled()
+	{
+		return __strictRoutingEnabled;
+	}
+
+	public static void setStrictRoutingEnabled(boolean strictRoutingEnabled)
+	{
+		__strictRoutingEnabled = strictRoutingEnabled;
+	}
+
 }

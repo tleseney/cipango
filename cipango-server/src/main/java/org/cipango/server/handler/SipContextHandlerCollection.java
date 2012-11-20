@@ -55,7 +55,7 @@ public class SipContextHandlerCollection extends AbstractSipHandler implements R
 	public SipContextHandlerCollection(@Name("contexts") HandlerCollection contexts)
 	{		
 		if (contexts != null)
-			contexts.addBean(_beanListener);
+			contexts.addBean(_beanListener, false);
 
 		_webHandlerCollection = contexts;
 	}

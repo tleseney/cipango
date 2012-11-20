@@ -31,30 +31,16 @@ import javax.servlet.sip.URI;
 
 /**
  * Manages the registration of a user agent.
- * 
- * Refreshes regularly the registration to remain registered.
- *
  */
 public class Registration 
 {
-	private Listener _listener;
-	private Authentication _authentication;
-	private Credentials _credentials;
+	private List<Listener> _listeners = new ArrayList<Listener>();
+	private List<Credentials> _credentials;
 	private SipFactory _factory;
 	private SipSession _session;
 	private SipURI _uri;
-	private URI _contact;
-	private int _expires;
 	private long _timeout;
-	private Status _status;
-	
-	public enum Status
-	{
-		UNREGISTERED,
-		REGISTERED,
-		PENDING,
-		FAILED
-	}
+	private boolean _registered;
 
 	public interface Listener
 	{
@@ -66,7 +52,6 @@ public class Registration
 	public Registration(SipURI uri)
 	{
 		_uri = uri;
-		_status = Status.UNREGISTERED; 
 	}
 
 	public SipFactory getFactory()
@@ -79,12 +64,12 @@ public class Registration
 		_factory = factory;
 	}
 
-	public Credentials getCredentials()
+	public List<Credentials> getCredentials()
 	{
 		return _credentials;
 	}
 
-	public void setCredentials(Credentials credentials)
+	public void setCredentials(List<Credentials> credentials)
 	{
 		_credentials = credentials;
 	}
@@ -104,11 +89,22 @@ public class Registration
 		return _uri;
 	}
 	
-	public void setListener(Listener listener)
+	public List<Listener> getListeners()
 	{
-		_listener = listener;
+		return _listeners;
+	}
+	
+	public void addListener(Listener listener)
+	{
+		if (listener != null && !_listeners.contains(listener))
+			_listeners.add(listener);
 	}
 
+	public void removeListener(Listener listener)
+	{
+		_listeners.remove(listener);
+	}
+	
 	public SipServletRequest createRegister(URI contact, int expires)
 	{
 		SipServletRequest register;
@@ -126,109 +122,76 @@ public class Registration
 		
 		SipURI registrar = _factory.createSipURI(null, _uri.getHost());
 		register.setRequestURI(registrar);
-		register.setAddressHeader(SipHeaders.CONTACT, _factory.createAddress(contact));
+		if (contact != null)
+			register.setAddressHeader(SipHeaders.CONTACT, _factory.createAddress(contact));
+		else
+			register.setHeader(SipHeaders.CONTACT, "*");
 		register.setExpires(expires);
-		
-		if (_authentication != null)
-		{
-			try
-			{
-				String authorization = _authentication.authorize(
-						register.getMethod(),
-						register.getRequestURI().toString(), 
-						_credentials);
-				register.addHeader(SipHeaders.AUTHORIZATION, authorization);
-			}
-			catch (ServletException e)
-			{
-				e.printStackTrace();
-			}
-		}
 		
 		return register;
 	}
 
 	/**
-	 * Synchronously registers <code>contact</code> with the given expiration value.
+	 * Synchronously registers <code>contact</code> with the given expiration
+	 * value.
 	 * 
 	 * This method returns either when success, failure or request timeout is
-	 * encountered. Authentication is handled automatically if credentials were
-	 * provided to this Registration.
-	 * 
-	 * On success, the registration is maintained in the background by sending
-	 * regularly re-REGISTER requests. Subsequent events (end of registration,
-	 * failure to register) will be reported through the listener.
+	 * encountered, and the listener, if any, is notified as well.
+	 * Authentication is handled automatically if credentials were provided to
+	 * this <code>Registration</code>.
 	 * 
 	 * @param contact
 	 * @param expires
+	 * @return <code>true</code> if registration was successful,
+	 *         <code>false</code> otherwise.
 	 * @throws IOException
 	 * @throws ServletException
 	 */
-	public void register(URI contact, int expires) throws IOException, ServletException
+	public boolean register(URI contact, int expires) throws IOException, ServletException
 	{
-		long end = System.currentTimeMillis() + _timeout;
-		RequestHandler handler;
+		RequestHandler handler = new RequestHandler(createRegister(contact, expires), _timeout);
+		handler.setCredentials(_credentials);
 
-		_contact = contact;
-		_expires = expires;
-		_status = Status.PENDING;
-		
-		while (_status == Status.PENDING)
-		{
-			handler = new RequestHandler(createRegister(_contact, _expires),
-					end - System.currentTimeMillis());
-			handler.send();
-			processResponse(handler.waitFinalResponse());
-		}
-		
-		// TODO: start registration monitoring.
+		handler.send();
+		processResponse(handler.waitForFinalResponse());
+
+		return _registered;
 	}
 
 	/**
-	 * Unregisters any registration previously successfully achieved.
+	 * Synchronously unregisters <code>contact</code>.
 	 * 
-	 * After this method returns, the contact that was previously registered is
-	 * unregistered, and no background activity is sustained to register it
-	 * again.
-	 * 
-	 * @throws IOException 
-	 * @throws ServletException 
+	 * @param contact
+	 *            the contact to unregister. If null, then <code>*</code> is set
+	 *            in the REGISTER request's Contact header, so that all contacts
+	 *            are unregistered.
+	 * @return <code>true</code> if unregistration was successful,
+	 *         <code>false</code> otherwise.
+	 * @throws IOException
+	 * @throws ServletException
 	 */
-	public void unregister() throws IOException, ServletException
+	public boolean unregister(URI contact) throws IOException, ServletException
 	{
-		long end = System.currentTimeMillis() + _timeout;
-		RequestHandler handler;
-
-		_status = Status.PENDING;
-		
-		while (_status == Status.PENDING)
-		{
-			handler = new RequestHandler(createRegister(_contact, 0),
-					end - System.currentTimeMillis());
-			handler.send();
-			processResponse(handler.waitFinalResponse());
-		}
-
-		// TODO: start registration monitoring.
+		return !register(contact, 0);
 	}
 	
 	protected void registrationDone(Address contact, int expires, List<Address> contacts)
 	{
-		if (_listener != null)
+		_registered = (expires == 0) ? false: true;
+
+		for (Listener l : _listeners)
 		{
-			if (expires == 0)
-				_listener.onUnregistered(contact);
+			if (_registered)
+				l.onRegistered(contact, expires, contacts);
 			else
-				_listener.onRegistered(contact, expires, contacts);
+				l.onUnregistered(contact);
 		}
-		_status = Status.REGISTERED;
 	}
 	
 	protected void registrationFailed(int status)
 	{
-		if (_listener != null)
-			_listener.onRegistrationFailed(status);
-		_status = Status.FAILED;
+		for (Listener l : _listeners)
+			l.onRegistrationFailed(status);
 	}
 	
 	protected void processResponse(SipServletResponse response) throws ServletException, IOException 
@@ -265,28 +228,8 @@ public class Registration
 		}
 		else if (status == SipServletResponse.SC_UNAUTHORIZED)
 		{
-			if (_credentials == null)
-			{
+			if (response.getAttribute(RequestHandler.HANDLED_ATTRIBUTE) == null)
 				registrationFailed(status);
-			}
-			else
-			{
-				String authorization = response.getRequest().getHeader(SipHeaders.AUTHORIZATION);
-				
-				String authenticate = response.getHeader(SipHeaders.WWW_AUTHENTICATE);
-				Authentication.Digest digest = Authentication.getDigest(authenticate);
-				
-				if (authorization != null && !digest.isStale())
-				{
-					registrationFailed(status);
-				}
-				else
-				{
-					_authentication = new Authentication(digest);
-					_contact = response.getRequest().getAddressHeader(SipHeaders.CONTACT).getURI();
-					_expires = response.getRequest().getExpires();
-				}
-			}
 		}
 		else 
 		{

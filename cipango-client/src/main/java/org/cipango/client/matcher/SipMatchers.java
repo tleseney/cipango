@@ -15,6 +15,12 @@ public class SipMatchers
 	{
 		return new IsSuccess();
 	}
+
+	@Factory
+	public static <T> Matcher<SipServletMessage> hasHeader(String name)
+	{
+		return new HasHeader(name);
+	}
 	
 	@Factory
 	public static <T> Matcher<SipServletResponse> hasStatus(int status)

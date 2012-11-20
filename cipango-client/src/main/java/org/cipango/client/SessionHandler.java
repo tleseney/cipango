@@ -9,11 +9,10 @@ import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
-public class SessionHandler implements MessageHandler
+public class SessionHandler extends AbstractChallengedMessageHandler
 {
-	protected List<ReadableMessage<SipServletRequest>> _requests;
-	protected List<ReadableMessage<SipServletResponse>> _responses;
-	private long _timeout;
+	protected List<ReadableMessage<SipServletRequest>> _requests = new ArrayList<ReadableMessage<SipServletRequest>>();
+	protected List<ReadableMessage<SipServletResponse>> _responses = new ArrayList<ReadableMessage<SipServletResponse>>();
 	
 	@Override
 	public void handleRequest(SipServletRequest request) throws IOException, ServletException
@@ -35,6 +34,25 @@ public class SessionHandler implements MessageHandler
 		}
 	}
 	
+	@Override
+	public boolean handleAuthentication(SipServletResponse response)
+			throws IOException, ServletException
+	{
+		boolean result = super.handleAuthentication(response);
+		if (result)
+			_responses.add(new ReadableMessage<SipServletResponse>(response));
+		return result;
+	}
+	
+	public void send(SipServletRequest request) throws IOException, ServletException
+	{
+		AuthenticationHelper helper = getAuthenticationHelper(request);
+		if (helper != null)
+			helper.addAuthentication(request);
+
+		request.send();
+	}
+	
 	public SipServletRequest waitForRequest()
 	{
 		return waitForRequest(true);
@@ -46,7 +64,7 @@ public class SessionHandler implements MessageHandler
 		
 		if (request == null)
 		{
-			doWait(_timeout, true);
+			doWait(_requests);
 			request = getUnreadRequest();
 		}
 
@@ -74,15 +92,6 @@ public class SessionHandler implements MessageHandler
 		}
 	}
 	
-	protected void doWait(long timeout, boolean request)
-	{
-		Object o = request ? _requests : _responses;
-		synchronized (o)
-		{
-			try { o.wait(timeout); } catch (InterruptedException e) {}
-		}
-	}
-
 	protected SipServletRequest getUnreadRequest()
 	{
 		for (ReadableMessage<SipServletRequest> request : _requests)
@@ -104,7 +113,6 @@ public class SessionHandler implements MessageHandler
 		}
 		return null;
 	}
-
 	
 	public SipServletRequest getLastRequest()
 	{
@@ -136,7 +144,7 @@ public class SessionHandler implements MessageHandler
 		SipServletResponse response = getUnreadResponse();
 		if (response == null)
 		{
-			doWait(_timeout, false);
+			doWait(_responses);
 			response = getUnreadResponse();
 		}
 		if (markRead)
@@ -146,12 +154,12 @@ public class SessionHandler implements MessageHandler
 	
 	public SipServletResponse waitForFinalResponse()
 	{
-		long end = System.currentTimeMillis() + _timeout;
+		long end = System.currentTimeMillis() + getTimeout();
 		synchronized (this)
 		{
 			while (System.currentTimeMillis() <= end)
 			{
-				doWait(end - System.currentTimeMillis(), false);
+				doWait(_responses, end - System.currentTimeMillis());
 				SipServletResponse response = waitForResponse(false);
 				if (response.getStatus() >= 200)
 				{
@@ -183,16 +191,6 @@ public class SessionHandler implements MessageHandler
 				l.add(response.getMessage());
 			return l;
 		}
-	}
-	
-	public long getTimeout()
-	{
-		return _timeout;
-	}
-
-	public void setTimeout(long timeout)
-	{
-		_timeout = timeout;
 	}
 	
 	protected static class ReadableMessage<E extends SipServletMessage>
@@ -228,6 +226,4 @@ public class SessionHandler implements MessageHandler
 			return _received;
 		}
 	}
-
-
 }

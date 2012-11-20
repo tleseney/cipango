@@ -34,6 +34,11 @@ public class Authentication
 		_digest = digest;
 	}
 	
+	public Digest getDigest()
+	{
+		return _digest;
+	}
+	
 	public String authorize(String method, String uri, Credentials credentials) throws ServletException
 	{
 		String cnonce = null;
@@ -124,7 +129,7 @@ public class Authentication
 		return s;
 	}
 	
-	public static Digest getDigest(String authenticate) throws ServletException
+	public static Digest createDigest(String authenticate) throws ServletException
 	{
 		Digest digest = new Digest();
 		
@@ -178,13 +183,28 @@ public class Authentication
 		}
 	}
 	
-	static class Digest
+	public static class Digest
 	{
-		String _realm;
-		String _qop;
-		String _nonce;
-		String _opaque;
-		String _stale;
+		protected String _realm;
+		protected String _qop;
+		protected String _nonce;
+		protected String _opaque;
+		protected String _stale;
+		
+		public String getRealm()
+		{
+			return _realm;
+		}
+
+		public String getQop()
+		{
+			return _qop;
+		}
+
+		public String getOpaque()
+		{
+			return _opaque;
+		}
 		
 		public boolean isStale()
 		{

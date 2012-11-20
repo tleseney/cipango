@@ -22,13 +22,14 @@ import javax.servlet.ServletException;
 import javax.servlet.sip.Address;
 import javax.servlet.sip.SipFactory;
 import javax.servlet.sip.SipServlet;
-import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
 
+import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.SipServer;
+import org.cipango.server.nio.TcpConnector;
 import org.cipango.server.nio.UdpConnector;
 import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.sipapp.SipAppContext;
@@ -44,16 +45,21 @@ public class SipClient extends AbstractLifeCycle
 	private SipServer _server;
 	private SipAppContext _context;
 	private List<UserAgent> _userAgents;
+
+	public enum Protocol
+	{
+		TCP,
+		UDP;
+	}
 	
-	public SipClient(String host, int port)
+	/**
+	 * Creates a new client with no connector.
+	 * 
+	 */
+	public SipClient()
 	{
 		_userAgents = new ArrayList<UserAgent>();
 		_server = new SipServer();
-		UdpConnector connector = new UdpConnector();
-		connector.setHost(host);
-		connector.setPort(port);
-		
-		_server.addConnector(connector);
 		
 		_context = new SipAppContext();
 		_context.setName(SipClient.class.getName());
@@ -66,6 +72,20 @@ public class SipClient extends AbstractLifeCycle
 		_context.getSipServletHandler().setMainServletName(ClientServlet.class.getName());
 		
 		_server.setHandler(_context);
+	}
+	
+	public SipClient(String host, int port)
+	{
+		this();
+		try
+		{
+			addConnector(Protocol.UDP, host, port);
+		}
+		catch(Exception e)
+		{
+			// That shall not happen.
+			e.printStackTrace();
+		}
 	}
 
 	public SipClient(int port)
@@ -102,6 +122,30 @@ public class SipClient extends AbstractLifeCycle
 		return agent;
 	}
 	
+	public void addConnector(Protocol protocol, String host, int port) throws Exception
+	{
+		if (_server == null || _server.isStarting() || _server.isStopping())
+			throw new IllegalStateException();
+
+		AbstractSipConnector connector = null;
+		switch(protocol)
+		{
+		case TCP:
+			connector = new TcpConnector();
+			connector.setTransportParam(true);
+			break;
+		case UDP:
+			connector = new UdpConnector();
+			break;
+		}
+		
+		connector.setHost(host);
+		connector.setPort(port);
+		
+        _server.addConnector(connector);
+        if (_server.isStarted())
+        	connector.start();
+	}
 
 	public void addUserAgent(UserAgent agent)
 	{
@@ -150,7 +194,10 @@ public class SipClient extends AbstractLifeCycle
 		{
 			MessageHandler handler = getHandler(request);
 			if (handler != null)
+			{
 				handler.handleRequest(request);
+				return;
+			}
 			
 			if (request.isInitial())
 			{
@@ -160,11 +207,11 @@ public class SipClient extends AbstractLifeCycle
 				if (agent != null)
 					agent.handleInitialRequest(request);
 				else
-					log("No agent for initial request: " + request.getMethod() + " " + request.getRequestURI());
+					LOG.warn("No agent for initial request: " + request.getMethod() + " " + request.getRequestURI());
 			}
 			else
 			{
-				log("No handler for request: " + request.getMethod() + " " + request.getRequestURI());
+				LOG.warn("No handler for request: " + request.getMethod() + " " + request.getRequestURI());
 			}
 		}
 		
@@ -173,6 +220,8 @@ public class SipClient extends AbstractLifeCycle
 		{
 			MessageHandler handler = getHandler(response);
 			SipServletRequest request = response.getRequest();
+			
+			@SuppressWarnings("unchecked")
 			List<SipServletResponse> l = (List<SipServletResponse>) request.getAttribute(SipServletResponse.class.getName());
 			if (l==null)
 			{
@@ -180,26 +229,23 @@ public class SipClient extends AbstractLifeCycle
 				request.setAttribute(SipServletResponse.class.getName(), l);
 			}
 			l.add(response);
-			
-			if (response.getStatus() == SipServletResponse.SC_UNAUTHORIZED
-					|| response.getStatus() == SipServletResponse.SC_PROXY_AUTHENTICATION_REQUIRED)
-			{
-				UserAgent agent = getUserAgent(response.getRequest().getFrom().getURI());
-				if (agent != null)
-				{
-					boolean handled = agent.handleChallenge(response);
-					if (handled)
-						return;
-				}
-				else
-					LOG.warn("Could not find user agent for response: " + response.getStatus() + " " + response.getMethod()
-							+ ". Do not handle challenge");
-			}
-			
+
 			if (handler != null)
-				handler.handleResponse(response);
+			{
+				boolean process = true;
+				
+				if (response.getStatus() == SipServletResponse.SC_UNAUTHORIZED
+						|| response.getStatus() == SipServletResponse.SC_PROXY_AUTHENTICATION_REQUIRED)
+				{
+					if (handler instanceof ChallengedMessageHandler)
+						process = ((ChallengedMessageHandler) handler).handleAuthentication(response);
+				}
+
+				if (process)
+					handler.handleResponse(response);
+			}
 			else
-				log("No handler for response: " + response.getStatus() + " " + response.getMethod());
+				LOG.warn("No handler for response: " + response.getStatus() + " " + response.getMethod());
 		}
 	}
 }

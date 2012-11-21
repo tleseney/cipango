@@ -65,6 +65,7 @@ public class SipGenerator
             buffer.put(SipGrammar.SPACE);
             if (reason != null)
             	buffer.put(StringUtil.getBytes(reason, StringUtil.__UTF8));
+			buffer.put(SipGrammar.CRLF);
 		}
 	}
 	

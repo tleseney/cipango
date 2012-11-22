@@ -14,6 +14,8 @@
 
 package org.cipango.sip;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.text.ParseException;
 import java.util.BitSet;
 import java.util.EnumMap;
@@ -24,8 +26,11 @@ import org.cipango.util.StringScanner;
 import org.cipango.util.StringUtil;
 import org.eclipse.jetty.util.StringMap;
 
-public class Via extends Parameters implements Parameterable
+public class Via extends Parameters implements Parameterable, Serializable
 {
+
+	private static final long serialVersionUID = 1L;
+
 	enum Param
 	{ 
 		BRANCH("branch"), RECEIVED("received"), RPORT("rport"), MADDR("maddr"), ALIAS("alias"), COMP("comp"), KEEP("keep"), SIGCOMPID("sigcomp-id"), TTL("ttl");
@@ -216,7 +221,12 @@ public class Via extends Parameters implements Parameterable
 		buffer.append("SIP/2.0/");
 		buffer.append(_transport);
 		buffer.append(' ');
+		boolean ipv6Addr = _host.indexOf(':') !=-1 &&  _host.indexOf('[') == -1;
+		if (ipv6Addr)
+			buffer.append("[");
 		buffer.append(_host);
+		if (ipv6Addr)
+			buffer.append("]");
 		if (_port > -1)
 		{
 			buffer.append(':');
@@ -273,5 +283,36 @@ public class Via extends Parameters implements Parameterable
 	public void setPort(int port)
 	{
 		_port = port;
+	}
+	
+	private void writeObject(java.io.ObjectOutputStream out) throws IOException
+	{
+		out.writeUTF(toString());
+	}
+
+	private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException
+	{
+		try
+		{
+			_port = -1;
+			_params = new EnumMap<Param, String>(Param.class);
+			_string = in.readUTF();
+			parse();
+		}
+		catch (ParseException e)
+		{
+			throw new IOException(e);
+		}
+	}
+
+	@Override
+	public boolean equals(Object obj)
+	{
+		if (obj == null)
+			return false;
+		if (!(obj instanceof Via))
+			return false;
+		
+		return obj.toString().equals(toString());
 	}
 }

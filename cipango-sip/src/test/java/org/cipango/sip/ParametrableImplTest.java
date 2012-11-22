@@ -1,6 +1,7 @@
 package org.cipango.sip;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.*;
 import java.text.ParseException;
 import java.util.Iterator;
@@ -11,6 +12,8 @@ import org.junit.Test;
 
 public class ParametrableImplTest
 {
+	public static final String CONTENT_TYPE = "message/external-body; access-type=\"URL\";expiration=\"Tue, 24 July 2003 09:00:00 GMT\";URL=\"http://app.example.net/calingcard.xml\"";
+	
 	@Test
 	public void testParse() throws ParseException
 	{
@@ -41,8 +44,7 @@ public class ParametrableImplTest
 		assertEquals("ISO-8859-4", p.getParameter("charset"));
 		assertEquals("text/html;charset=ISO-8859-4", p.toString());
 		
-		s = "message/external-body; access-type=\"URL\";expiration=\"Tue, 24 July 2003 09:00:00 GMT\";URL=\"http://app.example.net/calingcard.xml\"";
-		p = new ParameterableImpl(s);
+		p = new ParameterableImpl(CONTENT_TYPE);
 		
 		assertEquals("URL", p.getParameter("access-type"));
 		assertEquals("http://app.example.net/calingcard.xml", p.getParameter("URL"));
@@ -51,8 +53,7 @@ public class ParametrableImplTest
 	@Test
 	public void testString() throws Exception
 	{
-		String s = "message/external-body; access-type=\"URL\";expiration=\"Tue, 24 July 2003 09:00:00 GMT\";URL=\"http://app.example.net/calingcard.xml\"";
-		ParameterableImpl p = new ParameterableImpl(s);
+		ParameterableImpl p = new ParameterableImpl(CONTENT_TYPE);
 
 		String s2 = p.toString();
 		p = new ParameterableImpl(s2);
@@ -60,6 +61,16 @@ public class ParametrableImplTest
 		String s3 = p.toString();
 		
 		assertEquals(s2, s3);
+	}
+	
+	@Test
+	public void testSerialize() throws Exception
+	{
+		ParameterableImpl p = new ParameterableImpl(CONTENT_TYPE);
+		
+		Object o = SipURIImplTest.serializeDeserialize(p);
+		assertTrue(p instanceof ParameterableImpl);
+		assertEquals(p, o);
 	}
 	
 }

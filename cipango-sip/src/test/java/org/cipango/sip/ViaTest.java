@@ -17,7 +17,12 @@ package org.cipango.sip;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.servlet.sip.Address;
+
 import org.junit.Test;
+
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.*;
 
 public class ViaTest 
@@ -81,6 +86,20 @@ public class ViaTest
 		via.setBranch("z9hG4bK776asdhds");
 		//System.out.println(via);
 		assertEquals("SIP/2.0/UDP pc33.atlanta.com;branch=z9hG4bK776asdhds;customParam=\"quoted/ char\"", via.toString());
+	}
+	
+	@Test
+	public void testSerialize() throws Exception
+	{
+		for (int i = 0; i < vias.length; i++) 
+		{
+			Via via = new Via(vias[i]._string);
+			via.parse();
+			
+			Object o = SipURIImplTest.serializeDeserialize(via);
+			assertTrue(o instanceof Via);
+			assertEquals(via, o);
+		}
 	}
 	
 	class ViaData

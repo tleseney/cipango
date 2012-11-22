@@ -1,5 +1,7 @@
 package org.cipango.sip;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.text.ParseException;
 import java.util.Map.Entry;
 
@@ -7,11 +9,22 @@ import javax.servlet.sip.Parameterable;
 
 import org.cipango.util.StringScanner;
 
-public class ParameterableImpl extends Parameters implements Parameterable
+public class ParameterableImpl extends Parameters implements Parameterable, Serializable
 {
+	private static final long serialVersionUID = 1L;
+	
 	private String _value;
 	
+	public ParameterableImpl()
+	{
+	}
+	
 	public ParameterableImpl(String s) throws ParseException
+	{
+		parse(s);
+	}
+	
+	private void parse(String s) throws ParseException
 	{
 		StringScanner scanner = new StringScanner(s);
 		
@@ -88,5 +101,22 @@ public class ParameterableImpl extends Parameters implements Parameterable
 	public int hashCode()
 	{
 		return toString().hashCode();
+	}
+	
+	private void writeObject(java.io.ObjectOutputStream out) throws IOException
+	{
+		out.writeUTF(toString());
+	}
+
+	private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException
+	{
+		try
+		{
+			parse(in.readUTF());
+		}
+		catch (ParseException e)
+		{
+			throw new IOException(e);
+		}
 	}
 }

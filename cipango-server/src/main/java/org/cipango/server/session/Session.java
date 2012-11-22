@@ -14,6 +14,7 @@ import java.util.Map;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.sip.Address;
+import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipSession;
@@ -39,6 +40,7 @@ import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.server.util.ReadOnlyAddress;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipFields;
+import org.cipango.sip.SipFields.Field;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
 import org.eclipse.jetty.util.log.Log;
@@ -780,7 +782,17 @@ public class Session implements SipSessionIf
 		
 		protected void setRemoteTarget(SipMessage message) 
 		{
-			Address contact = (Address) message.getFields().get(SipHeader.CONTACT);
+			Address contact = null;
+			try
+			{
+				Field field = message.getFields().getField(SipHeader.CONTACT); 
+				if (field != null)
+					contact = field.asAddress();
+			}
+			catch (ServletParseException e)
+			{
+				LOG.debug(e);
+			}
 			if (contact != null)
 				_remoteTarget = contact.getURI();
 		}

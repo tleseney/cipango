@@ -34,6 +34,10 @@ public enum SipMethod
 			CACHE.put(method.toString(), method);
 	}
 	
+	 /*
+	  * This method expects the method to be followed by a white space. For raw
+	  * method strings, please use the get method below.
+	  */
 	 public static SipMethod lookAheadGet(byte[] bytes, int position, int limit)
 	 {
 		 int length=limit-position;
@@ -44,11 +48,11 @@ public enum SipMethod
 		 switch (bytes[position])
 		 {
 	        case 'A':
-	        	if (length >= 3 && bytes[position+1] == 'C' && bytes[position+2] == 'K' && bytes[position+3] == ' ')
+	        	if (bytes[position+1] == 'C' && bytes[position+2] == 'K' && bytes[position+3] == ' ')
 	        		return ACK;
 		 		break;
 	        case 'B':
-	        	if (length >= 3 && bytes[position+1] == 'Y' && bytes[position+2] == 'E' && bytes[position+3] == ' ')
+	        	if (bytes[position+1] == 'Y' && bytes[position+2] == 'E' && bytes[position+3] == ' ')
 	        		return BYE;  
 		 		break;
 	        case 'C':
@@ -120,7 +124,7 @@ public enum SipMethod
 					buffer.arrayOffset() + buffer.limit());
 		return null;
 	}
-	
+
 	public static SipMethod get(String method)
 	{
 		byte[] b = (method + " ").getBytes();

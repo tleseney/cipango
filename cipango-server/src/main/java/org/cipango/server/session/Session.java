@@ -579,7 +579,7 @@ public class Session implements SipSessionIf
 		
 		public SipServletRequest createRequest(String method)
 		{
-			SipMethod sipMethod = SipMethod.lookAheadGet(method.getBytes(), 0, method.length());
+			SipMethod sipMethod = SipMethod.get(method);
 			if (sipMethod == SipMethod.ACK || sipMethod == SipMethod.CANCEL)
 				throw new IllegalArgumentException("Forbidden request method " + method);
 		

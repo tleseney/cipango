@@ -47,7 +47,7 @@ public abstract class SipMessage implements SipServletMessage
 	private static final Logger LOG = Log.getLogger(SipMessage.class);
 	private static final Collection<Locale> __defaultLocale = Collections.singleton(Locale.getDefault());
 	
-	protected SipFields _fields = new SipFields();
+	protected final SipFields _fields;
 	
 	private long _timeStamp;
 	private SipConnection _connection;
@@ -55,7 +55,7 @@ public abstract class SipMessage implements SipServletMessage
 	private boolean _committed = false;
 	
 	private HeaderForm _headerForm = HeaderForm.DEFAULT;
-	  protected String _characterEncoding;
+	protected String _characterEncoding;
 	
 	protected Session _session;
 	
@@ -65,6 +65,22 @@ public abstract class SipMessage implements SipServletMessage
 	private byte[] _content;
 	
 	private Attributes _attributes;
+	
+	public SipMessage()
+	{
+		_fields = new SipFields();
+	}
+	
+	public SipMessage(SipMessage other)
+	{
+		_fields = new SipFields(other._fields);
+		_headerForm = other._headerForm;
+		_characterEncoding = other._characterEncoding;
+		_session = other._session;
+		_sipMethod = other._sipMethod;
+		_method = other._method;
+		_content = other._content;
+	}
 	
 	public boolean isRegister()
 	{
@@ -155,6 +171,7 @@ public abstract class SipMessage implements SipServletMessage
 
 	protected abstract boolean canSetContact();
 	public abstract boolean needsContact();
+	public abstract String toStringCompact();
 	
 	public abstract Transaction getTransaction(); 
 	

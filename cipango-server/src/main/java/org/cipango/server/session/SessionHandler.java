@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.EventListener;
 
 import javax.servlet.ServletException;
+import javax.servlet.sip.Proxy;
 import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.server.SipMessage;
@@ -26,8 +27,6 @@ import org.cipango.server.SipResponse;
 import org.cipango.server.handler.SipHandlerWrapper;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.ServerTransaction;
-import org.eclipse.jetty.util.annotation.ManagedAttribute;
-import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
@@ -53,12 +52,12 @@ public class SessionHandler extends SipHandlerWrapper
 	
 	public void handle(SipMessage message) throws IOException, ServletException 
 	{
+		SipRequest request = null;
+		Session session = null;
 		if (message.isRequest())
 		{
-			SipRequest request = (SipRequest) message;
-						
-			Session session = null;
-			
+			request = (SipRequest) message;
+									
 			if (request.isInitial())
 			{
 				ApplicationSession appSession = _sessionManager.createApplicationSession();
@@ -98,9 +97,20 @@ public class SessionHandler extends SipHandlerWrapper
 			}
 			session.accessed();
 			request.setSession(session);
+			
+			if (!request.isInitial() && session.isUA())
+				session.getUa().handleRequest(request);
+			
 		}
 
+// FIXME		if (!request.isHandled())
 		_handler.handle(message);
+		
+		if (request != null && !request.isInitial() && session.isProxy()  && !request.isCancel())
+		{
+			Proxy proxy = request.getProxy();
+			proxy.proxyTo(request.getRequestURI());
+		}
 	}
 	
 	protected void notFound(SipRequest request, String reason)

@@ -48,7 +48,9 @@ public class TransportProcessor extends SipProcessorWrapper
 	
 	public void doProcess(SipMessage message) throws Exception
 	{
-		LOG.debug("handling message " + message.getMethod());
+		if (LOG.isDebugEnabled())
+			LOG.debug("handling message {}", message.toStringCompact());
+		
 		if (message.isRequest())
 		{
 			SipRequest request = (SipRequest) message;
@@ -65,11 +67,9 @@ public class TransportProcessor extends SipProcessorWrapper
 			
 			// route
 			
-			Address route = popLocalRoute(request);
-			
+			Address route = popLocalRoute(request);	
 			if (route != null)
 				request.setPoppedRoute(route);
-			
 			
 		}
 		super.doProcess(message);

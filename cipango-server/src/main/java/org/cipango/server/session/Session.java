@@ -17,6 +17,7 @@ import javax.servlet.sip.Address;
 import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipServletRequest;
+import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipSession;
 import javax.servlet.sip.SipSessionBindingEvent;
 import javax.servlet.sip.SipSessionBindingListener;
@@ -39,6 +40,7 @@ import org.cipango.server.transaction.ClientTransactionListener;
 import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.server.util.ReadOnlyAddress;
 import org.cipango.sip.AddressImpl;
+import org.cipango.sip.SipException;
 import org.cipango.sip.SipFields;
 import org.cipango.sip.SipFields.Field;
 import org.cipango.sip.SipHeader;
@@ -58,9 +60,9 @@ public class Session implements SipSessionIf
 	protected State _state = State.INITIAL;
 	protected Role _role = Role.UNDEFINED;
 	
-	protected String _callId;
-	protected Address _localParty;
-	protected Address _remoteParty;
+	protected final String _callId;
+	protected final Address _localParty;
+	protected final Address _remoteParty;
 	
 	protected Map<String, Object> _attributes;
 	
@@ -90,6 +92,36 @@ public class Session implements SipSessionIf
 		_callId = callId;
 		_localParty = local;
 		_remoteParty = remote;
+	}
+	
+	public Session(String id, Session other)
+	{
+		this(other._applicationSession, 
+				id,
+				other.getCallId(),
+				(Address) other.getLocalParty().clone(),
+				(Address) other.getRemoteParty().clone());
+		_invalidateWhenReady = other._invalidateWhenReady;
+		_handler = other._handler;
+				
+		_role = other._role;
+		
+		if (_role == Role.UAS)
+			_localParty.removeParameter(AddressImpl.TAG);
+		else
+			_remoteParty.removeParameter(AddressImpl.TAG);
+		
+		if (other._dialog != null)
+		{
+			_dialog = new DialogInfo();
+			_dialog._localCSeq = other._dialog._localCSeq;
+		}
+		
+		if (other._attributes != null)
+		{
+			_attributes = new HashMap<String, Object>();
+			_attributes.putAll(other._attributes);
+		}
 	}
 	
 	public ApplicationSession appSession()
@@ -223,13 +255,12 @@ public class Session implements SipSessionIf
 
 		return tx;
 	}
-	
+		
 	private void setState(State state)
 	{
 		_state = state;
 	}
-	
-	
+		
 	public void invokeServlet(SipResponse response)
 	{
 		try
@@ -266,9 +297,9 @@ public class Session implements SipSessionIf
 					{	
 						if (_dialog != null)
 							_dialog.createDialog(response, uac);
-// FIXME				else if (isProxy())
-//							createProxyDialog(response);
-						
+						else if (isProxy())
+							createProxyDialog(response);
+
 						if (status < 200)
 							setState(State.EARLY);
 						else
@@ -310,15 +341,17 @@ public class Session implements SipSessionIf
 			setState(State.TERMINATED);
 		}
 	}
-	
-	private void createDialog(SipResponse response)
+		
+	public boolean isSameDialog(SipResponse response)
 	{
-		switch (_role)
+		String remoteTag = _remoteParty.getParameter(AddressImpl.TAG);
+		if (remoteTag != null)
 		{
-			case UAS:
-				
-				
+			String responseTag = response.to().getTag();
+			if (responseTag != null && !remoteTag.equalsIgnoreCase(responseTag))
+				return false;
 		}
+		return true;
 	}
 	
 	public boolean isDialog(String callId, String fromTag, String toTag)
@@ -334,6 +367,12 @@ public class Session implements SipSessionIf
 		if (toTag.equals(localTag) && fromTag.equals(remoteTag))
 			return true;
 		return false;
+	}
+	
+	protected void createProxyDialog(SipResponse response)
+	{
+		String tag = response.to().getTag();
+        _remoteParty.setParameter(AddressImpl.TAG, tag);
 	}
 	
 	public Address getContact(SipConnection connection)
@@ -575,6 +614,7 @@ public class Session implements SipSessionIf
 		protected long _remoteCSeq = -1;
 		protected URI _remoteTarget;
 		protected LinkedList<String> _routeSet;
+		
 		protected boolean _secure = false;
 		
 		public SipServletRequest createRequest(String method)
@@ -685,6 +725,53 @@ public class Session implements SipSessionIf
 			//address.getURI().setParameter(ID.APP_SESSION_ID_PARAMETER, _appSession.getAppId());
 			return address;
 		}
+		
+		public void handleRequest(SipRequest request) throws IOException, SipException
+		{
+			if (request.getCSeq().getNumber() <= _remoteCSeq && !request.isAck() && !request.isCancel())
+				throw new SipException(SipServletResponse.SC_SERVER_INTERNAL_ERROR, "Out of order request");
+			
+			_remoteCSeq = request.getCSeq().getNumber();
+			if (isTargetRefresh(request))
+				setRemoteTarget(request);
+			
+//	FIXME		if (request.isAck())
+//			{
+//				ServerInvite invite = getServerInvite(_remoteCSeq, false);
+//				if (invite == null)
+//				{
+//					if (LOG.isDebugEnabled())
+//						LOG.debug("dropping ACK without INVITE context");
+//					request.setHandled(true);
+//				}
+//				else
+//				{
+//					if (invite.getResponse() != null)
+//						invite.ack();
+//					else // retrans or late
+//						request.setHandled(true);
+//				}
+//			}
+//			else if (request.isPrack())
+//			{
+//				RAck rack = null;
+//				
+//				try 
+//				{
+//					rack = request.getRAck();
+//				}
+//				catch (Exception e)
+//				{
+//					throw new SipException(SipServletResponse.SC_BAD_REQUEST, e.getMessage());
+//				}
+//				
+//				ServerInvite invite = getServerInvite(rack.getCSeq(), false);
+//				
+//				if (invite == null || !invite.prack(rack.getRSeq()))
+//					throw new SipException(SipServletResponse.SC_CALL_LEG_DONE, "No matching 100 rel for RAck " + rack);
+//				 
+//			}
+		}
 
 		@Override
 		public void handleResponse(SipResponse response)
@@ -695,18 +782,18 @@ public class Session implements SipSessionIf
 // FIXME			
 //			if (!isSameDialog(response))
 //			{
-//				Session derived = _appSession.getSession(response);
+//				Session derived = _applicationSession.getSession(response);
 //				if (derived == null)
 //				{
-//					derived = _appSession.createDerivedSession(Session.this);
+//					derived = _applicationSession.createDerivedSession(Session.this);
 //					if (_linkedSessionId != null)
 //					{
-//						Session linkDerived = _appSession.createDerivedSession(getLinkedSession());
+//						Session linkDerived = _applicationSession.createDerivedSession(getLinkedSession());
 //						linkDerived.setLinkedSession(derived);
 //						derived.setLinkedSession(linkDerived);
 //					}
 //				}
-//				derived._ua.handleResponse(response);
+//				derived._dialog.handleResponse(response);
 //				return;
 //			}
 			

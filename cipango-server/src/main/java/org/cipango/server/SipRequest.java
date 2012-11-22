@@ -53,6 +53,7 @@ import org.cipango.server.transaction.ClientTransaction;
 import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.AddressImpl;
+import org.cipango.sip.SipFields.Field;
 import org.cipango.sip.SipGenerator;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
@@ -70,13 +71,26 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	private Transaction _transaction;
 	private Address _poppedRoute;
 	
-	private Serializable _stateInfo;    private SipApplicationRouterInfo _nextRouterInfo;
+	private Serializable _stateInfo;    
+	private SipApplicationRouterInfo _nextRouterInfo;
     private SipApplicationRoutingDirective _directive;
     private SipApplicationRoutingRegion _region;
     private URI _subscriberURI;
+    
+    private Proxy _proxy;
 
     private boolean _nextHopStrictRouting = false;
 	
+    public SipRequest()
+    {
+    }
+    
+    public SipRequest(SipRequest other)
+    {
+    	super(other);
+    	_requestUri = other._requestUri.clone();
+    }
+    
 	public boolean isRequest()
 	{
 		return true;
@@ -143,6 +157,11 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	public void setPoppedRoute(Address route)
 	{
 		_poppedRoute = route;
+	}
+	
+	public void addRecordRoute(Address route) 
+    {
+		_fields.add(SipHeader.RECORD_ROUTE.asString(), route, true);
 	}
 	
 	@Override
@@ -388,11 +407,32 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	{
 		return getProxy(true);
 	}
+	
 	@Override
-	public Proxy getProxy(boolean create) throws TooManyHopsException {
-		// TODO Auto-generated method stub
-		return null;
+	public Proxy getProxy(boolean create) throws TooManyHopsException
+	{
+		if (_proxy != null || !create)
+			return _proxy;
+
+		if (!_transaction.isServer())
+			throw new IllegalStateException("Not a received request");
+
+		_session.setProxy();
+
+		if (_proxy == null)
+		{
+			SipProxy proxy = new SipProxy(this);
+			proxy.setProxyTimeout(appSession().getContext().getProxyTimeout());
+			_proxy = proxy;
+		}
+		return _proxy;
 	}
+	
+	public void setProxy(Proxy proxy)
+	{
+		_proxy = proxy;
+	}
+	
 	@Override
 	public BufferedReader getReader() throws IOException
 	{
@@ -638,6 +678,17 @@ public class SipRequest extends SipMessage implements SipServletRequest
 				bufferSize += 4096 + getContentLength();
 			}
 		}
+	}
+	
+	@Override
+	public String toStringCompact()
+	{
+		ByteBuffer buffer = ByteBuffer.allocate(1024);
+		new SipGenerator().generateRequestLine(buffer, _method, _requestUri);
+		Field field = getFields().getField(SipHeader.CALL_ID);
+		if (field != null)
+			field.putTo(buffer, HeaderForm.DEFAULT);
+		return new String(buffer.array(), 0, buffer.position(), StringUtil.__UTF8_CHARSET);
 	}
 	
 	static class IteratorToEnum  implements Enumeration<String>

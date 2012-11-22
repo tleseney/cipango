@@ -148,7 +148,7 @@ public class SipServletHandler extends AbstractSipHandler
 	public void handle(SipMessage message) throws IOException, ServletException
 	{
 		SipServletHolder holder;
-		
+		// FIXME handle exceptions
 		if (message.isRequest())
 		{
 			SipRequest request = (SipRequest) message;

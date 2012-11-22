@@ -17,7 +17,17 @@ import org.eclipse.jetty.util.StringUtil;
 
 public class SipFields implements Iterable<SipFields.Field>
 {
-	private StringMap<Field> _map = new StringMap<SipFields.Field>(true);
+	private final StringMap<Field> _map = new StringMap<SipFields.Field>(true);
+	
+	public SipFields()
+	{
+		
+	}
+	
+	public SipFields(SipFields other)
+	{
+		_map.putAll(other._map);
+	}
 	
 	public Field getField(SipHeader header)
 	{

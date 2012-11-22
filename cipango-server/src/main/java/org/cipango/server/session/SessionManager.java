@@ -500,6 +500,8 @@ public class SessionManager extends AbstractLifeCycle
 						do
 						{
 							task = _timerQueue.peek();
+							if (task.isCancelled())
+								task = _timerQueue.remove();
 						}
 						while (task != null && task.isCancelled());
 						

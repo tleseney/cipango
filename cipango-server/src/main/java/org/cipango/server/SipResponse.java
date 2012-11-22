@@ -27,6 +27,7 @@ import javax.servlet.sip.Rel100Exception;
 import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
+import javax.servlet.sip.SipServletMessage.HeaderForm;
 
 import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.AddressImpl;
@@ -36,6 +37,8 @@ import org.cipango.sip.SipGrammar;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipStatus;
+import org.cipango.sip.Via;
+import org.cipango.sip.SipFields.Field;
 import org.eclipse.jetty.util.StringUtil;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
@@ -46,6 +49,8 @@ public class SipResponse extends SipMessage implements SipServletResponse
 	private SipRequest _request;
 	private int _status;
 	private String _reason;
+    private ProxyBranch _proxyBranch;
+    private boolean _branchResponse = false;
 	
 	public SipResponse()
 	{
@@ -259,15 +264,17 @@ public class SipResponse extends SipMessage implements SipServletResponse
 	public ServletOutputStream getOutputStream() throws IOException { return null; }
 
 	@Override
-	public Proxy getProxy() {
-		// TODO Auto-generated method stub
+	public Proxy getProxy()
+	{
+		if (_proxyBranch != null)
+			return _proxyBranch.getProxy();
 		return null;
 	}
 
 	@Override
-	public ProxyBranch getProxyBranch() {
-		// TODO Auto-generated method stub
-		return null;
+	public ProxyBranch getProxyBranch()
+	{
+		return _proxyBranch;
 	}
 
 	/**
@@ -337,9 +344,9 @@ public class SipResponse extends SipMessage implements SipServletResponse
 	}
 
 	@Override
-	public boolean isBranchResponse() {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean isBranchResponse() 
+	{
+		return _branchResponse;
 	}
 
 	@Override
@@ -396,10 +403,37 @@ public class SipResponse extends SipMessage implements SipServletResponse
 			}
 		}
 	}
+	
+	@Override
+	public String toStringCompact()
+	{
+		ByteBuffer buffer = ByteBuffer.allocate(1024);
+		new SipGenerator().generateResponseLine(buffer, _status, _reason);
+		Field field = getFields().getField(SipHeader.CALL_ID);
+		if (field != null)
+			field.putTo(buffer, HeaderForm.DEFAULT);
+		return new String(buffer.array(), 0, buffer.position(), StringUtil.__UTF8_CHARSET);
+	}
 
 	public void setRequest(SipRequest request)
 	{
 		_request = request;
+	}
+
+	public void setBranchResponse(boolean branchResponse)
+	{
+		_branchResponse = branchResponse;
+	}
+
+	public void setProxyBranch(ProxyBranch proxyBranch)
+	{
+		_proxyBranch = proxyBranch;
+	}
+	
+	public Via removeTopVia() 
+	{
+		Via via = (Via) _fields.removeFirst(SipHeader.VIA);
+		return via;
 	}
 
 }

@@ -30,6 +30,7 @@ public class ServerTransaction extends Transaction
 	private SipResponse _latestResponse;
 	
 	private long _gDelay = __T1;
+	private ServerTransactionListener _listener;
 	
 	public ServerTransaction(SipRequest request)
 	{
@@ -100,6 +101,14 @@ public class ServerTransaction extends Transaction
 				}
 			}
 		}
+	}
+	
+	public void cancel(SipRequest cancel) throws IOException
+	{
+		if (_listener == null)
+			LOG.warn("No transaction listener set on {}. Could not handle:\n{}", this, cancel);
+		else
+			_listener.handleCancel(this, cancel);
 	}
 	
 	/**
@@ -214,5 +223,15 @@ public class ServerTransaction extends Transaction
 			default:
 				throw new IllegalArgumentException("unknown timer in server transaction: " + timer);
 		}
+	}
+
+	public ServerTransactionListener getListener()
+	{
+		return _listener;
+	}
+
+	public void setListener(ServerTransactionListener listener)
+	{
+		_listener = listener;
 	}
 }

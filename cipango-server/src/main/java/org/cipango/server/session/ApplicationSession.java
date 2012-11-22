@@ -118,6 +118,18 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 		return session;
 	}
 	
+	public Session createDerivedSession(Session session)
+	{
+		if (session.appSession() != this)
+			throw new IllegalArgumentException("SipSession " + session.getId()
+					+ " does not belong to SipApplicationSession " + getId());
+
+		Session derived = new Session(_sessionManager.newSessionId(), session);
+		derived.setInvalidateWhenReady(_invalidateWhenReady);
+		_sessions.add(derived);
+		return derived;
+	}
+	
 	protected String newSessionId()
 	{
 		return _sessionManager.newSessionId();

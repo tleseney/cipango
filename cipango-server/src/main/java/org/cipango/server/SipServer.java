@@ -2,6 +2,7 @@ package org.cipango.server;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 import javax.servlet.ServletException;
 import javax.servlet.sip.SipURI;
@@ -256,15 +257,57 @@ public class SipServer extends ContainerLifeCycle
 		} */
 	}
 	
-	public boolean isLocalURI(URI uri)
-	{
-		if (uri.isSipURI())
-			return false;
+    public boolean isLocalURI(URI uri)
+    {
+        if (!uri.isSipURI())
+            return false;
+        
+        SipURI sipUri = (SipURI) uri;
+
+        if (!sipUri.getLrParam())
+            return false;
+
+        String host = sipUri.getHost();
+        
+        // Normalize IPv6 address
+		if (host.indexOf("[") != -1) 
+		{
+			try
+			{
+				host = InetAddress.getByName(host).getHostAddress();
+			}
+			catch (UnknownHostException e)
+			{
+				LOG.ignore(e);
+			}
+		}
 		
-		SipURI sipURI = (SipURI) uri;
-		
-		return true; // TODO
-	}
+        for (int i = 0; i < _connectors.length; i++)
+        {
+            SipConnector connector = _connectors[i];
+            
+            String connectorHost = connector.getURI().getHost();
+            
+            boolean samePort = connector.getPort() == sipUri.getPort() || sipUri.getPort() == -1;
+            if (samePort)
+            {
+	            if ((connectorHost.equals(host) || connector.getAddress().getHostAddress().equals(host))) 
+	            {
+	            	if (sipUri.getPort() != -1)
+	            		return true;
+	            	
+	            	// match on host address and port is not set ==> NAPTR case
+	            	if (connector.getAddress().getHostAddress().equals(host)
+	            			&& connector.getPort() != connector.getTransport().getDefaultPort())
+	            	{
+	            		return false;
+	            	}
+	            	return true;
+	            }
+            }
+        }
+        return false;
+    }
 	
 	public void sendResponse(SipResponse response, SipConnection connection) throws IOException
 	{

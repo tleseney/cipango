@@ -53,17 +53,22 @@ public class TransactionManager extends SipProcessorWrapper
 		String branch = request.getTopVia().getBranch();
 		ServerTransaction transaction = _serverTransactions.get(branch);
 
+		// FIXME handle CANCEL
+		
 		LOG.debug("handling server transaction message with tx {}", transaction);
 		
-		if (transaction == null && !request.isAck())
+		if (transaction == null)
 		{
 			ServerTransaction newTransaction = new ServerTransaction(request);
 			newTransaction.setTransactionManager(this);
 			
-			transaction = _serverTransactions.putIfAbsent(branch, newTransaction);
-			
-			if (transaction == null)
-				_serverTxStats.increment();
+			if (!request.isAck())
+			{
+				transaction = _serverTransactions.putIfAbsent(branch, newTransaction);
+				
+				if (transaction == null)
+					_serverTxStats.increment();
+			}
 		}
 		
 		if (transaction != null)
@@ -99,14 +104,16 @@ public class TransactionManager extends SipProcessorWrapper
 	
 	public void transactionTerminated(ServerTransaction transaction)
 	{
-		_serverTransactions.remove(transaction.getBranch());
-		_serverTxStats.decrement();
+		ServerTransaction tx = _serverTransactions.remove(transaction.getBranch());
+		if (tx != null)
+			_serverTxStats.decrement();
 	}
 	
 	public void transactionTerminated(ClientTransaction transaction)
 	{
-		_clientTransactions.remove(transaction.getBranch());
-		_clientTxStats.decrement();
+		ClientTransaction tx = _clientTransactions.remove(transaction.getBranch());
+		if (tx != null)
+			_clientTxStats.decrement();
 	}
 	
 	public TimerTask schedule(Runnable runnable, long delay)
@@ -136,7 +143,9 @@ public class TransactionManager extends SipProcessorWrapper
     {
 		ClientTransaction ctx = new ClientTransaction(request, listener);
 		ctx.setTransactionManager(this);
-		addClientTransaction(ctx);
+		
+		if (!request.isAck())
+			addClientTransaction(ctx);
 		
 		try 
         {

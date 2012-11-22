@@ -37,13 +37,20 @@ public class SipException extends IOException
 	
 	public SipException(int status, String reason)
 	{
+		super(reason);
 		_status = status;
 		_reason = reason;
 	}
 	
 	public SipException(int status)
 	{
-		this(status, null);
+		this(status, (String) null);
+	}
+	
+	public SipException(int status, Throwable t)
+	{
+		super(t);
+		_status = status;
 	}
 	
 	public int getStatus()

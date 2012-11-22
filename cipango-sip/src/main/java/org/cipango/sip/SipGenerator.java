@@ -31,7 +31,7 @@ public class SipGenerator
 			buffer.put(content);
 	}
 	
-	private void generateRequestLine(ByteBuffer buffer,String method, URI requestUri)
+	public void generateRequestLine(ByteBuffer buffer,String method, URI requestUri)
 	{
 		buffer.put(StringUtil.getUtf8Bytes(method));
 		buffer.put(SipGrammar.SPACE);
@@ -41,7 +41,7 @@ public class SipGenerator
 		buffer.put(SipGrammar.CRLF);
 	}
 	
-	private void generateResponseLine(ByteBuffer buffer, int status, String reason)
+	public void generateResponseLine(ByteBuffer buffer, int status, String reason)
 	{
 		PreparedResponse prepared = status < __responses.length ? __responses[status] : null;
 		if (prepared != null)

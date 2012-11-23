@@ -163,16 +163,14 @@
     <module>cipango-util</module>
     <module>cipango-plus</module>
     <module>cipango-annotations</module>
+    <module>cipango-console</module>
     <module>cipango-deploy</module>
     <module>cipango-dar</module>
-    <!-- module>cipango-client</module -->
+    <module>cipango-client</module>
     <module>cipango-distribution</module>
 
 <!--
-    <module>cipango-jmx</module>
-    <module>cipango-dar</module>
     <module>cipango-diameter</module>
-    <module>cipango-console</module>
     <module>cipango-callflow</module>
     <module>cipango-maven-plugin</module>
     <module>cipango-embedded</module>

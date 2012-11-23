@@ -23,7 +23,7 @@
     <Item>org.eclipse.jetty.plus.webapp.EnvConfiguration</Item>
     <Item>org.eclipse.jetty.webapp.JettyWebXmlConfiguration</Item>
     <Item>org.eclipse.jetty.webapp.TagLibConfiguration</Item>
-    <Item>org.cipango.sipapp.SipXmlConfiguration</Item>
+    <Item>org.cipango.server.sipapp.SipXmlConfiguration</Item>
     <Item>org.cipango.plus.sipapp.PlusConfiguration</Item>
     <Item>org.cipango.annotations.AnnotationConfiguration</Item>
   </Array>

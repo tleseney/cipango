@@ -48,10 +48,11 @@ public class SipDispatcher implements RequestDispatcher
 			LOG.debug("Forwarding to handler: " + _holder.getName());
 
 		// TODO forward
-//		SipMessage message = request != null ? (SipMessage) request : (SipMessage) response;
-//		message.setHandler(_holder);
-//		_context.handle(message);
-//		message.setHandler(null);
+		SipMessage message = request != null ? (SipMessage) request : (SipMessage) response;
+		SipServletHolder previous = message.getHandler();
+		message.setHandler(_holder);
+		_context.handle(message);
+		message.setHandler(previous);
     }
     
     /**

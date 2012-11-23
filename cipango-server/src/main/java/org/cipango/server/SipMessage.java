@@ -18,6 +18,7 @@ import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipSession;
 
+import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.session.ApplicationSession;
 import org.cipango.server.session.Session;
 import org.cipango.server.transaction.Transaction;
@@ -65,6 +66,8 @@ public abstract class SipMessage implements SipServletMessage
 	private byte[] _content;
 	
 	private Attributes _attributes;
+	
+	private SipServletHolder _handler;
 	
 	public SipMessage()
 	{
@@ -946,6 +949,16 @@ public abstract class SipMessage implements SipServletMessage
 			throw new NullPointerException("name is null");
 		
 		_fields.set(name, parameterable);
+	}
+
+	public SipServletHolder getHandler()
+	{
+		return _handler;
+	}
+
+	public void setHandler(SipServletHolder handler)
+	{
+		_handler = handler;
 	}
 
 }

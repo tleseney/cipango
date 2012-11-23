@@ -101,6 +101,8 @@ public class SipAppContext extends SipHandlerWrapper
 	public static final String EXTERNAL_INTERFACES = "org.cipango.externalOutboundInterfaces";
 	public final static String SIP_DEFAULTS_XML="org/cipango/server/sipapp/sipdefault.xml";
 	
+	private static final ThreadLocal<SipAppContext> __context = new ThreadLocal<SipAppContext>();
+	
 	private String _name;
 	private String _defaultsDescriptor=SIP_DEFAULTS_XML;
 	private final List<String> _overrideDescriptors = new ArrayList<String>();
@@ -129,10 +131,15 @@ public class SipAppContext extends SipHandlerWrapper
     private Method _sipApplicationKeyMethod;
     
     private String _id;
+    
+    public static SipAppContext getCurrentContext()
+    {
+        return __context.get();
+    }
 	
 	public SipAppContext()
 	{
-		_sessionHandler = new SessionHandler(this);
+		_sessionHandler = new SessionHandler();
 		_servletHandler = new SipServletHandler();
 		_metaData = new MetaData();
 		_sipFactory = new Factory();
@@ -143,6 +150,7 @@ public class SipAppContext extends SipHandlerWrapper
 	{
 		ClassLoader oldClassLoader = null;
 		Thread currentThread = null;
+		 SipAppContext oldContext = __context.get();
 		try
 		{
 			if (getClassLoader() != null)
@@ -151,6 +159,8 @@ public class SipAppContext extends SipHandlerWrapper
                 oldClassLoader = currentThread.getContextClassLoader();
                 currentThread.setContextClassLoader(getClassLoader());
             }
+			
+	         __context.set(this);
 			
 			relinkHandlers();
 	
@@ -186,6 +196,7 @@ public class SipAppContext extends SipHandlerWrapper
 		}
 		finally
 		{
+			__context.set(oldContext);
 			if (currentThread != null && oldClassLoader != null)
 				currentThread.setContextClassLoader(oldClassLoader);
 		}

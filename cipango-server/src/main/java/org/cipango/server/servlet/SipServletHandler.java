@@ -12,8 +12,8 @@ import javax.servlet.sip.SipServletResponse;
 import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.handler.AbstractSipHandler;
+import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.sipapp.SipServletMapping;
-import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.MultiException;
 import org.eclipse.jetty.util.log.Log;
@@ -36,8 +36,7 @@ public class SipServletHandler extends AbstractSipHandler
 	@Override
 	protected void doStart() throws Exception
 	{
-		// FIXME check if the ContextHandler.getCurrentContext() returns in all cases the right value.
-		_servletContext=ContextHandler.getCurrentContext();
+		_servletContext=SipAppContext.getCurrentContext().getServletContext();
 		
 		super.doStart();
 		initialize();
@@ -147,13 +146,15 @@ public class SipServletHandler extends AbstractSipHandler
 		
 	public void handle(SipMessage message) throws IOException, ServletException
 	{
-		SipServletHolder holder;
+		SipServletHolder holder = message.getHandler();
 		// FIXME handle exceptions
+		
 		if (message.isRequest())
 		{
 			SipRequest request = (SipRequest) message;
 			
-			holder = getHolder(request);
+			if (holder == null)
+				holder = getHolder(request);
 			
 			if (holder != null)
 				holder.handle(request);
@@ -162,7 +163,9 @@ public class SipServletHandler extends AbstractSipHandler
 		}
 		else
 		{
-			holder = message.session().getHandler();
+			if (holder == null)
+				holder = message.session().getHandler();
+			
 			if (holder != null)
 				holder.handle(message);
 			else

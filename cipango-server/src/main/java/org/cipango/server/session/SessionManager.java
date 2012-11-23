@@ -58,7 +58,7 @@ public class SessionManager extends AbstractLifeCycle
 	private TimerTask _task;
 	
 	protected ClassLoader _loader;
-	private final SipAppContext _sipAppContext;
+	private SipAppContext _sipAppContext;
 	private final String _localhost;
 	private Queue<TimerTask> _timerQueue = new PriorityQueue<TimerTask>();
 
@@ -82,9 +82,8 @@ public class SessionManager extends AbstractLifeCycle
 		}
 	}
 	
-	public SessionManager(SipAppContext sipAppContext)
+	public SessionManager()
 	{
-		_sipAppContext = sipAppContext;
 		String localhost;
 		try
 		{
@@ -102,9 +101,7 @@ public class SessionManager extends AbstractLifeCycle
 	{
 		super.doStart();
 
-		// Web app context could be null in some tests.
-		if (_sipAppContext.getWebAppContext() != null)
-			_loader = _sipAppContext.getWebAppContext().getClassLoader();
+		_loader = Thread.currentThread().getContextClassLoader();
 			
 		_timer = new Timer();
 		new Thread(_timer, "Timer-" + _sipAppContext.getName()).start();
@@ -500,7 +497,7 @@ public class SessionManager extends AbstractLifeCycle
 						do
 						{
 							task = _timerQueue.peek();
-							if (task.isCancelled())
+							if (task != null && task.isCancelled())
 								task = _timerQueue.remove();
 						}
 						while (task != null && task.isCancelled());
@@ -543,6 +540,11 @@ public class SessionManager extends AbstractLifeCycle
 	public interface SipSessionIf extends SipSession
 	{
 		Session getSession();
+	}
+
+	public void setSipAppContext(SipAppContext sipAppContext)
+	{
+		_sipAppContext = sipAppContext;
 	}
 
 }

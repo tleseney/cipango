@@ -87,7 +87,8 @@ public class TransactionManagerTest
 		request.getFields().add(SipHeader.TO.asString(), addr, true);
 		request.getFields().add(SipHeader.CSEQ.asString(), "1 MESSAGE", true);
 		
-		SessionManager sessionManager = new SessionManager(new SipAppContext());
+		SessionManager sessionManager = new SessionManager();
+		sessionManager.setSipAppContext(new SipAppContext());
 		ApplicationSession appSession = new ApplicationSession(sessionManager, "123");
 		Session session = appSession.createSession(request);
 		request.setSession(session);

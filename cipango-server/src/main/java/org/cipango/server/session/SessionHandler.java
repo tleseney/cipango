@@ -36,9 +36,9 @@ public class SessionHandler extends SipHandlerWrapper
 	private static final Logger LOG = Log.getLogger(SessionHandler.class);
 	private final SessionManager _sessionManager;
 	
-	public SessionHandler(SipAppContext context)
+	public SessionHandler()
 	{
-		_sessionManager = new SessionManager(context);
+		_sessionManager = new SessionManager();
 		addBean(_sessionManager);
 	}
 	
@@ -46,6 +46,7 @@ public class SessionHandler extends SipHandlerWrapper
 	@Override
 	protected void doStart() throws Exception
 	{
+		_sessionManager.setSipAppContext(SipAppContext.getCurrentContext());
 		_sessionManager.start();
 		super.doStart();
 	}

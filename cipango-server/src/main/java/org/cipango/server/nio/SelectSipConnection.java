@@ -199,11 +199,9 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 	{
 		try
 		{
-	        FutureCallback<Void> fcb = new FutureCallback<Void>();
+	        FutureCallback fcb = new FutureCallback();
 	        if (BufferUtil.hasContent(buffer))
-	        	getEndPoint().write(null, fcb, buffer);
-	        else
-	        	fcb.completed(null);
+	        	getEndPoint().write(fcb, buffer);
 	        fcb.get();
 		}
 		catch (InterruptedException x)

@@ -121,11 +121,9 @@ public class TlsChannelConnection extends SslConnection implements SipConnection
 	{
 		try
 		{
-	        FutureCallback<Void> fcb = new FutureCallback<Void>();
+	        FutureCallback fcb = new FutureCallback();
 	        if (BufferUtil.hasContent(buffer))
-	        	getDecryptedEndPoint().write(null, fcb, buffer);
-	        else
-	        	fcb.completed(null);
+	        	getDecryptedEndPoint().write(fcb, buffer);
 	        fcb.get();
 		}
 		catch (InterruptedException x)

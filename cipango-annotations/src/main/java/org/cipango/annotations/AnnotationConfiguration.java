@@ -39,14 +39,16 @@ public class AnnotationConfiguration extends AbstractConfiguration
     @Override
     public void configure(WebAppContext context) throws Exception
     { 
-    	// FIXME is decorator needed as all classes are parsed
-    	context.addDecorator(new AnnotationDecorator(context)); 
     	 
         AnnotationParser parser = new AnnotationParser();
 
         SipAppContext sac = context.getBean(SipAppContext.class);
         if (sac.getSpecVersion() == SipAppContext.VERSION_10)
         	return;
+        
+
+    	// FIXME is decorator needed as all classes are parsed
+    	sac.addDecorator(new AnnotationDecorator(context)); 
         
         if (LOG.isDebugEnabled()) 
         	LOG.debug("parsing annotations");

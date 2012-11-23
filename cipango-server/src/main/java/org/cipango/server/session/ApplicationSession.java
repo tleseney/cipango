@@ -639,7 +639,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 
 		public long getTimeRemaining()
 		{
-			return getExpirationTime() - System.currentTimeMillis();
+			return _timerTask.getExecutionTime() - System.currentTimeMillis();
 		}
 		
 		public long getPeriod()

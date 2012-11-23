@@ -30,7 +30,6 @@ public class PlusConfiguration extends org.eclipse.jetty.plus.webapp.PlusConfigu
 	{
 		SipAppContext context = webAppContext.getBean(SipAppContext.class);
 		SipResourceDecorator decorator = new SipResourceDecorator(context);
-		webAppContext.addDecorator(decorator);
 		context.addDecorator(decorator);
 		super.preConfigure(webAppContext);
 	}

@@ -16,6 +16,7 @@ import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.server.SipMessage;
+import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.util.Loader;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 
@@ -160,10 +161,24 @@ public class SipServletHolder extends AbstractLifeCycle implements Comparable<Si
 		return _servlet;
 	}
 	
-	protected Servlet newInstance() throws InstantiationException, IllegalAccessException 
+	protected Servlet newInstance() throws InstantiationException, IllegalAccessException, ServletException 
 	{
-		
-			return _class.newInstance(); // TODO complete
+		try
+		{
+			ServletContext ctx = _servletHandler.getServletContext();
+			if (ctx == null)
+				return _class.newInstance();
+			return ctx.createServlet(_class);
+		}
+		catch (ServletException se)
+		{
+			Throwable cause = se.getRootCause();
+			if (cause instanceof InstantiationException)
+				throw (InstantiationException) cause;
+			if (cause instanceof IllegalAccessException)
+				throw (IllegalAccessException) cause;
+			throw se;
+		}
 	}
 	
 	

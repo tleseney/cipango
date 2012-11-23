@@ -186,8 +186,18 @@ public class TransportProcessor extends SipProcessorWrapper
 		if (transport == null)
 		{
 			if (target.getTransportParam() != null)
-				transport =Transport.valueOf(target.getTransportParam()); // TODO opt
-			else
+			{
+				try
+				{
+					transport =Transport.valueOf(target.getTransportParam().toUpperCase()); // TODO opt
+				}
+				catch (Exception e)
+				{
+					LOG.debug("Unknown transport: " + target.getTransportParam(), e);
+				}
+			}
+			
+			if (transport == null)
 				transport = Transport.UDP;
 		}
 		

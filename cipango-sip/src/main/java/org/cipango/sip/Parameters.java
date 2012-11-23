@@ -22,6 +22,9 @@ public class Parameters
 
 	public String getParameter(String name) 
 	{
+		if (name == null)
+			throw new NullPointerException("Null name");
+		
 		return _parameters != null ? _parameters.get(name) : null;
 	}
 
@@ -41,6 +44,9 @@ public class Parameters
 
 	public void removeParameter(String name) 
 	{
+		if (name == null)
+			throw new NullPointerException("Null name");
+		
 		if (_parameters != null)
 			_parameters.remove(name);		
 	}

@@ -321,6 +321,8 @@ public class AddressImpl extends Parameters implements Address, Serializable
 	@Override
 	public void setURI(URI uri) 
 	{
+		if (uri == null)
+			throw new NullPointerException("Null URI");
 		_uri = uri;
 		_string = null;
 	}

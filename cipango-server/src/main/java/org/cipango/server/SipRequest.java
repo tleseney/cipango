@@ -586,6 +586,8 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	@Override
 	public void setRequestURI(URI uri) 
 	{
+		if (uri == null)
+			throw new NullPointerException("Null URI");
 		_requestUri = uri;
 	}
 

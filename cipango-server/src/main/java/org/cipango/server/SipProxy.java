@@ -46,6 +46,7 @@ import org.cipango.sip.AddressImpl;
 import org.cipango.sip.ParameterableImpl;
 import org.cipango.sip.SipHeader;
 import org.cipango.util.TimerTask;
+import org.cipango.util.TimerTask.Cancelable;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
@@ -575,7 +576,7 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 		response.setCommitted(true);
 	}    
 	
-	class TimeoutC implements Runnable, Serializable
+	static class TimeoutC implements Runnable, Serializable, Cancelable
 	{
 		private static final long serialVersionUID = 1L;
 		
@@ -589,6 +590,12 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 		public void run()
 		{
 			_branch.timeoutTimerC();
+		}
+
+		@Override
+		public void cancel()
+		{
+			_branch = null;
 		}
 	}
 	
@@ -915,7 +922,7 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 			}
 	        
 	        if (LOG.isDebugEnabled()) 
-	        	LOG.debug("Got response {}", response, null);
+	        	LOG.debug("Got response {}", response);
 	        
 	        SipRequest request = _tx.getRequest();
 	        
@@ -928,7 +935,11 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 	        		ApplicationSession appSession = session.appSession();
 	        		Session derived = appSession.getSession(response);
 	        		if (derived == null)
+	        		{
 	        			derived = appSession.createDerivedSession(session);
+	        			 if (LOG.isDebugEnabled()) 
+	        		        	LOG.debug("Create derived session {} from session {}", derived, session);
+	        		}
 	        		session = derived;
 	        	}	
 	        }

@@ -161,7 +161,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 		if (value == null || !value.equals(old))
 		{
 			if (old != null)
-				unbindValue(name, value);
+				unbindValue(name, old);
 			if (value != null)
 				bindValue(name, value);
 			
@@ -276,6 +276,8 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 	 */
 	public int setExpires(int deltaMinutes) 
 	{
+		checkValid();
+		
 		if (deltaMinutes < 0)
 			deltaMinutes = 0;
 		
@@ -305,18 +307,8 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 				while (_attributes != null && _attributes.size() > 0)
 				{
 					ArrayList<String> keys = new ArrayList<String>(_attributes.keySet());
-					Iterator<String> iter = keys.iterator();
-					while (iter.hasNext())
-					{
-						String key = iter.next();
-
-						Object value;
-						synchronized (this)
-						{
-							value = _attributes.remove(key);
-						}
-						_sessionManager.doApplicationSessionAttributeListeners(this, key, value, null);
-					}
+					for (String key : keys)
+						removeAttribute(key);
 				}
 			}
 			finally
@@ -535,7 +527,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 	public void setAttribute(String name, Object value) 
 	{
 		if (name == null || value == null)
-			throw new IllegalArgumentException("Name or attribute is null");
+			throw new NullPointerException("Name or attribute is null");
 		
 		putAttribute(name, value);
 	}
@@ -609,6 +601,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
         
         public Timer(long delay, long period, boolean fixedDelay, boolean isPersistent, Serializable info, String id)
         {
+        	checkValid();
             addTimer(this);
             _info = info;
             _period = period;

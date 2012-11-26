@@ -54,8 +54,9 @@ public class SessionHandler extends SipHandlerWrapper
 	public void handle(SipMessage message) throws IOException, ServletException 
 	{
 		SipRequest request = null;
-		Session session = null;
-		if (message.isRequest())
+		Session session = message.session();
+		// The session can be not null in case of forward
+		if (session == null && message.isRequest())
 		{
 			request = (SipRequest) message;
 									

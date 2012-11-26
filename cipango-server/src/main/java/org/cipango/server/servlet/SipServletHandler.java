@@ -91,6 +91,9 @@ public class SipServletHandler extends AbstractSipHandler
 	public void initialize() throws Exception
 	{
 		MultiException mex = new MultiException();
+		
+		updateSipMappings();  
+		
 		if (_servlets != null)
 		{
 			SipServletHolder[] servlets = _servlets.clone();
@@ -99,7 +102,6 @@ public class SipServletHandler extends AbstractSipHandler
 			{
 				try
 				{
-					servlet.setServletHandler(this);
 					servlet.start();
 				}
 				catch (Exception e)
@@ -110,7 +112,6 @@ public class SipServletHandler extends AbstractSipHandler
 			}
 		}
 		
-		updateSipMappings();  
         
         if (_mainServlet == null && _servlets != null && (_servletMappings == null || _servletMappings.length == 0))
         {
@@ -138,7 +139,7 @@ public class SipServletHandler extends AbstractSipHandler
             	if (nm.containsKey(_servlets[i].getName()))
             		throw new ServletException("A servlet with name " + _servlets[i].getName() + " is already registered");
                 nm.put(_servlets[i].getName(), _servlets[i]);
-                //_sipServlets[i].setServletHandler(this);
+                _servlets[i].setServletHandler(this);
             }
             _nameMap = nm;
         }
@@ -165,7 +166,7 @@ public class SipServletHandler extends AbstractSipHandler
 		{
 			if (holder == null)
 				holder = message.session().getHandler();
-			
+						
 			if (holder != null)
 				holder.handle(message);
 			else

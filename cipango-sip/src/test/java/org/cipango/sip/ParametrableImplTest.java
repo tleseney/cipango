@@ -6,6 +6,7 @@ import static org.junit.Assert.*;
 import java.text.ParseException;
 import java.util.Iterator;
 
+import javax.servlet.sip.Address;
 import javax.servlet.sip.Parameterable;
 
 import org.junit.Test;
@@ -71,6 +72,16 @@ public class ParametrableImplTest
 		Object o = SipURIImplTest.serializeDeserialize(p);
 		assertTrue(p instanceof ParameterableImpl);
 		assertEquals(p, o);
+	}
+	
+	@Test
+	public void testEquals() throws ParseException
+	{
+		String s = "\"Alice\" <sip:alice@192.168.2.10:5071>;tag=418793445";
+		Address addr = new AddressImpl(s, true);
+		addr.removeParameter("p");
+		Parameterable p = new ParameterableImpl(addr.toString());
+		assertEquals(p, addr);
 	}
 	
 }

@@ -31,6 +31,7 @@ import org.cipango.sip.CSeq;
 import org.cipango.sip.SipFields;
 import org.cipango.sip.SipFields.Field;
 import org.cipango.sip.SipHeader;
+import org.cipango.sip.SipHeader.Type;
 import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipVersion;
 import org.cipango.sip.Via;
@@ -282,6 +283,11 @@ public abstract class SipMessage implements SipServletMessage
 		SipHeader header = SipHeader.CACHE.get(name);
 		if (header != null)
 		{
+			if (header.getType() != Type.PARAMETERABLE 
+					&& header.getType() != Type.ADDRESS
+					&& header.getType() != Type.VIA)
+				throw new IllegalArgumentException("Header " + name + " is not of parameterable type");
+			
 			if (isSystemHeader(header))
 				throw new IllegalArgumentException(name + " is a system header");
 			
@@ -602,7 +608,14 @@ public abstract class SipMessage implements SipServletMessage
 				
 		Field field;
 		if (header != null)
+		{
+			if (header.getType() != Type.PARAMETERABLE 
+					&& header.getType() != Type.ADDRESS
+					&& header.getType() != Type.VIA)
+				throw new ServletParseException("Header " + name + " is not of parameterable type");
+			
 			field = _fields.getField(header);
+		}
 		else
 			field = _fields.getField(name);
 		
@@ -617,6 +630,14 @@ public abstract class SipMessage implements SipServletMessage
 	public ListIterator<? extends Parameterable> getParameterableHeaders(String name) throws ServletParseException 
 	{
 		SipHeader header = SipHeader.CACHE.get(name);
+		
+		if (header != null)
+		{
+			if (header.getType() != Type.PARAMETERABLE 
+					&& header.getType() != Type.ADDRESS
+					&& header.getType() != Type.VIA)
+				throw new ServletParseException("Header " + name + " is not of parameterable type");
+		}
 		
 		ListIterator<Parameterable> it = _fields.getParameterableValues(header, name);
 		
@@ -939,6 +960,11 @@ public abstract class SipMessage implements SipServletMessage
 		SipHeader header = SipHeader.CACHE.get(name);
 		if (header != null)
 		{
+			if (header.getType() != Type.PARAMETERABLE 
+					&& header.getType() != Type.ADDRESS
+					&& header.getType() != Type.VIA)
+				throw new IllegalArgumentException("Header " + name + " is not of parameterable type");
+			
 			if (isSystemHeader(header))
 				throw new IllegalArgumentException(name + " is a system header");
 			

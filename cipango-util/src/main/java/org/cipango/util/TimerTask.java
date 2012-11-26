@@ -36,6 +36,8 @@ public class TimerTask implements Comparable<TimerTask>
 	public void cancel()
 	{
 		_cancelled = true;
+		if (_runnable instanceof Cancelable)
+			((Cancelable) _runnable).cancel();
 	}
 	
 	public String toString()
@@ -45,5 +47,10 @@ public class TimerTask implements Comparable<TimerTask>
 			return _runnable + "@" + (_executionTime - System.currentTimeMillis()) / 1000 + "s";
 		else
 			return _runnable + "@" + (_executionTime - System.currentTimeMillis()) + "ms";
+	}
+	
+	public interface Cancelable
+	{
+		void cancel();
 	}
 }

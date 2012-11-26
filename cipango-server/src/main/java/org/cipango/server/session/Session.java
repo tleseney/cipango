@@ -61,8 +61,8 @@ public class Session implements SipSessionIf
 	protected Role _role = Role.UNDEFINED;
 	
 	protected final String _callId;
-	protected final Address _localParty;
-	protected final Address _remoteParty;
+	protected Address _localParty;
+	protected Address _remoteParty;
 	
 	protected Map<String, Object> _attributes;
 	
@@ -182,6 +182,12 @@ public class Session implements SipSessionIf
 			throw new IllegalStateException("Session is " + _role);
 		
 		_role = Role.PROXY;
+		
+		// In proxy local and remote party are inversed.
+		Address tmp = _remoteParty;
+		_remoteParty = _localParty;
+		_localParty = tmp;
+		
 	}
 	
 	public void setUAS()
@@ -215,6 +221,28 @@ public class Session implements SipSessionIf
 	public void sendResponse(SipResponse response)
 	{		
 		accessed();
+		
+		if (isProxy()) // Virtual branch
+		{
+			if (!response.getRequest().isInitial())
+				throw new IllegalStateException("Session is proxy");
+			
+			_role = Role.UAS;
+			_dialog = new DialogInfo();
+			
+			// Reset local and remote party to original values
+			Address tmp = _remoteParty;
+			_remoteParty = _localParty;
+			_localParty = tmp;
+			
+			String tag = _applicationSession.newUASTag();
+			_localParty.setParameter(AddressImpl.TAG, tag);
+			
+			response.to().setParameter(AddressImpl.TAG, tag);
+			
+			LOG.debug("Create a virtual branch on session {}", this);
+		}
+		
 		if (isUA())
 		{
 			ServerTransaction tx = (ServerTransaction) response.getTransaction();
@@ -226,12 +254,8 @@ public class Session implements SipSessionIf
 			
 			tx.send(response);
 		}
-		else
-		{
-			 //TODO virtual
-		}
 	}
-	
+		
 	public ClientTransaction sendRequest(SipRequest request, ClientTransactionListener listener) throws IOException
 	{
 		accessed();
@@ -349,7 +373,10 @@ public class Session implements SipSessionIf
 		{
 			String responseTag = response.to().getTag();
 			if (responseTag != null && !remoteTag.equalsIgnoreCase(responseTag))
+			{
+				LOG.warn("session: not same dialog tags are {} {}", remoteTag, responseTag);
 				return false;
+			}
 		}
 		return true;
 	}

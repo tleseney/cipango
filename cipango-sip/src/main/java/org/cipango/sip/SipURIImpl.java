@@ -547,6 +547,9 @@ public class SipURIImpl implements SipURI, Serializable
 	
 	public String getHeader(String name) 
 	{
+		if (name == null)
+			throw new NullPointerException("Null name");
+		
 		return _headers != null ? _headers.get(name) : null;
 	}
 

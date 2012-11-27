@@ -572,13 +572,20 @@ public class Session implements SipSessionIf
 	 */
 	public void removeAttribute(String name) 
 	{
-		setAttribute(name, null);
+		putAttribute(name, null);
 	}
 
 	/**
 	 * @see SipSession#setAttribute(String, Object)
 	 */
 	public void setAttribute(String name, Object value) 
+	{
+		if (name == null || value == null)
+			throw new NullPointerException("Name or attribute is null");
+		putAttribute(name, value);
+	}
+	
+	public void putAttribute(String name, Object value) 
 	{
 		Object old = null;
 		synchronized (this)
@@ -589,7 +596,7 @@ public class Session implements SipSessionIf
 		if (value == null || !value.equals(old))
 		{
 			if (old != null)
-				unbindValue(name, value);
+				unbindValue(name, old);
 			if (value != null)
 				bindValue(name, value);
 			
@@ -620,13 +627,21 @@ public class Session implements SipSessionIf
 	}
 
 	@Override
-	public void setOutboundInterface(InetSocketAddress arg0) {
+	public void setOutboundInterface(InetSocketAddress address) 
+	{
+		checkValid();
+		if (address == null)
+			throw new NullPointerException("Null address");
 		// TODO Auto-generated method stub
 		
 	}
 	
 	@Override
-	public void setOutboundInterface(InetAddress arg0) {
+	public void setOutboundInterface(InetAddress address) 
+	{
+		checkValid();
+		if (address == null)
+			throw new NullPointerException("Null address");
 		// TODO Auto-generated method stub	
 	}
 	

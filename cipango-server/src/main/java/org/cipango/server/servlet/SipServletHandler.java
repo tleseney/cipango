@@ -30,13 +30,14 @@ public class SipServletHandler extends AbstractSipHandler
 	private SipServletHolder _mainServlet;
 	private SipServletMapping[] _servletMappings;
 	private SipServletHolder _defaultServlet;
-	
+	private SipAppContext _appContext;
 
 	
 	@Override
 	protected void doStart() throws Exception
 	{
-		_servletContext=SipAppContext.getCurrentContext().getServletContext();
+		_appContext = SipAppContext.getCurrentContext();
+		_servletContext = _appContext.getServletContext();
 		
 		super.doStart();
 		initialize();
@@ -263,5 +264,10 @@ public class SipServletHandler extends AbstractSipHandler
 			return _defaultServlet;
 		else
 			return _mainServlet;
+	}
+
+	public SipAppContext getAppContext()
+	{
+		return _appContext;
 	}
 }

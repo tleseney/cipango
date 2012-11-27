@@ -38,6 +38,7 @@ import javax.servlet.sip.SipApplicationSessionListener;
 import javax.servlet.sip.SipErrorListener;
 import javax.servlet.sip.SipFactory;
 import javax.servlet.sip.SipServlet;
+import javax.servlet.sip.SipServletContextEvent;
 import javax.servlet.sip.SipServletListener;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipSession;
@@ -50,7 +51,9 @@ import javax.servlet.sip.TimerService;
 import javax.servlet.sip.URI;
 import javax.servlet.sip.ar.SipApplicationRoutingDirective;
 
+import org.cipango.server.SipConnector;
 import org.cipango.server.SipRequest;
+import org.cipango.server.SipServer;
 import org.cipango.server.handler.SipHandlerWrapper;
 import org.cipango.server.servlet.SipDispatcher;
 import org.cipango.server.servlet.SipServletHandler;
@@ -59,6 +62,7 @@ import org.cipango.server.session.ApplicationSession;
 import org.cipango.server.session.Session;
 import org.cipango.server.session.SessionHandler;
 import org.cipango.server.session.SessionManager.AppSessionIf;
+import org.cipango.server.util.ReadOnlySipURI;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.ParameterableImpl;
 import org.cipango.sip.SipMethod;
@@ -131,6 +135,7 @@ public class SipAppContext extends SipHandlerWrapper
     private Method _sipApplicationKeyMethod;
     
     private String _id;
+    private ServerListener _serverListener;
     
     public static SipAppContext getCurrentContext()
     {
@@ -188,10 +193,13 @@ public class SipAppContext extends SipHandlerWrapper
 				// "Unable to deploy application " + getName()
 				// + ": " + _context.getUnavailableException().getMessage());
 			}
-			else if (hasSipServlets())
+			else 
 			{
-				// getServer().applicationStarted(this);
+				if (getServer().isStarted())
+					serverStarted();
 			}
+			
+			
 			super.doStart();
 		}
 		finally
@@ -213,6 +221,10 @@ public class SipAppContext extends SipHandlerWrapper
 //				_sipSecurityHandler.stop();
 			
 		_servletHandler.stop();
+		
+		if (getServer() != null && _serverListener != null)
+			getServer().removeLifeCycleListener(_serverListener);
+		_serverListener = null;
 	}
 	
 	private void relinkHandlers()
@@ -237,6 +249,74 @@ public class SipAppContext extends SipHandlerWrapper
 		if (getServletHandler() != null)
 		{
 			handler.setHandler(_servletHandler);
+		}
+	}
+	
+	public void serverStarted()
+	{	
+		ClassLoader oldClassLoader = null;
+		Thread currentThread = null;
+		
+		if (getClassLoader() != null)
+		{
+			currentThread = Thread.currentThread();
+			oldClassLoader = currentThread.getContextClassLoader();
+			currentThread.setContextClassLoader(getClassLoader());
+		}
+		try
+		{
+			List<SipURI> outbounds = new ArrayList<SipURI>();
+			List<SipURI> externals = new ArrayList<SipURI>();
+
+			SipConnector[] connectors = getServer().getConnectors();
+			
+			if (connectors != null)
+			{
+				for (SipConnector connector : connectors) 
+				{
+					SipURI uri = new SipURIImpl(null, connector.getAddress().getHostAddress(), connector.getPort());
+					if (!outbounds.contains(uri))
+						outbounds.add(new ReadOnlySipURI(uri));
+					if (!externals.contains(connector.getURI()))
+						externals.add(new ReadOnlySipURI(connector.getURI()));
+				}
+			}
+			_context.setAttribute(SipServlet.OUTBOUND_INTERFACES, Collections.unmodifiableList(outbounds));
+			_context.setAttribute(EXTERNAL_INTERFACES, Collections.unmodifiableList(externals));
+			
+			SipServletHolder[] holders = getSipServletHandler().getServlets();
+			if (holders != null)
+			{
+				for (SipServletHolder holder : holders)
+				{
+					if (holder.getServletInstance() != null && holder.getServletInstance() instanceof SipServlet)
+					{
+						fireServletInitialized((SipServlet) holder.getServletInstance());
+					}
+				}
+			}
+		}
+		finally
+		{
+			if (getClassLoader() != null)
+			{
+				currentThread.setContextClassLoader(oldClassLoader);
+			}
+		}
+	}
+	
+	public void fireServletInitialized(SipServlet servlet)
+	{
+		for (SipServletListener l : _servletListeners)
+		{
+			try
+			{
+				l.servletInitialized(new SipServletContextEvent(servlet.getServletContext(), servlet));
+			}
+			catch (Throwable t)
+			{
+				LOG.debug(t);
+			}
 		}
 	}
 
@@ -526,6 +606,15 @@ public class SipAppContext extends SipHandlerWrapper
 		return _timerListeners;
 	}
 	
+
+	@Override
+	public void setServer(SipServer server)
+	{
+		super.setServer(server);
+		_serverListener = new ServerListener();
+		server.addLifeCycleListener(_serverListener);
+	}
+	
 	@Override
 	public String toString()
 	{
@@ -627,21 +716,21 @@ public class SipAppContext extends SipHandlerWrapper
     {
 
 		@Override
-		public SipApplicationSession getApplicationSessionById(String arg0)
+		public SipApplicationSession getApplicationSessionById(String id)
+		{
+			// TODO scope
+			return _sessionHandler.getSessionManager().getApplicationSession(id);
+		}
+
+		@Override
+		public SipApplicationSession getApplicationSessionByKey(String key, boolean create)
 		{
 			// TODO Auto-generated method stub
 			return null;
 		}
 
 		@Override
-		public SipApplicationSession getApplicationSessionByKey(String arg0, boolean arg1)
-		{
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public SipSession getCorrespondingSipSession(SipSession arg0, String arg1)
+		public SipSession getCorrespondingSipSession(SipSession session, String headerName)
 		{
 			// TODO Auto-generated method stub
 			return null;
@@ -821,11 +910,44 @@ public class SipAppContext extends SipHandlerWrapper
             return appSession.new Timer(delay, period, fixedDelay, isPersistent, info);
         }
     }
+    
+    private class ServerListener implements LifeCycle.Listener
+    {
+
+		@Override
+		public void lifeCycleStarting(LifeCycle event)
+		{
+		}
+
+		@Override
+		public void lifeCycleStarted(LifeCycle event)
+		{
+			serverStarted();
+		}
+
+		@Override
+		public void lifeCycleFailure(LifeCycle event, Throwable cause)
+		{
+		}
+
+		@Override
+		public void lifeCycleStopping(LifeCycle event)
+		{
+			
+		}
+
+		@Override
+		public void lifeCycleStopped(LifeCycle event)
+		{
+			// TODO Auto-generated method stub
+			
+		}
+    	
+    }
 	
 	public interface Decorator extends org.eclipse.jetty.servlet.ServletContextHandler.Decorator
 	{
 		void decorateServletHolder(SipServletHolder servlet) throws ServletException;
 	}
-
 
 }

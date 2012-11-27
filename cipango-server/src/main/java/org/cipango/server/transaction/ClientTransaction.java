@@ -116,7 +116,9 @@ public class ClientTransaction extends Transaction
 	private ClientTransaction doCancel(SipRequest cancel)
 	{
 		ClientTransaction cancelTx = new ClientTransaction(cancel, _listener, cancel.getTopVia().getBranch());
+		cancelTx.setTransactionManager(_transactionManager);
 		cancelTx._connection = getConnection();
+		
 		
 		_transactionManager.addClientTransaction(cancelTx);
 		

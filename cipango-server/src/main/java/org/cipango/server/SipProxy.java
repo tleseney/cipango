@@ -653,8 +653,10 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 	        		{
 	        			ParameterableImpl reason = new ParameterableImpl();
 	        			reason.setValue(protocol[i]);
-	        			reason.setParameter("cause", String.valueOf(reasonCode[i]));
-	        			reason.setParameter("reason", reasonText[i]);
+	        			if (reasonCode[i] > 0)
+	        				reason.setParameter("cause", String.valueOf(reasonCode[i]));
+	        			if (reasonText[i] != null)
+	        				reason.setParameter("reason", reasonText[i]);
 	        			cancel.addParameterableHeader(SipHeader.REASON.asString(), reason, false);
 	        		}
 	        	}

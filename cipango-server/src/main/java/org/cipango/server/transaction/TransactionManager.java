@@ -3,11 +3,14 @@ package org.cipango.server.transaction;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.servlet.sip.SipServletResponse;
+
 import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
 import org.cipango.server.processor.SipProcessorWrapper;
 import org.cipango.server.processor.TransportProcessor;
+import org.cipango.sip.SipGrammar;
 import org.cipango.util.TimerQueue;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
@@ -51,15 +54,29 @@ public class TransactionManager extends SipProcessorWrapper
 	public void doProcessRequest(SipRequest request) throws Exception
 	{
 		String branch = request.getTopVia().getBranch();
+		
+		if (branch == null || !branch.startsWith(SipGrammar.MAGIC_COOKIE)) 
+        {
+			// Opensips use 0 as branch
+			if (!("0".equals(branch) && request.isAck()))
+			{
+				LOG.debug("Not 3261 branch: {}. Dropping request", branch);
+				return;
+			}
+		}
+	
 		ServerTransaction transaction = _serverTransactions.get(branch);
 
 		// FIXME handle CANCEL
+		if (request.isCancel()) 
+			branch = "cancel-" + branch;
 		
 		LOG.debug("handling server transaction message with tx {}", transaction);
 		
+		ServerTransaction newTransaction = null;
 		if (transaction == null)
 		{
-			ServerTransaction newTransaction = new ServerTransaction(request);
+			newTransaction = new ServerTransaction(request);
 			newTransaction.setTransactionManager(this);
 			
 			if (!request.isAck())
@@ -68,13 +85,38 @@ public class TransactionManager extends SipProcessorWrapper
 				
 				if (transaction == null)
 					_serverTxStats.increment();
+				// transaction may be not null on some concurrent access as there
+				// is no lock between get and set Tx
 			}
 		}
 		
-		if (transaction != null)
+		if (transaction != null) // retransmission or ACK for negative response
 			transaction.handleRequest(request);
 		else
-			super.doProcess(request);
+		{
+			// TODO move to Session
+			if (request.isCancel())
+			{
+				String txBranch = request.getTopVia().getBranch();
+				ServerTransaction stx = _serverTransactions.get(txBranch);
+				if (stx == null)
+				{
+					if (LOG.isDebugEnabled())
+						LOG.debug("No transaction for cancelled branch {}", txBranch, null);
+					SipResponse unknown = (SipResponse) request
+							.createResponse(SipServletResponse.SC_CALL_LEG_DONE);
+					newTransaction.send(unknown);
+				}
+				else
+				{
+					SipResponse ok = (SipResponse) request.createResponse(SipServletResponse.SC_OK);
+					newTransaction.send(ok);
+					stx.cancel(request);
+				}
+			}
+			else
+				super.doProcess(request);
+		}
 	}
 	
 	public void doProcessResponse(SipResponse response) throws Exception

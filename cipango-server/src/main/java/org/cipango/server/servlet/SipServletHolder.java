@@ -16,19 +16,22 @@ import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.server.SipMessage;
-import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.util.Loader;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
+import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.log.Logger;
 
 
 public class SipServletHolder extends AbstractLifeCycle implements Comparable<SipServletHolder>
 {
+	private static final Logger LOG = Log.getLogger(SipServletHolder.class);
+	
 	private String _name;
 	
 	protected String _className;
 	protected Class<? extends SipServlet> _class;
 	
-	private Servlet _servlet;
+	private SipServlet _servlet;
 	private Config _config;
 	
 	private long _unavailable;
@@ -41,6 +44,8 @@ public class SipServletHolder extends AbstractLifeCycle implements Comparable<Si
 	private String _displayName;
 	
 	private final Map<String, String> _initParams = new HashMap<String, String>();
+	
+	private transient UnavailableException _unavailableEx;
 	
 	public void doStart() throws Exception
 	{
@@ -161,7 +166,15 @@ public class SipServletHolder extends AbstractLifeCycle implements Comparable<Si
 		return _servlet;
 	}
 	
-	protected Servlet newInstance() throws InstantiationException, IllegalAccessException, ServletException 
+    /** Get the servlet instance (no initialization done).
+     * @return The servlet or null
+     */
+    public Servlet getServletInstance()
+    {
+        return _servlet;
+    }
+	
+	protected SipServlet newInstance() throws InstantiationException, IllegalAccessException, ServletException 
 	{
 		try
 		{
@@ -192,12 +205,56 @@ public class SipServletHolder extends AbstractLifeCycle implements Comparable<Si
 				_config = new Config();
 			
 			_servlet.init(_config);
+			
+			if (_servletHandler != null && _servletHandler.getServer() != null
+					&& _servletHandler.getServer().isStarted())
+			{
+				_servletHandler.getAppContext().fireServletInitialized(_servlet);
+			}
 		}
-		catch (Exception e)
-		{
-			e.printStackTrace(); // TODO complete
-		}
+		catch (UnavailableException e)
+        {
+            makeUnavailable(e);
+            _servlet=null;
+            _config=null;
+            throw e;
+        }
+        catch (ServletException e)
+        {
+            makeUnavailable(e.getCause()==null?e:e.getCause());
+            _servlet=null;
+            _config=null;
+            throw e;
+        }
+        catch (Exception e)
+        {
+            makeUnavailable(e);
+            _servlet=null;
+            _config=null;
+            throw new ServletException(this.toString(),e);
+        }
 	}
+	
+    private void makeUnavailable(final Throwable e)
+    {
+        if (e instanceof UnavailableException)
+            makeUnavailable((UnavailableException)e);
+        else
+        {
+            ServletContext ctx = _servletHandler.getServletContext();
+            if (ctx==null)
+                LOG.info("unavailable",e);
+            else
+                ctx.log("unavailable",e);
+            _unavailableEx=new UnavailableException(String.valueOf(e),-1)
+            {
+                {
+                    initCause(e);
+                }
+            };
+            _unavailable=-1;
+        }
+    }
 	
 	public String getInitParameter(String name)
 	{

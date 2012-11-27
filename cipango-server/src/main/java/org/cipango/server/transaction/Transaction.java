@@ -21,7 +21,6 @@ import org.cipango.server.SipConnection;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipServer;
 import org.cipango.server.transaction.TransactionManager.TimerTask;
-//import org.cipango.util.TimerTask;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
@@ -132,7 +131,6 @@ public abstract class Transaction
 	
 	protected SipServer getServer()
 	{
-		//return _request.getCallSession().getServer();
 		return _transactionManager.getServer();
 	}
 	
@@ -146,7 +144,6 @@ public abstract class Transaction
 		TimerTask task = _timerTasks.get(timer);
 		if (task != null)
 			task.cancel();
-		//_timerTasks.put(timer, getCallSession().schedule(new Timeout(timer), delay));
 		_timerTasks.put(timer, _transactionManager.schedule(new Timeout(timer), delay));
 	}
 	
@@ -154,27 +151,10 @@ public abstract class Transaction
 	{
 		TimerTask task = _timerTasks.get(timer);
 		if (task != null)
-			//getCallSession().cancel(task);
 			task.cancel();
 		_timerTasks.remove(timer);
 	}
 	
-	/*protected void startTimer(Timer timer, long delay)
-	{
-		TimerTask task = _timerTasks.get(timer);
-		if (task != null)
-			//getCallSession().cancel(task);
-			_transactionManager.cancel(task);
-		_timerTasks.put(timer, getCallSession().schedule(new Timeout(timer), delay));
-	}
-	
-	protected void cancelTimer(Timer timer)
-	{
-		TimerTask task = _timerTasks.get(timer);
-		if (task != null)
-			getCallSession().cancel(task);
-		_timerTasks.remove(timer);
-	}*/
 	
 	public SipRequest getRequest()
 	{

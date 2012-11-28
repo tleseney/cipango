@@ -11,11 +11,16 @@ public abstract class AbstractSipHandler extends ContainerLifeCycle implements S
 	
 	public void setServer(SipServer server) 
 	{
-		_server = server;
+		if (_server==server)
+            return;
+        if (isStarted())
+            throw new IllegalStateException(STARTED);
+        _server = server;
 	}
 
 	public SipServer getServer() 
 	{
 		return _server;
 	}
+		
 }

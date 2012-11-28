@@ -40,7 +40,7 @@ public enum SipHeader
 	
 	DATE("Date"),
 	ERROR_INFO("Error-Info", Type.PARAMETERABLE, false, true, true),
-	EVENT("Event"),
+	EVENT("Event", Type.PARAMETERABLE, false, false, false),
 	EXPIRES("Expires"),
 	
 	HISTORY_INFO("History-Info"),

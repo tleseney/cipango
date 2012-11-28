@@ -102,7 +102,7 @@ public class Main
 		SipServletHolder holder = new SipServletHolder();
 		holder.setServlet(testServlet);
 		holder.setInitOrder(1);
-		context.getSipServletHandler().addServlet(holder);
+		context.getServletHandler().addServlet(holder);
 		context.addEventListener(testServlet);
 		
 		HandlerCollection webHandler = new HandlerCollection();
@@ -150,7 +150,7 @@ public class Main
 		SipServletHolder holder = new SipServletHolder();
 		holder.setServlet(testServlet);
 		holder.setInitOrder(1);
-		context.getSipServletHandler().addServlet(holder);
+		context.getServletHandler().addServlet(holder);
 		context.addEventListener(testServlet);
 		
 		sipServer.setHandler(context);

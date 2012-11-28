@@ -116,7 +116,7 @@ public class MetaData
             a.apply();      
         
         if (_mainServletName != null)
-        	((SipAppContext) context).getSipServletHandler().setMainServletName(_mainServletName);
+        	((SipAppContext) context).getServletHandler().setMainServletName(_mainServletName);
         
         int version = SipAppContext.VERSION_11;
         if (_appName != null || getSipXml() == null)
@@ -139,9 +139,9 @@ public class MetaData
     
     protected SipServletHolder getServlet(SipAppContext context, String className)
 	{
-    	if (context.getSipServletHandler().getServlets() == null)
+    	if (context.getServletHandler().getServlets() == null)
     		return null;
-		for (SipServletHolder holder : context.getSipServletHandler().getServlets())
+		for (SipServletHolder holder : context.getServletHandler().getServlets())
 		{
 			if (className.equals(holder.getClassName()))
 				return holder;

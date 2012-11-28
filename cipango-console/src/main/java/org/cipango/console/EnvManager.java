@@ -96,6 +96,7 @@ public class EnvManager
 	public PropertyList getVersion() throws Exception
 	{
 		PropertyList properties = new PropertyList(_mbsc, JettyManager.SERVER, "version");
+		properties.addAll(new PropertyList(_mbsc, SipManager.SERVER, "version"));
 		properties.add(new Property("Startup Time", new Date(getRuntime().getStartTime())));
 		properties.add(new Property("Server Uptime", PrinterUtil.getDuration(getRuntime().getUptime())));
 		return properties;

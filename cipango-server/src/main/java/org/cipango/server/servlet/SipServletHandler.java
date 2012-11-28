@@ -16,9 +16,13 @@ import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.sipapp.SipServletMapping;
 import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.MultiException;
+import org.eclipse.jetty.util.annotation.ManagedAttribute;
+import org.eclipse.jetty.util.annotation.ManagedObject;
+import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
+@ManagedObject("SIP Servlet handler")
 public class SipServletHandler extends AbstractSipHandler
 {
 	private final Logger LOG = Log.getLogger(SipServletHandler.class);
@@ -31,20 +35,36 @@ public class SipServletHandler extends AbstractSipHandler
 	private SipServletMapping[] _servletMappings;
 	private SipServletHolder _defaultServlet;
 	private SipAppContext _appContext;
-
 	
 	@Override
 	protected void doStart() throws Exception
 	{
 		_appContext = SipAppContext.getCurrentContext();
-		_servletContext = _appContext.getServletContext();
+		
+		if (_appContext != null)
+			_servletContext = _appContext.getServletContext();
 		
 		super.doStart();
-		initialize();
+		
+		if (_appContext == null)
+			initialize();
+		
 		if (_servlets != null && _servlets.length > 0)
 			_defaultServlet = _servlets[0];
 	}
 	
+    @Override
+    protected void start(LifeCycle l) throws Exception
+    {
+        //Don't start the whole object tree (ie all the servlet Holders) when
+        //this handler starts. They have a slightly special lifecycle, and should only be
+        //started AFTER the handlers have all started (and the ContextHandler has called
+        //the context listeners).
+        if (!(l instanceof SipServletHolder))
+            super.start(l);
+    }
+	
+	@ManagedAttribute(value="SIP servlets", readonly=true)
 	public SipServletHolder[] getServlets()
 	{
 		return _servlets;
@@ -61,9 +81,7 @@ public class SipServletHandler extends AbstractSipHandler
 	
 	public void addServlet(SipServletHolder holder)
 	{
-		SipServletHolder[] holders = getServlets();
-		
-		setServlets((SipServletHolder[]) ArrayUtil.addToArray(holders, holder, SipServletHolder.class));
+		setServlets(ArrayUtil.addToArray(getServlets(), holder, SipServletHolder.class));
 	}
 	
 	public SipServletHolder newSipServletHolder()
@@ -85,6 +103,7 @@ public class SipServletHandler extends AbstractSipHandler
 	
 	public void setServlets(SipServletHolder[] holders)
 	{
+		updateBeans(_servlets, holders);
 		_servlets = holders;
 		updateNameMappings();
 	}
@@ -226,6 +245,7 @@ public class SipServletHandler extends AbstractSipHandler
 				SipServletMapping.class));
 	}
 	
+	@ManagedAttribute(value="SIP servlet mappings", readonly=true)
 	public SipServletMapping[] getServletMappings()
 	{
 		return _servletMappings;
@@ -234,20 +254,16 @@ public class SipServletHandler extends AbstractSipHandler
 	
 	public void setServletMappings(SipServletMapping[] servletMappings)
 	{
-//		if (getServer() != null)
-//            getServer().getContainer().update(this, _servletMappings, servletMappings, "servletMapping", true);
-         
+		updateBeans(_servletMappings, servletMappings);
         _servletMappings = servletMappings;
     }
 	
 	public void setMainServletName(String name)
 	{
-		SipServletHolder previous = _mainServlet;
 		_mainServlet = getServlet(name);
-//		if (getServer() != null)
-//			getServer().getContainer().update(this, previous, _mainServlet, "mainServlet", true);
 	}
 	
+	@ManagedAttribute(value="Main servlet", readonly=true)
 	public SipServletHolder getMainServlet()
 	{
 		return _mainServlet;

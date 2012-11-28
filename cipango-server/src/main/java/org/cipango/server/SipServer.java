@@ -189,6 +189,7 @@ public class SipServer extends ContainerLifeCycle
 		_handler = handler;
 	}
 	
+	@ManagedAttribute(value="Handler", readonly=true)
 	public SipHandler getHandler()
 	{
 		return _handler;

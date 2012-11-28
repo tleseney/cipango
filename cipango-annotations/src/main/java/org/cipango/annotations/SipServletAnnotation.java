@@ -78,6 +78,6 @@ public class SipServletAnnotation extends DiscoveredAnnotation
         holder.setDisplayName(annotation.description());
         holder.setClassName(_className);
         
-        context.getSipServletHandler().addServlet(holder);
+        context.getServletHandler().addServlet(holder);
     }
 }

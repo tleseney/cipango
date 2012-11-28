@@ -59,7 +59,7 @@ public class TransactionManagerTest
 		_testServer.addConnector(connector);
 		_testContext = new SipAppContext();	
 		_testServer.setHandler(_testContext);
-		_testContext.getSipServletHandler().addServlet(DefaultServlet.class.getName());
+		_testContext.getServletHandler().addServlet(DefaultServlet.class.getName());
 		_testServer.start();
 
 	}
@@ -114,7 +114,7 @@ public class TransactionManagerTest
 		TestServlet testServlet = new TestServlet();
 		SipServletHolder holder = new SipServletHolder();
 		holder.setServlet(testServlet);
-		context.getSipServletHandler().addServlet(holder);
+		context.getServletHandler().addServlet(holder);
 		
 		context.start();
 		SipFactory factory = context.getSipFactory();

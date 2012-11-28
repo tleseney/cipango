@@ -36,10 +36,12 @@ public class SipManager
 	private static final String[] GET_MSG_SIGNATURE = { Integer.class.getName(), String.class.getName() };
 	
 	public static final ObjectName 
+		SERVER = ObjectNameFactory.create("org.cipango.server:type=sipserver,id=0"),
 		CONNECTOR_MANAGER = ObjectNameFactory.create("org.cipango.server:type=connectormanager,id=0"),
 		CONSOLE_LOGGER = ObjectNameFactory.create("org.cipango.callflow:type=jmxmessagelog,id=0"),
 		FILE_MESSAGE_LOG = ObjectNameFactory.create("org.cipango.server.log:type=filemessagelog,id=0"),
-		TRANSACTION_MANAGER = ObjectNameFactory.create("org.cipango.server.transaction:type=transactionmanager,id=0");
+		HANDLER_COLLECTION = ObjectNameFactory.create("org.cipango.server.handler:type=sipcontexthandlercollection,id=0"),
+		TRANSACTION_MANAGER = ObjectNameFactory.create("org.cipango.server.transaction:type=transactionmanager,id=0");;
 	
 	public static final Action CHANGE_TIME_GRAPH = Action.add(new Action(MenuImpl.STATISTICS_SIP, "change-time")
 	{
@@ -125,14 +127,14 @@ public class SipManager
 	
 	public PropertyList getCallStats() throws Exception
 	{
-		ObjectName sessionManager = (ObjectName) _mbsc.getAttribute(JettyManager.SERVER, "sessionManager");
+		ObjectName sessionManager = (ObjectName) _mbsc.getAttribute(SERVER, "sessionManager");
 		return new PropertyList(_mbsc, sessionManager, "sip.callSessions");
 	}
 	
 	
 	public Table getAppSessionStats() throws Exception
 	{
-		ObjectName[] contexts = PrinterUtil.getSipAppContexts(_mbsc);
+		ObjectName[] contexts =  (ObjectName[]) _mbsc.getAttribute(SipManager.HANDLER_COLLECTION, "sipContexts");
 		
 		Table table = new Table(_mbsc, contexts, "sip.applicationSessions");
 		for (Header header : table.getHeaders())
@@ -159,19 +161,19 @@ public class SipManager
 	
 	public String getStatsDuration() throws Exception
 	{
-		Long start = (Long) _mbsc.getAttribute(JettyManager.SERVER, "statsStartedAt");
+		Long start = (Long) _mbsc.getAttribute(SERVER, "statsStartedAt");
 		return  PrinterUtil.getDuration(System.currentTimeMillis() - start);
 	}	
 	
 	public Table getConnectorsConfig() throws Exception
 	{
-		ObjectName[] connectors = (ObjectName[]) _mbsc.getAttribute(CONNECTOR_MANAGER, "connectors");
+		ObjectName[] connectors = (ObjectName[]) _mbsc.getAttribute(SERVER, "connectors");
 		return new Table(_mbsc, connectors, "sip.connectors");
 	}
 	
 	public PropertyList getThreadPool() throws Exception
 	{
-		ObjectName threadPool = (ObjectName) _mbsc.getAttribute(JettyManager.SERVER, "sipThreadPool");
+		ObjectName threadPool = (ObjectName) _mbsc.getAttribute(SERVER, "threadPool");
 		
 		PropertyList properties = new PropertyList(_mbsc, threadPool, "sip.threadPool");
 		for (Property property : properties)
@@ -216,13 +218,13 @@ public class SipManager
 	@SuppressWarnings("unchecked")
 	public List<String> getCallIds() throws Exception
 	{
-		ObjectName sessionManager = (ObjectName) _mbsc.getAttribute(JettyManager.SERVER, "sessionManager");
+		ObjectName sessionManager = (ObjectName) _mbsc.getAttribute(SERVER, "sessionManager");
 		return (List<String>) _mbsc.getAttribute(sessionManager, "callIds");
 	}
 	
 	public String getCall(String callId) throws Exception
 	{
-		ObjectName sessionManager = (ObjectName) _mbsc.getAttribute(JettyManager.SERVER, "sessionManager");
+		ObjectName sessionManager = (ObjectName) _mbsc.getAttribute(SERVER, "sessionManager");
 		return (String) _mbsc.invoke(sessionManager, 
 				"viewCall",
 				new Object[] { callId }, 

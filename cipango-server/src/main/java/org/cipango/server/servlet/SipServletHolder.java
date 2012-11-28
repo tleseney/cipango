@@ -17,11 +17,13 @@ import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.server.SipMessage;
 import org.eclipse.jetty.util.Loader;
+import org.eclipse.jetty.util.annotation.ManagedAttribute;
+import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
-
+@ManagedObject("SIP servlet holder")
 public class SipServletHolder extends AbstractLifeCycle implements Comparable<SipServletHolder>
 {
 	private static final Logger LOG = Log.getLogger(SipServletHolder.class);
@@ -101,6 +103,7 @@ public class SipServletHolder extends AbstractLifeCycle implements Comparable<Si
         return _className;
     }
 	
+	@ManagedAttribute(value="Servlet name", readonly=true)
 	public String getName()
 	{
 		return _name;
@@ -309,7 +312,7 @@ public class SipServletHolder extends AbstractLifeCycle implements Comparable<Si
 		}
 	}
 
-
+	@ManagedAttribute(value="Init order", readonly=true)
 	public int getInitOrder()
 	{
 		return _initOrder;
@@ -321,6 +324,7 @@ public class SipServletHolder extends AbstractLifeCycle implements Comparable<Si
 		_initOrder = initOrder;
 	}
 
+	@ManagedAttribute(value="Display name", readonly=true)
 	public String getDisplayName()
 	{
 		return _displayName;
@@ -348,4 +352,10 @@ public class SipServletHolder extends AbstractLifeCycle implements Comparable<Si
             c=this.hashCode()>sh.hashCode()?1:-1;
             return c;
 	}
+	
+    @Override
+    public String toString()
+    {
+        return String.format("%s@%x==%s,%d,%b",_name,hashCode(),_className,_initOrder,_servlet!=null);
+    }
 }

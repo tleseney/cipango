@@ -45,7 +45,7 @@ public class MenuImpl implements Menu
 			@Override
 			public boolean isEnabled(MBeanServerConnection c) throws IOException
 			{
-				return c.isRegistered(SipManager.CONNECTOR_MANAGER);
+				return c.isRegistered(SipManager.SERVER);
 			}
 		}),
 		CONFIG_HTTP = CONFIG.add(new PageImpl("configuration-http.vm", "HTTP Configuration", "HTTP")),

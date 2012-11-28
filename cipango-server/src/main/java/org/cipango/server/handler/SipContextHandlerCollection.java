@@ -322,6 +322,8 @@ public class SipContextHandlerCollection extends AbstractSipHandler implements R
 		if (isStarted() && context.hasSipServlets())
 			_applicationRouter.applicationUndeployed(Arrays.asList(context.getName()));
 		context.removeLifeCycleListener(_lifecycleListener);
+		
+		removeBean(context);
 	}
 	
 	private void setSipContexts(SipAppContext[] sipContexts)
@@ -332,8 +334,6 @@ public class SipContextHandlerCollection extends AbstractSipHandler implements R
                 if (handler.getServer()!=getServer())
                     handler.setServer(getServer());
             }   
-
-        // FIXME updateBeans(_sipContexts, sipContexts);
 		_sipContexts = sipContexts;
 	}
 
@@ -392,6 +392,11 @@ public class SipContextHandlerCollection extends AbstractSipHandler implements R
 			{
 				_applicationRouter.applicationDeployed(Arrays.asList(context.getName()));
 			}
+			
+			// Add bean here, to ensure that as context is already started, the 
+			// MBean could have the right name.
+			addBean(context);
+			manage(context);
 		}
 
 		@Override

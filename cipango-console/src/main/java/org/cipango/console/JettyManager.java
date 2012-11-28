@@ -20,7 +20,7 @@ public class JettyManager
 {
 	
 	public static final ObjectName 
-		SERVER = ObjectNameFactory.create("org.cipango.server:type=server,id=0"),
+		SERVER = ObjectNameFactory.create("org.eclipse.jetty.server:type=server,id=0"),
 		HTTP_LOG = ObjectNameFactory.create("org.eclipse.jetty:type=ncsarequestlog,id=0");
 	
 	public static final Action ENABLE_STATS = Action.add(new Action(MenuImpl.STATISTICS_HTTP, "enable-statistics")

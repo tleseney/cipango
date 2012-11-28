@@ -77,7 +77,7 @@ public class SipXmlConfiguration extends AbstractConfiguration
 	{
 		// TODO preserve any configuration that pre-existed.
 		SipAppContext sac = context.getBean(SipAppContext.class);
-        SipServletHandler servletHandler = sac.getSipServletHandler();
+        SipServletHandler servletHandler = sac.getServletHandler();
        
         servletHandler.setServlets(null);
         servletHandler.setServletMappings(null);

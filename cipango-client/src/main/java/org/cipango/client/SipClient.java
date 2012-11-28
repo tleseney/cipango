@@ -68,8 +68,8 @@ public class SipClient extends AbstractLifeCycle
 		holder.setServlet(new ClientServlet());
 		holder.setName(ClientServlet.class.getName());
 		
-		_context.getSipServletHandler().addServlet(holder);
-		_context.getSipServletHandler().setMainServletName(ClientServlet.class.getName());
+		_context.getServletHandler().addServlet(holder);
+		_context.getServletHandler().setMainServletName(ClientServlet.class.getName());
 		
 		_server.setHandler(_context);
 	}

@@ -155,7 +155,7 @@ public class TlsChannelConnector extends SelectChannelConnector
 		sipServer.addConnector(connector);
 		
 		SipAppContext context = new SipAppContext();
-		context.getSipServletHandler().addServlet(DefaultServlet.class.getName());
+		context.getServletHandler().addServlet(DefaultServlet.class.getName());
 		
 		sipServer.setHandler(context);
 		

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
@@ -30,6 +31,7 @@ import org.cipango.console.util.Attributes;
 import org.cipango.console.util.ObjectNameFactory;
 import org.cipango.console.util.Parameters;
 import org.cipango.console.util.PrinterUtil;
+import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
@@ -44,7 +46,7 @@ public class ApplicationManager
 	
 	private static boolean isContext(ObjectName objectName, MBeanServerConnection mbsc) throws Exception
 	{
-		ObjectName[] contexts = PrinterUtil.getContexts(mbsc);
+		ObjectName[] contexts = getWebAppContexts(mbsc);
 		for (ObjectName name : contexts)
 			if (name.equals(objectName))
 				return true;
@@ -160,54 +162,83 @@ public class ApplicationManager
 		_mbsc = mbsc;
 	}
 	
+	public ObjectName[] getSipAppContexts() throws Exception
+	{
+		return (ObjectName[]) _mbsc.getAttribute(SipManager.HANDLER_COLLECTION, "sipContexts");
+	}
+	
+	public static ObjectName[] getWebAppContexts(MBeanServerConnection mbsc) throws Exception
+	{
+		return (ObjectName[]) mbsc.getAttribute(JettyManager.SERVER, "contexts");
+	}
+	
 	public Table getSipContexts() throws Exception
 	{
-		ObjectName[] sipContexts = PrinterUtil.getSipAppContexts(_mbsc);
+		ObjectName[] sipContexts = getSipAppContexts();
+		List<ObjectName> webContexts = new ArrayList<ObjectName>(Arrays.asList(getWebAppContexts(_mbsc)));
 		
-		Table contextsTable = new Table(_mbsc, sipContexts, "appContexts");
-		
-		ObjectName[] otherContexts = PrinterUtil.getNonSipAppContexts(_mbsc);
-		if (otherContexts != null && otherContexts.length > 0)
+		List<String> sipParams = Arrays.asList(PrinterUtil.getParams("appContexts.sip"));
+		List<AppContext> contexts = new ArrayList<ApplicationManager.AppContext>();
+		for (ObjectName sipContext : sipContexts)
 		{
-			Table otherContextsTable = new Table(_mbsc, otherContexts, "otherContexts");
-			for (Row row : otherContextsTable)
-			{
-				int index = 0;
-				for (Header header : contextsTable.getHeaders())
-				{
-					Value value = row.get(header);
-					if (value == null)
-						row.getValues().add(index, new Value("N/A", header));
-					index++;
-				}
-				contextsTable.add(row);
-			}
+			ObjectName webContext = (ObjectName) _mbsc.getAttribute(sipContext, "webAppContext");
+			contexts.add(new AppContext(sipContext, webContext, _mbsc, sipParams));
+			webContexts.remove(webContext);
 		}
+		for (ObjectName webContext : webContexts)
+			contexts.add(new AppContext(null, webContext, _mbsc, sipParams));
 		
-		for (Row row : contextsTable)
+		
+		Table table = new Table();
+		List<Header> headers = table.getHeaders(_mbsc, contexts.isEmpty() ? null : contexts.get(0)._sipAppContext, "appContexts.sip");
+		headers.addAll(table.getHeaders(_mbsc, contexts.isEmpty() ? null : contexts.get(0)._webAppContext, "appContexts.web"));
+		table.setHeaders(headers);
+		table.setTitle(PrinterUtil.getTitle("appContexts.web"));
+		
+		for (AppContext appContext : contexts)
 		{
-			boolean running = (Boolean) _mbsc.getAttribute(row.getObjectName(), "running");
-			if (running)
+			Row row = new Row();
+			List<Value> values = row.getValues();
+			for (Header header : headers)
+				values.add(new Value(appContext.getAttribute(header.getSimpleName()), header));
+			row.setObjectName(appContext._webAppContext);
+			table.add(row);
+		}
+				
+		for (Row row : table)
+		{
+			if (isRunning(row.getObjectName()))
 				row.addOperation(new Operation(STOP_APP, row.getObjectName(), _mbsc));
 			else
 				row.addOperation(new Operation(START_APP, row.getObjectName(), _mbsc));
 			
 			row.addOperation(new Operation(UNDEPLOY_APP, row.getObjectName(), _mbsc));
 		}
-		return contextsTable;
+		return table;
+	}
+	
+	public boolean isRunning(ObjectName objectName) throws AttributeNotFoundException, InstanceNotFoundException, MBeanException, ReflectionException, IOException
+	{
+		String state = (String) _mbsc.getAttribute(objectName, "state");
+		return state.equals(AbstractLifeCycle.STARTED) || state.equals(AbstractLifeCycle.STARTING);
+	}
+	
+	public ObjectName getWebAppContext(ObjectName sipAppContext) throws Exception
+	{
+		return (ObjectName) _mbsc.getAttribute(sipAppContext, "webAppContext");
 	}
 	
 	public List<Context> getSipMappings() throws Exception
 	{
 		List<Context> l = new ArrayList<ApplicationManager.Context>();
-		ObjectName[] sipContexts = PrinterUtil.getSipAppContexts(_mbsc);
+		ObjectName[] sipContexts = getSipAppContexts();
 		
 		for (ObjectName objectName : sipContexts)
 		{
 			Context context = new Context((String) _mbsc.getAttribute(objectName, "name"));
 
 			ObjectName servletHandler = (ObjectName) _mbsc.getAttribute(objectName, "servletHandler");
-			ObjectName[] sipServletMappings = (ObjectName[]) _mbsc.getAttribute(servletHandler, "sipServletMappings");
+			ObjectName[] sipServletMappings = (ObjectName[]) _mbsc.getAttribute(servletHandler, "servletMappings");
 	
 			if (sipServletMappings != null && sipServletMappings.length != 0)
 				context.setMappings(new Table(_mbsc, sipServletMappings, "mappings"));
@@ -398,5 +429,32 @@ public class ApplicationManager
 			return _applicationName;
 		}
 		
+	}
+	
+	public static class AppContext
+	{
+		private ObjectName _sipAppContext;
+		private ObjectName _webAppContext;
+		private List<String> _sipAppContextFields;
+		private MBeanServerConnection _mbsc;
+		
+		public AppContext(ObjectName sipAppContext, ObjectName webAppContext, MBeanServerConnection mbsc, List<String> sipAppContextFields)
+		{
+			_sipAppContext = sipAppContext;
+			_webAppContext = webAppContext;
+			_mbsc = mbsc;
+			_sipAppContextFields = sipAppContextFields;
+		}
+			
+		public Object getAttribute(String name) throws AttributeNotFoundException, InstanceNotFoundException, MBeanException, ReflectionException, IOException
+		{
+			if (_sipAppContextFields.contains(name))
+			{
+				if (_sipAppContext == null)
+					return "N/A";
+				return _mbsc.getAttribute(_sipAppContext, name);
+			}
+			return _mbsc.getAttribute(_webAppContext, name);
+		}
 	}
 }

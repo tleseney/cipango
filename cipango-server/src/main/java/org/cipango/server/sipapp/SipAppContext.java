@@ -176,12 +176,14 @@ public class SipAppContext extends SipHandlerWrapper
 			// }
 			_metaData.resolve(SipAppContext.this);
 	
-			_servletHandler.start();
+			super.doStart();
+			
+			_servletHandler.initialize();
 	
 			for (Decorator decorator : _decorators)
 			{
-				if (getSipServletHandler().getServlets() != null)
-					for (SipServletHolder holder : getSipServletHandler().getServlets())
+				if (getServletHandler().getServlets() != null)
+					for (SipServletHolder holder : getServletHandler().getServlets())
 						decorator.decorateServletHolder(holder);
 			}
 	
@@ -200,7 +202,6 @@ public class SipAppContext extends SipHandlerWrapper
 			}
 			
 			
-			super.doStart();
 		}
 		finally
 		{
@@ -212,10 +213,7 @@ public class SipAppContext extends SipHandlerWrapper
 	
 	protected void doStop() throws Exception
 	{
-		super.doStop();
-		if (hasSipServlets() && _context != null && _context.isAvailable())
-//				getServer().applicationStopped(this);
-		
+		super.doStop();	
 				
 //			if (_sipSecurityHandler != null)
 //				_sipSecurityHandler.stop();
@@ -281,10 +279,13 @@ public class SipAppContext extends SipHandlerWrapper
 						externals.add(new ReadOnlySipURI(connector.getURI()));
 				}
 			}
-			_context.setAttribute(SipServlet.OUTBOUND_INTERFACES, Collections.unmodifiableList(outbounds));
-			_context.setAttribute(EXTERNAL_INTERFACES, Collections.unmodifiableList(externals));
+			if (_context != null) // Could be null is some tests
+			{
+				_context.setAttribute(SipServlet.OUTBOUND_INTERFACES, Collections.unmodifiableList(outbounds));
+				_context.setAttribute(EXTERNAL_INTERFACES, Collections.unmodifiableList(externals));
+			}
 			
-			SipServletHolder[] holders = getSipServletHandler().getServlets();
+			SipServletHolder[] holders = getServletHandler().getServlets();
 			if (holders != null)
 			{
 				for (SipServletHolder holder : holders)
@@ -326,6 +327,8 @@ public class SipAppContext extends SipHandlerWrapper
 		_context = context;
 		// As WebAppContextListener is added, this class already managed by WebAppContext.
 		context.addBean(this, false);
+		//context.manage(this);
+		
 		WebAppContextListener l = new WebAppContextListener();
 		context.addLifeCycleListener(l);
 		
@@ -390,14 +393,7 @@ public class SipAppContext extends SipHandlerWrapper
 			name = name.substring(1);
 		return name;
     }
-		
-
-	
-	public SipServletHandler getSipServletHandler()
-	{
-		return _servletHandler;
-	}
-		
+				
 	public EventListener[] getEventListeners()
     {
         return _context.getEventListeners();
@@ -540,6 +536,16 @@ public class SipAppContext extends SipHandlerWrapper
 	{
 		return _specVersion;
 	}
+	
+	@ManagedAttribute(value="specification version", readonly=true)
+	public String getSpecVersionAsString()
+	{
+		if (_specVersion == VERSION_10)
+			return "1.0";
+		if (_specVersion == VERSION_11)
+			return "1.1";
+		return "Unknown";
+	}
 
 	public void setSpecVersion(int specVersion)
 	{
@@ -554,7 +560,7 @@ public class SipAppContext extends SipHandlerWrapper
 	
 	public boolean hasSipServlets()
     {
-    	SipServletHolder[] holders = getSipServletHandler().getServlets();
+    	SipServletHolder[] holders = getServletHandler().getServlets();
     	return holders != null && holders.length != 0;
     }
 	
@@ -850,7 +856,7 @@ public class SipAppContext extends SipHandlerWrapper
 			String cid = appSession.getSessionManager().newCallId();
 
 			Session session = appSession.createUacSession(cid, local, remote);
-			session.setHandler(getSipServletHandler().getDefaultServlet());
+			session.setHandler(getServletHandler().getDefaultServlet());
 
 			SipRequest request = (SipRequest) session.createRequest(method);
 			request.setRoutingDirective(SipApplicationRoutingDirective.NEW, null);

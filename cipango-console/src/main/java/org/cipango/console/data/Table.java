@@ -63,24 +63,32 @@ public class Table extends AbstractList<Row>
 		}
 	}
 	
+		
 	public Table(MBeanServerConnection connection, ObjectName[] objectNames, String propertyName) throws Exception
 	{
 		this(connection, new HashSet<ObjectName>(Arrays.asList(objectNames)), propertyName);
 	}
 	
-	private List<Header> getHeaders(MBeanServerConnection connection, Set<ObjectName> objectNameSet, String propertyName) throws Exception
+	public List<Header> getHeaders(MBeanServerConnection connection, Set<ObjectName> objectNameSet, String propertyName) throws Exception
+	{
+		ObjectName objectName = null;
+		if (objectNameSet != null && !objectNameSet.isEmpty())
+			objectName = objectNameSet.iterator().next();
+		return getHeaders(connection, objectName, propertyName);
+	}
+	
+	public List<Header> getHeaders(MBeanServerConnection connection, ObjectName objectName, String propertyName) throws Exception
 	{
 		String[] params = PrinterUtil.getParams(propertyName);
 		List<Header> headers = new ArrayList<Row.Header>();
-		if (objectNameSet == null || objectNameSet.isEmpty())
+		if (objectName == null)
 		{
 			for (String param : params)
 				headers.add(new Header(param, param));
 		}
 		else
 		{
-			Iterator<ObjectName> it = objectNameSet.iterator();
-			MBeanInfo info = connection.getMBeanInfo(it.next());
+			MBeanInfo info = connection.getMBeanInfo(objectName);
 			MBeanAttributeInfo[] attrInfos = info.getAttributes();
 			for (String param : params)
 			{
@@ -100,6 +108,8 @@ public class Table extends AbstractList<Row>
 		}
 		return headers;
 	}
+	
+	
 	
 	public String getTitle()
 	{

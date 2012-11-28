@@ -612,7 +612,7 @@ public class Session implements SipSessionIf
 		checkValid();
 		
 		SipAppContext context = _applicationSession.getContext();
-		SipServletHolder handler = context.getSipServletHandler().getHolder(name);
+		SipServletHolder handler = context.getServletHandler().getHolder(name);
 		
 		if (handler == null)
 			throw new ServletException("No handler named " + name);

@@ -224,7 +224,7 @@ public class StandardDescriptorProcessor extends IterativeDescriptorProcessor
 		mapping.setServletName(servletName);
 		mapping.setMatchingRule(rule);
         
-       getContext(context).getSipServletHandler().addServletMapping(mapping);
+       getContext(context).getServletHandler().addServletMapping(mapping);
     }
 
 	@SuppressWarnings("rawtypes")

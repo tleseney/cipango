@@ -78,7 +78,9 @@ public class SipRequest extends SipMessage implements SipServletRequest
     private URI _subscriberURI;
     
     private Proxy _proxy;
-
+    private B2buaHelper _b2bHelper;
+	private SipRequest _linkedRequest;
+	
     private boolean _nextHopStrictRouting = false;
 	
     public SipRequest()
@@ -90,7 +92,7 @@ public class SipRequest extends SipMessage implements SipServletRequest
     	super(other);
     	_requestUri = other._requestUri.clone();
     }
-    
+
 	public boolean isRequest()
 	{
 		return true;
@@ -375,8 +377,14 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	@Override
 	public B2buaHelper getB2buaHelper()
 	{
-		// TODO Auto-generated method stub
-		return null;
+		if (_b2bHelper != null)
+			return _b2bHelper;
+
+		if (_proxy != null)
+			throw new IllegalStateException("getProxy() had already been called");
+
+		_b2bHelper = B2bHelper.getInstance();
+		return _b2bHelper;
 	}
 
 	@Override
@@ -413,6 +421,9 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	{
 		if (_proxy != null || !create)
 			return _proxy;
+
+		if (_b2bHelper != null)
+			throw new IllegalStateException("getB2buaHelper() had already been called");
 
 		if (!_transaction.isServer())
 			throw new IllegalStateException("Not a received request");
@@ -639,7 +650,17 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
+    public SipRequest getLinkedRequest()
+    {
+    	return _linkedRequest;
+    }
+    
+    public void setLinkedRequest(SipRequest request)
+    {
+    	_linkedRequest = request;
+    }
+    
 	public Serializable getStateInfo()
 	{
 		return _stateInfo;
@@ -721,5 +742,4 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	{
 		__strictRoutingEnabled = strictRoutingEnabled;
 	}
-
 }

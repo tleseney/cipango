@@ -192,6 +192,11 @@ public class TransactionManagerTest
 		public void customizeRequest(SipRequest request, SipConnection connection)
 		{
 		}
+
+		@Override
+		public void transactionTerminated(Transaction transaction)
+		{
+		}
 		
 		public void assertDone(int msgExpected) throws Exception
 		{			
@@ -214,6 +219,5 @@ public class TransactionManagerTest
 			if (_responses.size() != msgExpected)
 				Assert.fail("Received " + _responses.size() + " messages when expected " + msgExpected);
 		}
-		
 	}
 }

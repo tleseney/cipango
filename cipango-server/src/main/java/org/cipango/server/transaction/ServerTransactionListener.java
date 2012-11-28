@@ -19,7 +19,7 @@ import java.io.IOException;
 
 import org.cipango.server.SipRequest;
 
-public interface ServerTransactionListener
+public interface ServerTransactionListener extends TransactionListener
 {
     void handleCancel(ServerTransaction tx, SipRequest cancel) throws IOException;
 }

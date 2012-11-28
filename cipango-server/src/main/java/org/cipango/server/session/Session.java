@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 
@@ -38,6 +39,7 @@ import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.ClientTransaction;
 import org.cipango.server.transaction.ClientTransactionListener;
 import org.cipango.server.transaction.ServerTransaction;
+import org.cipango.server.transaction.Transaction;
 import org.cipango.server.util.ReadOnlyAddress;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipException;
@@ -45,6 +47,8 @@ import org.cipango.sip.SipFields;
 import org.cipango.sip.SipFields.Field;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
+import org.cipango.util.TimerTask;
+import org.eclipse.jetty.util.LazyList;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
@@ -66,13 +70,17 @@ public class Session implements SipSessionIf
 	
 	protected Map<String, Object> _attributes;
 	
+	protected List<ServerTransaction> _serverTransactions = new ArrayList<ServerTransaction>(1);
+	protected List<ClientTransaction> _clientTransactions = new ArrayList<ClientTransaction>(1);
+	
+	protected String _linkedSessionId;
+	
 	private boolean _valid = true;
 	private final long _created;
 	private long _lastAccessed;
 	
 	private DialogInfo _dialog;
 	private SipServletHolder _handler;
-	
 	private boolean _invalidateWhenReady = true;
 	
 	public Session(ApplicationSession applicationSession, String id, SipRequest request)
@@ -137,6 +145,16 @@ public class Session implements SipSessionIf
 	public boolean isProxy()
 	{
 		return _role == Role.PROXY;
+	}
+	
+	public void setLinkedSession(Session session) 
+	{ 
+		_linkedSessionId = session != null ? session.getId() : null;
+	}
+	
+	public Session getLinkedSession() 
+	{ 
+		return _linkedSessionId != null ? (Session) _applicationSession.getSipSession(_linkedSessionId) : null; 
 	}
 	
 	protected SipServer getServer()
@@ -246,11 +264,40 @@ public class Session implements SipSessionIf
 		if (isUA())
 		{
 			ServerTransaction tx = (ServerTransaction) response.getTransaction();
+			SipRequest request = (SipRequest) response.getRequest();
 			
 			if (tx == null || tx.isCompleted())
 				throw new IllegalStateException("no valid transaction");
 				
 			updateState(response, false);
+			
+			if (request.isInvite())
+			{
+				int status = response.getStatus();
+				long cseq = response.getCSeq().getNumber();
+				
+				if (200 <= status && (status < 300))
+				{
+					DialogInfo.ServerInvite invite = _dialog.getServerInvite(cseq, true);
+					invite.set2xx(response);
+				}
+//				else if ((100 < status) && (status < 200)  && reliable)
+//				{
+//					DialogInfo.ServerInvite invite = _dialog.getServerInvite(cseq, true);
+//					
+//					long rseq = _localRSeq++;
+//					response.getFields().addString(SipHeaders.REQUIRE_BUFFER, SipParams.REL_100);
+//					response.setRSeq(rseq);
+//					
+//					invite.addReliable1xx(response);
+//				}
+				else if (status >= 300)
+				{
+					DialogInfo.ServerInvite invite = _dialog.getServerInvite(cseq, false);
+					if (invite != null)
+						invite.stop1xxRetrans();
+				}
+			}
 			
 			tx.send(response);
 		}
@@ -566,7 +613,12 @@ public class Session implements SipSessionIf
 	{
 		return _valid;
 	}
-
+	
+	public boolean isTerminated()
+	{
+		return _state == State.TERMINATED || !_valid;
+	}
+	
 	/**
 	 * @see SipSession#removeAttribute(String)
 	 */
@@ -644,6 +696,50 @@ public class Session implements SipSessionIf
 			throw new NullPointerException("Null address");
 		// TODO Auto-generated method stub	
 	}
+
+	public void addServerTransaction(ServerTransaction transaction)
+	{
+		_serverTransactions.add(transaction);
+	}
+	
+	public void removeServerTransaction(ServerTransaction transaction)
+	{
+		_serverTransactions.remove(transaction);
+	}
+	
+	public List<ServerTransaction> getServerTransactions(SipSession session) 
+	{
+		List<ServerTransaction> list = new ArrayList<ServerTransaction>(_serverTransactions.size());
+		for (int i = 0; i < _serverTransactions.size(); i++)
+		{
+			ServerTransaction transaction = _serverTransactions.get(i);
+			if (transaction.getRequest().session().equals(session))
+				list.add(transaction);
+		}
+		return list;			
+	}
+	
+	public void addClientTransaction(ClientTransaction transaction)
+	{
+		_clientTransactions.add(transaction);
+	}
+	
+	public void removeClientTransaction(ClientTransaction transaction)
+	{
+		_clientTransactions.remove(transaction);
+	}
+	
+	public List<ClientTransaction> getClientTransactions(SipSession session) 
+	{
+		List<ClientTransaction> list = new ArrayList<ClientTransaction>(_clientTransactions.size());
+		for (int i = 0; i < _clientTransactions.size(); i++)
+		{
+			ClientTransaction transaction = _clientTransactions.get(i);
+			if (transaction.getRequest().session().equals(session))
+				list.add(transaction);
+		}
+		return list;
+	}
 	
 	public DialogInfo getUa()
 	{
@@ -656,6 +752,9 @@ public class Session implements SipSessionIf
 		protected long _remoteCSeq = -1;
 		protected URI _remoteTarget;
 		protected LinkedList<String> _routeSet;
+		
+		private Object _serverInvites;
+		private Object _clientInvites;
 		
 		protected boolean _secure = false;
 		
@@ -672,7 +771,22 @@ public class Session implements SipSessionIf
 			
 			return createRequest(sipMethod, method, _localCSeq++);
 		}
-				
+
+		public SipRequest createRequest(SipRequest srcRequest)
+		{
+			SipRequest request = new SipRequest(srcRequest);
+            
+            request.getFields().remove(SipHeader.RECORD_ROUTE.asString());
+            request.getFields().remove(SipHeader.VIA.asString());
+            request.getFields().remove(SipHeader.CONTACT.asString());
+            
+            setDialogHeaders(request, _localCSeq++);
+            		
+			request.setSession(Session.this);
+			
+			return request;
+		}
+		
 		public SipServletRequest createRequest(SipMethod sipMethod, long cseq)
 		{
 			return createRequest(sipMethod, sipMethod.asString(), cseq);
@@ -777,6 +891,12 @@ public class Session implements SipSessionIf
 			if (isTargetRefresh(request))
 				setRemoteTarget(request);
 			
+			if (!request.isAck())
+			{
+				if (isUA())
+					addServerTransaction((ServerTransaction) request.getTransaction());
+			}
+			
 //	FIXME		if (request.isAck())
 //			{
 //				ServerInvite invite = getServerInvite(_remoteCSeq, false);
@@ -843,13 +963,12 @@ public class Session implements SipSessionIf
 			
 			accessed();
 			
-//	FIXME		if (response.isInvite() && response.is2xx())
-//			{
-//				long cseq = response.getCSeq().getNumber();
-//				ClientInvite invite = getClientInvite(cseq, true);
-//				
-//				if (invite._2xx != null || invite._ack != null)
-//				{
+			if (response.isInvite() && response.is2xx())
+			{
+				long cseq = response.getCSeq().getNumber();
+				ClientInvite invite = getClientInvite(cseq, true);
+				if (invite._2xx != null || invite._ack != null)
+				{
 //					if (invite._ack != null)
 //					{
 //						try
@@ -862,15 +981,15 @@ public class Session implements SipSessionIf
 //							LOG.ignore(e);
 //						}
 //					}
-//					return;
-//				}
-//				else
-//				{
-//					invite._2xx = response;
-//				}
-//			}
-//			else if (response.isReliable1xx())
-//			{
+					return;
+				}
+				else
+				{
+					invite._2xx = response;
+				}
+			}
+			else if (response.isReliable1xx())
+			{
 //				long rseq = response.getRSeq();
 //				if (_remoteRSeq != -1 && (_remoteRSeq + 1 != rseq))
 //				{
@@ -879,12 +998,12 @@ public class Session implements SipSessionIf
 //					return;
 //				}
 //				_remoteRSeq = rseq;
-//				long cseq = response.getCSeq().getNumber();
-//				ClientInvite invite = getClientInvite(cseq, true);
-//				invite.addReliable1xx(response);
-//			}
-//			else
-//				response.setCommitted(true);
+				long cseq = response.getCSeq().getNumber();
+				ClientInvite invite = getClientInvite(cseq, true);
+				invite.addReliable1xx(response);
+			}
+			else
+				response.setCommitted(true);
 			
 			updateState(response, true);
 			
@@ -931,6 +1050,379 @@ public class Session implements SipSessionIf
 		{
 			// TODO Auto-generated method stub
 			
+		}
+		
+		@Override
+		public void transactionTerminated(Transaction transaction)
+		{
+			if (isUA())
+			{
+				if (transaction.isServer())
+				{
+					removeServerTransaction((ServerTransaction)transaction);
+					if (transaction.isInvite())
+					{
+						long cseq = transaction.getRequest().getCSeq().getNumber();
+						removeServerInvite(cseq);
+					}
+				}
+				else
+					removeClientTransaction((ClientTransaction)transaction);
+			}
+		}
+		
+		private ClientInvite getClientInvite(long cseq, boolean create)
+		{
+			for (int i = LazyList.size(_clientInvites); i-->0;)
+			{
+				ClientInvite invite = (ClientInvite) LazyList.get(_clientInvites, i);
+	            if (invite.getCSeq() == cseq)
+	            	return invite;
+			}
+			if (create)
+			{
+				ClientInvite invite = new ClientInvite(cseq);
+				_clientInvites = LazyList.add(_clientInvites, invite);
+				
+				if (LOG.isDebugEnabled())
+					LOG.debug("added client invite context with cseq " + cseq);
+				return invite;
+			}
+			return null;
+		}
+		
+		private ServerInvite getServerInvite(long cseq, boolean create)
+		{
+			for (int i = LazyList.size(_serverInvites); i-->0;)
+			{
+				ServerInvite invite = (ServerInvite) LazyList.get(_serverInvites, i);
+	            if (invite.getSeq() == cseq)
+	            	return invite;
+			}
+			if (create)
+			{
+				ServerInvite invite = new ServerInvite(cseq);
+				_serverInvites = LazyList.add(_serverInvites, invite);
+				
+				if (LOG.isDebugEnabled())
+					LOG.debug("added server invite context with cseq " + cseq);
+				
+				return invite;
+			}
+			return null;
+		}
+		
+		private ServerInvite removeServerInvite(long cseq)
+		{
+			for (int i = LazyList.size(_serverInvites); i-->0;)
+			{
+				ServerInvite invite = (ServerInvite) LazyList.get(_serverInvites, i);
+				if (invite.getSeq() == cseq)
+				{
+					_serverInvites = LazyList.remove(_serverInvites, i);
+            	
+					if (LOG.isDebugEnabled())
+						LOG.debug("removed server invite context for cseq " + cseq);
+					return invite;
+				}
+			}
+			return null;
+	    }
+		
+		public List<SipServletResponse> getUncommitted1xx(UAMode mode)
+		{
+			List<SipServletResponse> list = null;
+			if (mode == UAMode.UAS)
+			{
+				for (int i = LazyList.size(_serverInvites); i-->0;)
+				{
+					ServerInvite invite = (ServerInvite) LazyList.get(_serverInvites, i);
+					for (int j = LazyList.size(invite._reliable1xxs); j-->0;)
+					{
+						ServerInvite.Reliable1xx reliable1xx = (ServerInvite.Reliable1xx) LazyList.get(invite._reliable1xxs, j);
+						SipResponse response = reliable1xx.getResponse();
+						if (response != null && !response.isCommitted())
+						{
+							if (list == null)
+								list = new ArrayList<SipServletResponse>();
+							list.add(response);
+						}
+					}
+				}
+			}
+			else
+			{
+				for (int i = LazyList.size(_clientInvites); i-->0;)
+				{
+					ClientInvite invite = (ClientInvite) LazyList.get(_clientInvites, i);
+					for (int j = LazyList.size(invite._reliable1xxs); j-->0;)
+					{
+						ClientInvite.Reliable1xxClient reliable1xx = (ClientInvite.Reliable1xxClient) LazyList.get(invite._reliable1xxs, j);
+						SipResponse response = reliable1xx.getResponse();
+						if (response != null && !response.isCommitted())
+						{
+							if (list == null)
+								list = new ArrayList<SipServletResponse>();
+							list.add(response);
+						}
+					}
+				}
+			}
+			if (list == null)
+				return Collections.emptyList();
+			else
+				return list;
+		}
+		
+		public List<SipServletResponse> getUncommitted2xx(UAMode mode)
+		{
+			List<SipServletResponse> list = null;
+			if (mode == UAMode.UAS)
+			{
+				for (int i = LazyList.size(_serverInvites); i-->0;)
+				{
+					ServerInvite invite = (ServerInvite) LazyList.get(_serverInvites, i);
+					SipResponse response = invite.getResponse();
+					if (response != null && !response.isCommitted())
+					{
+						if (list == null)
+							list = new ArrayList<SipServletResponse>();
+						list.add(response);
+					}
+				}
+			}
+			else
+			{
+				for (int i = LazyList.size(_clientInvites); i-->0;)
+				{
+					ClientInvite invite = (ClientInvite) LazyList.get(_clientInvites, i);
+					if (invite._2xx != null && !invite._2xx.isCommitted())
+					{
+						if (list == null)
+							list = new ArrayList<SipServletResponse>();
+						list.add(invite._2xx);
+					}
+				}
+			}
+			if (list == null)
+				return Collections.emptyList();
+			else
+				return list;
+		}
+		
+		class ClientInvite
+		{
+			private long _cseq;
+			private SipRequest _ack;
+			private SipResponse _2xx;
+			private Object _reliable1xxs;
+		
+			public ClientInvite(long cseq) { _cseq = cseq; }
+			public long getCSeq() { return _cseq; }
+			
+			public void addReliable1xx(SipResponse response)
+			{
+				Reliable1xxClient reliable1xx = new Reliable1xxClient(response);
+				_reliable1xxs = LazyList.add(_reliable1xxs, reliable1xx);
+			}
+			
+			public boolean prack(long rseq)
+			{
+				for (int i = LazyList.size(_reliable1xxs); i-->0;)
+				{
+					Reliable1xxClient reliable1xx = (Reliable1xxClient) LazyList.get(_reliable1xxs, i);
+					if (reliable1xx.getRSeq() == rseq)
+					{
+						_reliable1xxs = LazyList.remove(_reliable1xxs, i);
+						return true;
+					}
+				}
+				return false;
+			}
+			
+			class Reliable1xxClient
+			{
+				private SipResponse _1xx;
+				
+				public Reliable1xxClient(SipResponse response) { _1xx = response; }
+				public long getRSeq() { return _1xx.getRSeq(); }
+				public SipResponse getResponse() { return _1xx; }
+			}
+		}
+		
+		abstract class ReliableResponse
+		{
+			private static final int TIMER_RETRANS = 0;
+			private static final int TIMER_WAIT_ACK = 1;
+			
+			private long _seq;
+			protected SipResponse _response;
+			private TimerTask[] _timers;
+			private long _retransDelay = Transaction.__T1;
+			
+			public ReliableResponse(long seq) { _seq = seq; }
+			
+			public long getSeq() { return _seq; }
+			public SipResponse getResponse() { return _response; }
+			
+			public void startRetrans(SipResponse response)
+			{
+//				_response = response;
+//				
+//				_timers = new TimerTask[2];
+//				_timers[TIMER_RETRANS] = getCallSession().schedule(new Timer(TIMER_RETRANS), _retransDelay);
+//				_timers[TIMER_WAIT_ACK] = getCallSession().schedule(new Timer(TIMER_WAIT_ACK), 64*Transaction.__T1);
+			}
+			
+			public void stopRetrans()
+			{
+				cancelTimer(TIMER_RETRANS);
+				_response = null;
+			}
+			
+			public void ack()
+			{
+				stopRetrans();
+				cancelTimer(TIMER_WAIT_ACK);
+			}
+			
+			private void cancelTimer(int id)
+			{
+//				TimerTask timer = _timers[id];
+//				if (timer != null)
+//					getCallSession().cancel(timer);
+//				_timers[id] = null;
+			}
+			
+			/** 
+			 * @return the delay for the next retransmission, -1 to stop retransmission
+			 */
+			public abstract long retransmit(long delay);
+			public abstract void noAck();
+			
+			protected void timeout(int id)
+			{
+//				switch(id)
+//				{
+//				case TIMER_RETRANS:
+//					if (_response != null)
+//					{
+//						_retransDelay = retransmit(_retransDelay);
+//						if (_retransDelay > 0)
+//							_timers[TIMER_RETRANS] = getCallSession().schedule(new Timer(TIMER_RETRANS), _retransDelay);
+//					}
+//					break;
+//				case TIMER_WAIT_ACK:
+//					cancelTimer(TIMER_RETRANS);
+//					if (_response != null)
+//					{
+//						noAck();
+//						_response = null;
+//					}
+//					break;
+//				default:
+//					throw new IllegalArgumentException("unknown id " + id);
+//				}
+			}
+			
+			class Timer implements Runnable
+			{
+				private int _id;
+				
+				public Timer(int id) { _id = id; }
+				public void run() { timeout(_id); }
+				@Override public String toString() { return _id == TIMER_RETRANS ? "retrans" : "wait-ack"; }
+			}
+		}
+		
+		class ServerInvite extends ReliableResponse
+		{
+			private Object _reliable1xxs;
+			
+			public ServerInvite(long cseq) { super(cseq); }
+			
+			public void set2xx(SipResponse response)
+			{
+				stop1xxRetrans();
+				startRetrans(response);
+			}
+			
+			public void addReliable1xx(SipResponse response)
+			{
+				Reliable1xx reliable1xx = new Reliable1xx(response.getRSeq());
+				_reliable1xxs = LazyList.add(_reliable1xxs, reliable1xx);
+				reliable1xx.startRetrans(response);
+			}
+			
+			public boolean prack(long rseq)
+			{
+				for (int i = LazyList.size(_reliable1xxs); i-->0;)
+				{
+					Reliable1xx reliable1xx = (Reliable1xx) LazyList.get(_reliable1xxs, i);
+					if (reliable1xx.getSeq() == rseq)
+					{
+						reliable1xx.ack();
+						_reliable1xxs = LazyList.remove(_reliable1xxs, i);
+						return true;
+					}
+				}
+				return false;
+			}
+			
+			public void stop1xxRetrans()
+			{
+				for (int i = LazyList.size(_reliable1xxs); i-->0;)
+				{
+					Reliable1xx reliable1xx = (Reliable1xx) LazyList.get(_reliable1xxs, i);
+					reliable1xx.stopRetrans();
+				}
+			}
+			
+			public void noAck() 
+			{
+//				if (isValid())
+//					_applicationSession.noAck(getResponse().getRequest(), getResponse());
+			}
+
+			public long retransmit(long delay) 
+			{
+//				ServerTransaction tx = (ServerTransaction) getResponse().getTransaction();
+//				if (tx != null)
+//					tx.send(getResponse());
+//				else
+//				{
+//					try
+//					{
+//						getServer().getConnectorManager().sendResponse(getResponse());
+//					}
+//					catch (IOException e) {
+//						LOG.debug(e);
+//					}
+//				}
+				return Math.min(delay*2, Transaction.__T2);
+			}
+			
+			class Reliable1xx extends ReliableResponse
+			{
+				public Reliable1xx(long rseq) { super(rseq); }
+				
+				public long retransmit(long delay)
+				{
+//					ServerTransaction tx = (ServerTransaction) getResponse().getTransaction();
+//					if (tx.getState() == Transaction.STATE_PROCEEDING)
+//					{
+//						tx.send(getResponse());
+//						return delay*2;
+//					}
+					return -1;
+				}
+				
+				public void noAck()
+				{
+//					if (isValid())
+//						_applicationSession.noPrack(getResponse().getRequest(), getResponse());
+				}
+			}
 		}
 	}
 	

@@ -11,6 +11,7 @@ import org.cipango.server.SipResponse;
 import org.cipango.server.processor.SipProcessorWrapper;
 import org.cipango.server.processor.TransportProcessor;
 import org.cipango.sip.SipGrammar;
+import org.cipango.server.session.SessionManager;
 import org.cipango.util.TimerQueue;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
@@ -82,7 +83,6 @@ public class TransactionManager extends SipProcessorWrapper
 			if (!request.isAck())
 			{
 				transaction = _serverTransactions.putIfAbsent(branch, newTransaction);
-				
 				if (transaction == null)
 					_serverTxStats.increment();
 				// transaction may be not null on some concurrent access as there
@@ -179,6 +179,8 @@ public class TransactionManager extends SipProcessorWrapper
 	{
 		_clientTransactions.put(tx.getBranch(), tx);
 		_clientTxStats.increment();
+		((SessionManager.SipSessionIf) tx.getRequest().getSession())
+				.getSession().addClientTransaction(tx);
 	}
 	
 	public ClientTransaction sendRequest(SipRequest request, ClientTransactionListener listener) 

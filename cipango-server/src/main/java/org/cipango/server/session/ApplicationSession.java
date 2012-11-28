@@ -129,6 +129,11 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 		_sessions.add(derived);
 		return derived;
 	}
+
+	public String newCallId()
+	{
+		return _sessionManager.newCallId();
+	}
 	
 	protected String newSessionId()
 	{

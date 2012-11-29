@@ -17,7 +17,6 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -56,11 +55,16 @@ public class Table extends AbstractList<Row>
 				Row row = new Row();
 				List<Value> values = row.getValues();
 				for (Header header : headers)
-					values.add(new Value(connection.getAttribute(objectName, header.getSimpleName()), header));
+					values.add(getValue(connection, objectName, header));
 				row.setObjectName(objectName);
 				add(row);
 			}
 		}
+	}
+	
+	protected Value getValue(MBeanServerConnection connection, ObjectName objectName, Header header) throws Exception
+	{
+		return new Value(connection.getAttribute(objectName, header.getSimpleName()), header);
 	}
 	
 		
@@ -92,21 +96,27 @@ public class Table extends AbstractList<Row>
 			MBeanAttributeInfo[] attrInfos = info.getAttributes();
 			for (String param : params)
 			{
-				boolean found = false;
-				for (MBeanAttributeInfo attrInfo : attrInfos)
-				{
-					if (attrInfo.getName().equals(param))
-					{
-						headers.add(new Header(param, attrInfo.getDescription(), PrinterUtil.getNote(propertyName, param)));
-						found = true;
-						break;
-					}
-				}
-				if (!found)
-					__logger.info("Could not display param {} as it is not exposed by JMX", param, null);				
+				Header header = getHeader(param, attrInfos, propertyName);
+				if (header == null)
+					__logger.info("Could not display param {} as it is not exposed by JMX", param, null);
+				else
+					headers.add(header);
 			}
 		}
 		return headers;
+	}
+	
+	
+	protected Header getHeader(String param, MBeanAttributeInfo[] attrInfos, String propertyName)
+	{
+		for (MBeanAttributeInfo attrInfo : attrInfos)
+		{
+			if (attrInfo.getName().equals(param))
+			{
+				return new Header(param, attrInfo.getDescription(), PrinterUtil.getNote(propertyName, param));
+			}
+		}
+		return null;
 	}
 	
 	

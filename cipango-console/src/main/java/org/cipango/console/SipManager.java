@@ -1,10 +1,13 @@
 package org.cipango.console;
 
 import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 
+import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import javax.servlet.http.HttpServletRequest;
@@ -125,37 +128,88 @@ public class SipManager
 		return new PropertyList(_mbsc, "sip.messages");
 	}
 	
-	public PropertyList getCallStats() throws Exception
+	public Table getTransactionStats() throws Exception
 	{
-		ObjectName sessionManager = (ObjectName) _mbsc.getAttribute(SERVER, "sessionManager");
-		return new PropertyList(_mbsc, sessionManager, "sip.callSessions");
+		Table table = new Table();
+		table.setTitle("Transactions");
+		List<Header> headers = new ArrayList<Row.Header>();
+		headers.add(new Header(""));
+		headers.add(new Header("Current"));
+		headers.add(new Header("Max"));
+		headers.add(new Header("Total"));
+		table.setHeaders(headers);
+		Iterator<Header> it = headers.iterator();
+		Row row = new Row();
+		row.getValues().add(new Value("Client transaction", it.next()));
+		row.getValues().add(new Value(_mbsc.getAttribute(TRANSACTION_MANAGER, "clientTransactions"), it.next()));
+		row.getValues().add(new Value(_mbsc.getAttribute(TRANSACTION_MANAGER, "clientTransactionsMax"), it.next()));
+		row.getValues().add(new Value(_mbsc.getAttribute(TRANSACTION_MANAGER, "clientTransactionsTotal"), it.next()));
+		table.add(row);
+		it = headers.iterator();
+		row = new Row();
+		row.getValues().add(new Value("Server transaction", it.next()));
+		row.getValues().add(new Value(_mbsc.getAttribute(TRANSACTION_MANAGER, "serverTransactions"), it.next()));
+		row.getValues().add(new Value(_mbsc.getAttribute(TRANSACTION_MANAGER, "serverTransactionsMax"), it.next()));
+		row.getValues().add(new Value(_mbsc.getAttribute(TRANSACTION_MANAGER, "serverTransactionsTotal"), it.next()));
+		table.add(row);
+		return table;
 	}
 	
 	
 	public Table getAppSessionStats() throws Exception
 	{
+		return getAppSessionStats("sip.stats.applicationSessions");
+	}
+	
+	public Table getAppSessionTimeStats() throws Exception
+	{
+		return getAppSessionStats("sip.stats.applicationSessions.time");
+	}
+	
+	public Table getAppSessionStats(String key) throws Exception
+	{
 		ObjectName[] contexts =  (ObjectName[]) _mbsc.getAttribute(SipManager.HANDLER_COLLECTION, "sipContexts");
-		
-		Table table = new Table(_mbsc, contexts, "sip.applicationSessions");
-		for (Header header : table.getHeaders())
+		ObjectName[] sessionManagers = new ObjectName[contexts.length];
+		for (int i = 0; i < contexts.length; i++)
 		{
-			int index = header.getName().indexOf("Sip application sessions");
-			if (index != -1)
-				header.setName(header.getName().substring(0, index));
+			ObjectName sessionHandler = (ObjectName) _mbsc.getAttribute(contexts[i], "sessionHandler");
+			sessionManagers[i] = (ObjectName) _mbsc.getAttribute(sessionHandler, "sessionManager");
 		}
-
-		for (Row row : table)
-		{
-			for (Value value : row.getValues())
+		
+		Table table = new Table(_mbsc, sessionManagers, key)
+		{					
+			@Override
+			protected Header getHeader(String param, MBeanAttributeInfo[] attrInfos, String propertyName)
 			{
+				if ("name".equals(param))
+					return new Header("name", "Name");
+				Header header = super.getHeader(param, attrInfos, propertyName);
+				
+				for (String s : new String[] { "amount of time session remained valid",	"application sessions" })
+				{
+					int index = header.getName().indexOf(s);	
+					if (index != -1)
+						header.setName(header.getName().substring(0, index));
+				}
+				return header;
+			}
+			
+			@Override
+			protected Value getValue(MBeanServerConnection connection, ObjectName objectName, Header header)
+					throws Exception
+			{
+				if ("name".equals(header.getSimpleName()))
+					return new Value(objectName.getKeyProperty("context"), header);
+				Value value = super.getValue(connection, objectName, header);
 				if (value.getValue() instanceof Double)
 				{
 					DecimalFormat format = new DecimalFormat();
 					format.setMaximumFractionDigits(2);
 					value.setValue(format.format(value.getValue()));
-				}	
+				}
+				return value;
 			}
-		}
+		};
 		return table;
 	}
 	

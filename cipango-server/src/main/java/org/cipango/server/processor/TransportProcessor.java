@@ -6,6 +6,7 @@ import java.net.InetAddress;
 import java.util.Iterator;
 
 import javax.servlet.sip.Address;
+import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
 
@@ -132,10 +133,10 @@ public class TransportProcessor extends SipProcessorWrapper
 					&& !((SipRequest) message).isAck()
 					&& message.getTopVia() != null)
 			{
-				// TODO send response stateless
-//	FIXME			SipResponse response = 
-//					(SipResponse) ((SipRequest) message).createResponse(SipServletResponse.SC_BAD_REQUEST);
-//				sendResponse(response);
+				// send response stateless
+				SipRequest request = (SipRequest) message;
+				SipResponse response = (SipResponse) request.createResponse(SipServletResponse.SC_BAD_REQUEST);
+				getServer().sendResponse(response, request.getConnection());
 			}
 		}
 		catch (Exception e) 

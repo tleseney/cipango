@@ -455,7 +455,7 @@ public class SessionManager extends AbstractLifeCycle
     /**
      * @return mean amount of time session remained valid
      */
-	@ManagedAttribute("mean amount of time session remained valid")
+	@ManagedAttribute("Mean amount of time session remained valid")
     public double getSessionTimeMean()
     {
         return _sessionTimeStats.getMean();
@@ -465,7 +465,7 @@ public class SessionManager extends AbstractLifeCycle
     /**
      * @return standard deviation of amount of time session remained valid
      */
-	@ManagedAttribute("standard deviation of amount of time session remained valid")
+	@ManagedAttribute("Standard deviation of amount of time session remained valid")
     public double getSessionTimeStdDev()
     {
         return _sessionTimeStats.getStdDev();

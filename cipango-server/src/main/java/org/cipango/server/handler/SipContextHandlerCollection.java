@@ -178,14 +178,15 @@ public class SipContextHandlerCollection extends AbstractSipHandler implements R
 			{			
 				String contextId = getContextId(request);
 				
-				for(SipAppContext context : _sipContexts)
-				{
-					if (contextId.equals(context.getContextId()))
+				if (contextId != null)
+					for(SipAppContext context : _sipContexts)
 					{
-						appContext = context;
-						break;
+						if (contextId.equals(context.getContextId()))
+						{
+							appContext = context;
+							break;
+						}
 					}
-				}
 			}
 
 			if (appContext == null)

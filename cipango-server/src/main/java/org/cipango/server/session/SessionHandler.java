@@ -27,9 +27,13 @@ import org.cipango.server.SipResponse;
 import org.cipango.server.handler.SipHandlerWrapper;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.ServerTransaction;
+import org.eclipse.jetty.util.annotation.ManagedAttribute;
+import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
+
+@ManagedObject("Session  handler")
 public class SessionHandler extends SipHandlerWrapper
 {
 	public static final String APP_ID = "appid";
@@ -136,6 +140,7 @@ public class SessionHandler extends SipHandlerWrapper
 		return s.substring(s.lastIndexOf('-'));
 	}
 
+	@ManagedAttribute("Session manager")
 	public SessionManager getSessionManager()
 	{
 		return _sessionManager;

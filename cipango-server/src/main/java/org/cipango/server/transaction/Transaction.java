@@ -62,10 +62,10 @@ public abstract class Transaction
 	public static final int DEFAULT_T4 = 5000;
 	public static final int DEFAULT_TD = 32000;
 		
-	public static final int __T1 = DEFAULT_T1;
-	public static final int __T2 = DEFAULT_T2;
-	public static final int __T4 = DEFAULT_T4;
-	public static final int __TD = DEFAULT_TD;	
+	public static int __T1 = DEFAULT_T1;
+	public static int __T2 = DEFAULT_T2;
+	public static int __T4 = DEFAULT_T4;
+	public static int __TD = DEFAULT_TD;	
 	
 	protected State _state = State.UNDEFINED;
 	

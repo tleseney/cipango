@@ -234,4 +234,12 @@ public class ServerTransaction extends Transaction
 	{
 		_listener = listener;
 	}
+	
+	@Override
+	public String toString()
+	{
+		return "ServerTransaction {branch=" + getBranch() 
+				+ ", method=" + getRequest().getMethod()
+				+ ", state=" + getState() + "}";
+	}
 }

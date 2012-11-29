@@ -1,11 +1,15 @@
-Statistics are started since $sipManager.getStatsDuration()<br/>
+## FIXME Statistics are started since $sipManager.getStatsDuration()<br/>
 #action($field.in($sipManager).RESET_STATS)
 
-#properties($sipManager.getMessageStats())
-
-#properties($sipManager.getCallStats())
+#table($sipManager.getTransactionStats())
 
 #table($sipManager.getAppSessionStats())
+
+#table($sipManager.getAppSessionTimeStats())
+
+#*
+#properties($sipManager.getMessageStats())
+
 
 #if ($statisticGraph)
 	<h2>Statistics Graph</h2>
@@ -37,3 +41,4 @@ Statistics are started since $sipManager.getStatsDuration()<br/>
 		#action($field.in($sipManager).START_GRAPH)
 	#end
 #end
+*#

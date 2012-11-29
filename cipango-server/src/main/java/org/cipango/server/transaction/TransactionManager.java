@@ -1,11 +1,13 @@
 package org.cipango.server.transaction;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.server.SipMessage;
+import org.cipango.server.SipProxy;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
 import org.cipango.server.processor.SipProcessorWrapper;
@@ -15,14 +17,19 @@ import org.cipango.server.session.SessionManager;
 import org.cipango.util.TimerQueue;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
+import org.eclipse.jetty.util.annotation.ManagedOperation;
+import org.eclipse.jetty.util.component.ContainerLifeCycle;
+import org.eclipse.jetty.util.component.Dumpable;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.statistic.CounterStatistic;
 
 @ManagedObject("Transaction manager")
-public class TransactionManager extends SipProcessorWrapper
+public class TransactionManager extends SipProcessorWrapper implements Dumpable
 {
 	private final Logger LOG = Log.getLogger(TransactionManager.class);
+
+	private static final String CANCEL_PREFIX = "cancel-";
 	
 	private ConcurrentHashMap<String, ServerTransaction> _serverTransactions = new ConcurrentHashMap<String, ServerTransaction>();
 	private ConcurrentHashMap<String, ClientTransaction> _clientTransactions = new ConcurrentHashMap<String, ClientTransaction>();
@@ -70,7 +77,7 @@ public class TransactionManager extends SipProcessorWrapper
 
 		// FIXME handle CANCEL
 		if (request.isCancel()) 
-			branch = "cancel-" + branch;
+			branch = CANCEL_PREFIX + branch;
 		
 		LOG.debug("handling server transaction message with tx {}", transaction);
 		
@@ -102,7 +109,7 @@ public class TransactionManager extends SipProcessorWrapper
 				if (stx == null)
 				{
 					if (LOG.isDebugEnabled())
-						LOG.debug("No transaction for cancelled branch {}", txBranch, null);
+						LOG.debug("No transaction for cancelled branch {}", txBranch);
 					SipResponse unknown = (SipResponse) request
 							.createResponse(SipServletResponse.SC_CALL_LEG_DONE);
 					newTransaction.send(unknown);
@@ -122,6 +129,10 @@ public class TransactionManager extends SipProcessorWrapper
 	public void doProcessResponse(SipResponse response) throws Exception
 	{
 		String branch = response.getTopVia().getBranch();
+		
+		if (response.isCancel()) 
+			branch = CANCEL_PREFIX + branch;
+		
 		ClientTransaction transaction = _clientTransactions.get(branch);
 
 		LOG.debug("handling client transaction message with tx {}", transaction);
@@ -141,19 +152,27 @@ public class TransactionManager extends SipProcessorWrapper
 	
 	protected void transactionNotFound()
 	{
+		
 		//TODO
+	}
+	
+	private String getId(Transaction transaction)
+	{
+		if (transaction.isCancel()) 
+			return CANCEL_PREFIX +  transaction.getBranch();
+		return transaction.getBranch();
 	}
 	
 	public void transactionTerminated(ServerTransaction transaction)
 	{
-		ServerTransaction tx = _serverTransactions.remove(transaction.getBranch());
+		ServerTransaction tx = _serverTransactions.remove(getId(transaction));
 		if (tx != null)
 			_serverTxStats.decrement();
 	}
 	
 	public void transactionTerminated(ClientTransaction transaction)
 	{
-		ClientTransaction tx = _clientTransactions.remove(transaction.getBranch());
+		ClientTransaction tx = _clientTransactions.remove(getId(transaction));
 		if (tx != null)
 			_clientTxStats.decrement();
 	}
@@ -177,7 +196,7 @@ public class TransactionManager extends SipProcessorWrapper
 	
 	protected void addClientTransaction(ClientTransaction tx)
 	{
-		_clientTransactions.put(tx.getBranch(), tx);
+		_clientTransactions.put(getId(tx), tx);
 		_clientTxStats.increment();
 		((SessionManager.SipSessionIf) tx.getRequest().getSession())
 				.getSession().addClientTransaction(tx);
@@ -236,6 +255,52 @@ public class TransactionManager extends SipProcessorWrapper
 	public long getServerTransactionsTotal()
 	{
 		return _serverTxStats.getTotal();
+	}
+	
+	@ManagedAttribute(value="Timer T1 in milliseconds", readonly=true)
+	public int getT1() { return Transaction.__T1; }
+	@ManagedAttribute(value="Timer T2 in milliseconds", readonly=true)
+	public int getT2() { return Transaction.__T2; }
+	@ManagedAttribute(value="Timer T4 in milliseconds", readonly=true)
+	public int getT4() { return Transaction.__T4; }
+	@ManagedAttribute(value="Timer TD in milliseconds", readonly=true)
+	public int getTD() { return Transaction.__TD; }
+	@ManagedAttribute(value="Timer C in seconds", readonly=true)
+	public int getTimerC() { return SipProxy.__timerC; }
+	
+	public void setT1(int millis)
+	{ 
+		if (millis < 0)
+			throw new IllegalArgumentException("SIP Timers must be positive");
+		Transaction.__T1 = millis;
+	}
+	
+	public void setT2(int millis) 
+	{
+		if (millis < 0)
+			throw new IllegalArgumentException("SIP Timers must be positive");
+		Transaction.__T2 = millis;
+	}
+	
+	public void setT4(int millis) 
+	{
+		if (millis < 0)
+			throw new IllegalArgumentException("SIP Timers must be positive");
+		Transaction.__T4 = millis;
+	}
+	
+	public void setTD(int millis) 
+	{
+		if (millis < 0)
+			throw new IllegalArgumentException("SIP Timers must be positive");
+		Transaction.__TD = millis;
+	}
+	
+	@ManagedOperation(value="Reset statistics", impact="ACTION")
+	public void statsReset()
+	{
+		_serverTxStats.reset(_serverTransactions.size());
+		_clientTxStats.reset(_clientTransactions.size());
 	}
 	
 	class Timer implements Runnable
@@ -297,6 +362,36 @@ public class TransactionManager extends SipProcessorWrapper
 				LOG.info("transactions size: " + _serverTransactions.size());
 			}
 		}
+	}
+
+	@Override
+	public String dump()
+	{
+		return ContainerLifeCycle.dump(this);
+	}
+
+
+	@Override
+	public void dump(Appendable out, String indent) throws IOException
+	{
+		out.append(indent).append(" +- TransactionManager\n");
+		indent = indent + "    ";
+		out.append(indent).append(" +- ClientTransactions\n");
+		Iterator<ClientTransaction> it = _clientTransactions.values().iterator();
+		int i = 50;
+		while (it.hasNext() && --i >0)
+			out.append(indent).append(it.next().toString()).append("\n");
+		if (it.hasNext())
+			out.append(indent).append("...\n");
+		
+		out.append(indent).append(" +- ServerTransactions\n");
+		Iterator<ServerTransaction> it2 = _serverTransactions.values().iterator();
+		i = 50;
+		while (it2.hasNext() && --i >0)
+			out.append(indent).append(it2.next().toString()).append("\n");
+		if (it.hasNext())
+			out.append(indent).append("...\n");
+
 	}
 
 	

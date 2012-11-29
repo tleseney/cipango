@@ -345,6 +345,14 @@ public class ClientTransaction extends Transaction
 	{
 		return _connection;
 	}
+	
+	@Override
+	public String toString()
+	{
+		return "ClientTransaction {branch=" + getBranch() 
+				+ ", method=" + getRequest().getMethod()
+				+ ", state=" + getState() + "}";
+	}
 
 	@Override
 	protected void timeout(Timer timer)

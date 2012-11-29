@@ -60,7 +60,7 @@ public class B2bHelper implements B2buaHelper
 			throw new NullPointerException("SipSession is null");
 
 		Session session = ((SessionManager.SipSessionIf) sipSession).getSession();
-		for (ClientTransaction tx : session.getClientTransactions(session))
+		for (ClientTransaction tx : session.getClientTransactions())
 		{
 			if (tx.getRequest().isInitial())
 				return tx.getRequest().createCancel();
@@ -162,7 +162,7 @@ public class B2bHelper implements B2buaHelper
 		{
 			Session session2 = (Session) it.next();
 			
-			for (ServerTransaction tx : session.getServerTransactions(session2))
+			for (ServerTransaction tx : session2.getServerTransactions())
 			{
 				SipRequest request = tx.getRequest();
 				if (request.isInitial())
@@ -225,7 +225,7 @@ public class B2bHelper implements B2buaHelper
 		
 		if (mode == UAMode.UAS)
 		{
-			for (ServerTransaction tx : session.getServerTransactions(session))
+			for (ServerTransaction tx : session.getServerTransactions())
 			{
 				if (!tx.getRequest().isCommitted())
 					messages.add(tx.getRequest());
@@ -233,7 +233,7 @@ public class B2bHelper implements B2buaHelper
 		}
 		else 
 		{
-			for (ClientTransaction tx : session.getClientTransactions(session))
+			for (ClientTransaction tx : session.getClientTransactions())
 			{
 				if (!tx.isCompleted())
 					messages.add(tx.getRequest());

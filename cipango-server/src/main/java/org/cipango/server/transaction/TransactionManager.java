@@ -198,8 +198,6 @@ public class TransactionManager extends SipProcessorWrapper implements Dumpable
 	{
 		_clientTransactions.put(getId(tx), tx);
 		_clientTxStats.increment();
-		((SessionManager.SipSessionIf) tx.getRequest().getSession())
-				.getSession().addClientTransaction(tx);
 	}
 	
 	public ClientTransaction sendRequest(SipRequest request, ClientTransactionListener listener) 

@@ -323,6 +323,9 @@ public class Session implements SipSessionIf
 			throw new IllegalStateException("Session is not UA");
 		
 		ClientTransaction tx = sendRequest(request, _dialog);
+		if (!request.isAck())
+			((SessionManager.SipSessionIf) request.getSession())
+					.getSession().addClientTransaction(tx);
 
 		return tx;
 	}
@@ -707,16 +710,9 @@ public class Session implements SipSessionIf
 		_serverTransactions.remove(transaction);
 	}
 	
-	public List<ServerTransaction> getServerTransactions(SipSession session) 
+	public List<ServerTransaction> getServerTransactions() 
 	{
-		List<ServerTransaction> list = new ArrayList<ServerTransaction>(_serverTransactions.size());
-		for (int i = 0; i < _serverTransactions.size(); i++)
-		{
-			ServerTransaction transaction = _serverTransactions.get(i);
-			if (transaction.getRequest().session().equals(session))
-				list.add(transaction);
-		}
-		return list;			
+		return _serverTransactions;
 	}
 	
 	public void addClientTransaction(ClientTransaction transaction)
@@ -729,16 +725,9 @@ public class Session implements SipSessionIf
 		_clientTransactions.remove(transaction);
 	}
 	
-	public List<ClientTransaction> getClientTransactions(SipSession session) 
+	public List<ClientTransaction> getClientTransactions() 
 	{
-		List<ClientTransaction> list = new ArrayList<ClientTransaction>(_clientTransactions.size());
-		for (int i = 0; i < _clientTransactions.size(); i++)
-		{
-			ClientTransaction transaction = _clientTransactions.get(i);
-			if (transaction.getRequest().session().equals(session))
-				list.add(transaction);
-		}
-		return list;
+		return _clientTransactions;
 	}
 	
 	public DialogInfo getUa()

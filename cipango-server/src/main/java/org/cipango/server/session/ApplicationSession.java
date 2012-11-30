@@ -1,3 +1,16 @@
+// ========================================================================
+// Copyright 2012 NEXCOM Systems
+// ------------------------------------------------------------------------
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at 
+// http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ========================================================================
 package org.cipango.server.session;
 
 import java.io.Serializable;
@@ -42,8 +55,8 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 	
 	private final String _id;
 	
-	private final List<Session> _sessions = new ArrayList<Session>(1);
-	private List<?> _otherSessions;
+	protected final List<Session> _sessions = new ArrayList<Session>(1);
+	protected List<?> _otherSessions;
 	
 	private final long _created;
 	private long _accessed;
@@ -52,10 +65,10 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 	
 	private boolean _valid = true;
 	
-	private Map<String, Object> _attributes;
+	protected Map<String, Object> _attributes;
 	
 	private final SessionManager _sessionManager;
-	private List<ServletTimer> _timers;
+	protected List<ServletTimer> _timers;
     
     protected boolean _invalidateWhenReady = true;
 	

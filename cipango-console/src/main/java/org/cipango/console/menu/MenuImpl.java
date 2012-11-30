@@ -127,7 +127,7 @@ public class MenuImpl implements Menu
 				return c.isRegistered(DiameterManager.NODE);
 			}
 		}),
-		CALLS = LOGS.add(new PageImpl("logs-calls.vm", "Calls")),
+		CALLS = LOGS.add(new PageImpl("logs-sessions.vm", "Sessions")),
 		SYSTEM_LOGS = LOGS.add(new PageImpl("logs-systems.vm", "System logs")
 		{
 			@Override

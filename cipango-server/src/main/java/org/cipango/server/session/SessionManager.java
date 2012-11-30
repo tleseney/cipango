@@ -1,10 +1,26 @@
+// ========================================================================
+// Copyright 2012 NEXCOM Systems
+// ------------------------------------------------------------------------
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at 
+// http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ========================================================================
 package org.cipango.server.session;
 
 import static java.lang.Math.round;
 
 import java.lang.reflect.Method;
 import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.EventListener;
+import java.util.Iterator;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
@@ -13,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.servlet.ServletContext;
+import javax.servlet.sip.ServletTimer;
 import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipApplicationSessionAttributeListener;
 import javax.servlet.sip.SipApplicationSessionBindingEvent;
@@ -23,13 +40,17 @@ import javax.servlet.sip.SipSessionAttributeListener;
 import javax.servlet.sip.SipSessionBindingEvent;
 import javax.servlet.sip.SipSessionListener;
 
+import org.cipango.server.session.Session.DialogInfo;
 import org.cipango.server.sipapp.SipAppContext;
+import org.cipango.server.transaction.ClientTransaction;
+import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.sip.SipGrammar;
 import org.cipango.util.StringUtil;
 import org.cipango.util.TimerTask;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.annotation.ManagedOperation;
+import org.eclipse.jetty.util.annotation.Name;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
@@ -471,6 +492,120 @@ public class SessionManager extends AbstractLifeCycle
         return _sessionTimeStats.getStdDev();
     }
 	
+	public void setSipAppContext(SipAppContext sipAppContext)
+	{
+		_sipAppContext = sipAppContext;
+	}
+	
+	@ManagedOperation(value="View SIP Application session", impact="INFO")
+	public String viewApplicationSession(@Name("id") String id) 
+	{
+		ApplicationSession appSession = getApplicationSession(id);
+		if (appSession == null)
+			return "No SIP application session with ID " + id + " found";
+		
+		StringBuilder sb = new StringBuilder();
+		try
+		{		
+			sb.append("+ ").append(appSession.getId()).append('\n');
+			printAttr(sb, "created", new Date(appSession.getCreationTime()));
+			printAttr(sb, "accessed", new Date(appSession.getLastAccessedTime()));
+			printAttr(sb, "expirationTime", new Date(appSession.getExpirationTime()));
+			printAttr(sb, "context", appSession.getContext().getName());
+			printAttr(sb, "invalidateWhenReady", appSession.getInvalidateWhenReady());
+			printAttr(sb, "attributes", appSession._attributes);
+			
+			Iterator<ServletTimer> it4 = appSession._timers.iterator();
+			if (it4.hasNext())
+				sb.append("\t+ [Timers]\n");
+			while (it4.hasNext())
+				sb.append("\t\t+ ").append(it4.next()).append('\n');
+			
+			Iterator<Session> it = appSession._sessions.iterator();
+			if (it.hasNext())
+				sb.append("\t+ [sipSessions]\n");
+			while (it.hasNext())
+				printSession(sb, it.next());
+			
+//			Iterator<ClientTransaction> it2 = cSession._clientTransactions.iterator();
+//			if (it2.hasNext())
+//				sb.append("\t+ [clientTransaction]\n");
+//			while (it2.hasNext())
+//				sb.append("\t\t+ ").append(it2.next()).append('\n');
+//			
+//			Iterator<ServerTransaction> it3 = cSession._serverTransactions.iterator();
+//			if (it3.hasNext())
+//				sb.append("\t+ [serverTransaction]\n");
+//			while (it3.hasNext())
+//				sb.append("\t\t+ ").append(it3.next()).append('\n');
+
+		}
+		catch (Exception e)
+		{
+			sb.append("\n\n").append(e);
+			LOG.warn(e);
+		}
+		
+		return sb.toString();
+	}
+	
+	private void printSession(StringBuilder sb, Session session)
+	{
+		sb.append("\t\t+ ").append(session.getId()).append('\n');
+		printAttr(sb, "created", new Date(session.getCreationTime()), 3);
+		printAttr(sb, "accessed", new Date(session.getLastAccessedTime()), 3);
+		printAttr(sb, "role", session._role, 3);
+		printAttr(sb, "state", session._state, 3);
+		printAttr(sb, "invalidateWhenReady", session.getInvalidateWhenReady(), 3);
+		printAttr(sb, "attributes", session._attributes, 3);
+		printAttr(sb, "localParty", session._localParty, 3);
+		printAttr(sb, "remoteParty", session._remoteParty, 3);
+		printAttr(sb, "region", session.getRegion(), 3);
+		printAttr(sb, "Call-ID", session._callId, 3);
+		printAttr(sb, "linkedSessionId", session._linkedSessionId, 3);
+		printAttr(sb, "subscriberURI", session.getSubscriberURI(), 3);
+		printAttr(sb, "handler", session.getHandler(), 3);
+		DialogInfo ua = session.getUa();
+		if (ua != null)
+		{
+			sb.append("\t\t\t+ [ua]\n");
+			printAttr(sb, "local CSeq", ua._localCSeq, 4);
+			printAttr(sb, "Remote CSeq", ua._remoteCSeq, 4);
+			printAttr(sb, "Remote Target", ua._remoteTarget, 4);
+			printAttr(sb, "route Set", ua._routeSet, 4);
+			printAttr(sb, "Secure", ua._secure, 4);
+//			printAttr(sb, "local RSeq", ua._localRSeq, 4);
+//			printAttr(sb, "Remote RSeq", ua._remoteRSeq, 4);
+		}
+		sb.append("\t\t\t+ [server transactions]\n");
+		for (ServerTransaction tx : session._serverTransactions)
+			sb.append("\t\t\t\t+ ").append(tx).append("\n");
+		sb.append("\t\t\t+ [client transactions]\n");
+		for (ClientTransaction tx : session._clientTransactions)
+			sb.append("\t\t\t\t+ ").append(tx).append("\n");
+	}	
+	
+	private void printAttr(StringBuilder sb, String name, Object value)
+	{
+		printAttr(sb, name, value, 1);
+	}
+	
+	private void printAttr(StringBuilder sb, String name, Object value, int index)
+	{
+		for (int i =0; i < index; i++)
+			sb.append('\t');
+		sb.append("- ").append(name).append(": ").append(value).append('\n');
+	}
+	
+	@ManagedAttribute("Application session IDs")
+	public List<String> getApplicationSessionIds()
+	{
+		synchronized (_appSessions)
+		{
+			return new ArrayList<String>(_appSessions.keySet());
+		}
+	}
+	
 	class Timer implements Runnable
 	{
 		public void run()
@@ -541,10 +676,4 @@ public class SessionManager extends AbstractLifeCycle
 	{
 		Session getSession();
 	}
-
-	public void setSipAppContext(SipAppContext sipAppContext)
-	{
-		_sipAppContext = sipAppContext;
-	}
-
 }

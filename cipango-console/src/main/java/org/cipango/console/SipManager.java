@@ -1,3 +1,16 @@
+// ========================================================================
+// Copyright 2012 NEXCOM Systems
+// ------------------------------------------------------------------------
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at 
+// http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ========================================================================
 package org.cipango.console;
 
 import java.text.DecimalFormat;
@@ -24,6 +37,7 @@ import org.cipango.console.data.FileLogger.StopFileLoggerAction;
 import org.cipango.console.data.Property;
 import org.cipango.console.data.PropertyList;
 import org.cipango.console.data.Row;
+import org.cipango.console.data.SessionIds;
 import org.cipango.console.data.Row.Header;
 import org.cipango.console.data.Row.Value;
 import org.cipango.console.data.SipConsoleLogger;
@@ -34,7 +48,7 @@ import org.cipango.console.util.ObjectNameFactory;
 import org.cipango.console.util.Parameters;
 import org.cipango.console.util.PrinterUtil;
 
-public class SipManager
+public class SipManager extends Manager
 {
 	private static final String[] GET_MSG_SIGNATURE = { Integer.class.getName(), String.class.getName() };
 	
@@ -114,13 +128,10 @@ public class SipManager
 		});
 		Action.add(new MessageInMemoryAction(MenuImpl.SIP_LOGS, CONSOLE_LOGGER));
 	}
-		
-	
-	private MBeanServerConnection _mbsc;
-	
+			
 	public SipManager(MBeanServerConnection mbsc)
 	{
-		_mbsc = mbsc;
+		super(mbsc);
 	}
 	
 	public PropertyList getMessageStats() throws Exception
@@ -164,6 +175,18 @@ public class SipManager
 	public Table getAppSessionTimeStats() throws Exception
 	{
 		return getAppSessionStats("sip.stats.applicationSessions.time");
+	}
+	
+	public ObjectName[] getSessionManagers() throws Exception
+	{
+		ObjectName[] contexts =  (ObjectName[]) _mbsc.getAttribute(SipManager.HANDLER_COLLECTION, "sipContexts");
+		ObjectName[] sessionManagers = new ObjectName[contexts.length];
+		for (int i = 0; i < contexts.length; i++)
+		{
+			ObjectName sessionHandler = (ObjectName) _mbsc.getAttribute(contexts[i], "sessionHandler");
+			sessionManagers[i] = (ObjectName) _mbsc.getAttribute(sessionHandler, "sessionManager");
+		}
+		return sessionManagers;
 	}
 	
 	public Table getAppSessionStats(String key) throws Exception
@@ -269,19 +292,21 @@ public class SipManager
 		return logger;
 	}
 	
-	@SuppressWarnings("unchecked")
-	public List<String> getCallIds() throws Exception
+	public List<SessionIds> getApplicationIds() throws Exception
 	{
-		ObjectName sessionManager = (ObjectName) _mbsc.getAttribute(SERVER, "sessionManager");
-		return (List<String>) _mbsc.getAttribute(sessionManager, "callIds");
+		ObjectName[] sessionManagers = getSessionManagers();
+		List<SessionIds> sessionIds = new ArrayList<SessionIds>(sessionManagers.length);
+		for (ObjectName sessionManager : sessionManagers)
+			sessionIds.add(new SessionIds(_mbsc, sessionManager));
+		return sessionIds;
 	}
 	
-	public String getCall(String callId) throws Exception
+	public String getSipApplicationSession(String id, String objectName) throws Exception
 	{
-		ObjectName sessionManager = (ObjectName) _mbsc.getAttribute(SERVER, "sessionManager");
+		ObjectName sessionManager = new ObjectName(objectName);
 		return (String) _mbsc.invoke(sessionManager, 
-				"viewCall",
-				new Object[] { callId }, 
+				"viewApplicationSession",
+				new Object[] { id }, 
 				new String[] { "java.lang.String" });
 	}
 }

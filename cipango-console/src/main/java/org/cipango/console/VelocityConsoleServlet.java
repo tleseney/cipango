@@ -47,19 +47,20 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 		super.init(config);
 		_localConnection = new JmxConnection.LocalConnection();
 		
-		if (_localConnection.isConnectionValid())
-		{
-			try
-			{
-				StatisticGraph statisticGraph = new StatisticGraph(_localConnection);
-				statisticGraph.start();
-				_statisticGraphs.put(_localConnection.getId(), statisticGraph);
-			}
-			catch (Exception e)
-			{
-				_logger.warn("Failed to start statistic graph", e);
-			}
-		}
+//	FIXME tmp
+//		if (_localConnection.isConnectionValid())
+//		{
+//			try
+//			{
+//				StatisticGraph statisticGraph = new StatisticGraph(_localConnection);
+//				statisticGraph.start();
+//				_statisticGraphs.put(_localConnection.getId(), statisticGraph);
+//			}
+//			catch (Exception e)
+//			{
+//				_logger.warn("Failed to start statistic graph", e);
+//			}
+//		}
 
 		_jmxMap.put(_localConnection.getId(), _localConnection);
 		

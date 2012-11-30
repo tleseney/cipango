@@ -1,6 +1,8 @@
 ## FIXME Statistics are started since $sipManager.getStatsDuration()<br/>
 #action($field.in($sipManager).RESET_STATS)
 
+#properties($sipManager.getMessageStats())
+
 #table($sipManager.getTransactionStats())
 
 #table($sipManager.getAppSessionStats())

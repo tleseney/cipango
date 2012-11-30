@@ -33,6 +33,13 @@
             </New>
           </Arg>
         </Call>
+        <Set name="accessLog">
+          <New class="org.cipango.server.log.FileMessageLog">
+            <Set name="filename"><Property default="." name="jetty.home"/>/logs/yyyy_mm_dd.message.log</Set>
+            <Set name="append">true</Set>
+            <Set name="retainDays">31</Set>
+          </New>
+        </Set>
     
         <Set name="handler">
           <New class="org.cipango.server.handler.SipContextHandlerCollection">

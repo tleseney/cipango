@@ -125,7 +125,7 @@ public class SipManager
 	
 	public PropertyList getMessageStats() throws Exception
 	{
-		return new PropertyList(_mbsc, "sip.messages");
+		return new PropertyList(_mbsc, "sip.stats.messages");
 	}
 	
 	public Table getTransactionStats() throws Exception

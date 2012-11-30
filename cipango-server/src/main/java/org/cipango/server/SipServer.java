@@ -3,11 +3,13 @@ package org.cipango.server;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.servlet.ServletException;
 import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
 
+import org.cipango.server.log.AccessLog;
 import org.cipango.server.nio.UdpConnector;
 import org.cipango.server.processor.TransportProcessor;
 import org.cipango.server.transaction.TransactionManager;
@@ -16,6 +18,7 @@ import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.MultiException;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
+import org.eclipse.jetty.util.annotation.ManagedOperation;
 import org.eclipse.jetty.util.annotation.Name;
 import org.eclipse.jetty.util.component.ContainerLifeCycle;
 import org.eclipse.jetty.util.log.Log;
@@ -37,6 +40,9 @@ public class SipServer extends ContainerLifeCycle
 	private SipProcessor _processor;
 	private TransportProcessor _transportProcessor;
 	private TransactionManager _transactionManager;
+	private AccessLog _accessLog;
+    private final AtomicLong _messagesReceived = new AtomicLong();
+    private final AtomicLong _messagesSent = new AtomicLong();
 		
 	static 
 	{
@@ -107,13 +113,7 @@ public class SipServer extends ContainerLifeCycle
 				}
 			}
 		}
-		
-//	TODO if (contexts != null)
-//		{
-//			for (SipAppContext context : contexts)
-//				context.serverStarted();
-//		}
-		
+				
 		mex.ifExceptionThrow();
 	}
 	
@@ -197,17 +197,18 @@ public class SipServer extends ContainerLifeCycle
 	
 	public void process(final SipMessage message)
 	{
-		_threadPool.dispatch(new Runnable() 
+		_threadPool.execute(new Runnable() 
 		{
 			public void run() 
 			{
 				try
 				{
+					messageReceived(message);
 					_processor.doProcess(message);
 				}
 				catch (Exception e)
 				{
-					e.printStackTrace();
+					LOG.warn("Failed to handle message", e);
 					// TODO 500
 				}
 			}
@@ -222,40 +223,8 @@ public class SipServer extends ContainerLifeCycle
 		}
 		catch (Exception e)
 		{
-			e.printStackTrace();
+			LOG.debug(e);
 		}
-			//_handler.handle(message);
-		
-		/*
-		if (message.isRequest())
-		{	
-			SipRequest request = (SipRequest) message;
-			SipResponse response = (SipResponse) request.createResponse(200);
-			
-			((ServerTransaction) request.getTransaction()).send(response);
-
-			/*
-			ByteBuffer out = _buffers.getBuffer();
-			
-			int position = BufferUtil.flipToFill(out);
-		
-			new SipGenerator().generateResponse(out, response.getStatus(), response.getReasonPhrase(), response.getFields());
-			
-			BufferUtil.flipToFlush(out, position);
-			
-			try
-			{
-				message.getConnection().write(out);
-			}
-			catch (Exception e)
-			{
-				e.printStackTrace();
-			}
-			
-			_buffers.returnBuffer(out);
-			
-			//System.out.println(BufferUtil.toString(out));
-		} */
 	}
 	
     public boolean isLocalURI(URI uri)
@@ -355,6 +324,7 @@ public class SipServer extends ContainerLifeCycle
 		        			+ address + ":" + port + "/" + connector.getTransport());
 	    	}
 			connection.send(response);
+			messageSent(response, connection);
 		}
 		catch (MessageTooLongException e)
 		{
@@ -367,6 +337,7 @@ public class SipServer extends ContainerLifeCycle
 		try
 		{
 			connection.send(request);
+			messageSent(request, connection);
 		}
 		catch (MessageTooLongException e)
 		{
@@ -400,6 +371,20 @@ public class SipServer extends ContainerLifeCycle
 		}
 	}
 	
+	protected void messageReceived(SipMessage message)
+	{
+		_messagesReceived.incrementAndGet();
+		if (_accessLog != null)
+			_accessLog.messageReceived(message, message.getConnection());
+	}
+	
+	protected void messageSent(SipMessage message, SipConnection connection)
+	{
+		_messagesSent.incrementAndGet();
+		if (_accessLog != null)
+			_accessLog.messageSent(message, connection);
+	}
+	
 	public TransactionManager getTransactionManager()
 	{
 		return _transactionManager;
@@ -408,6 +393,37 @@ public class SipServer extends ContainerLifeCycle
 	public TransportProcessor getTransportProcessor()
 	{
 		return _transportProcessor;
+	}
+
+	@ManagedAttribute(value="Access log", readonly=true)
+	public AccessLog getAccessLog()
+	{
+		return _accessLog;
+	}
+
+	public void setAccessLog(AccessLog accessLog)
+	{
+		updateBean(_accessLog, accessLog);
+		_accessLog = accessLog;
+	}
+
+	@ManagedAttribute("Messages received")
+	public AtomicLong getMessagesReceived()
+	{
+		return _messagesReceived;
+	}
+
+	@ManagedAttribute("Messages sent")
+	public AtomicLong getMessagesSent()
+	{
+		return _messagesSent;
+	}
+	
+	@ManagedOperation(value="Reset statistics", impact="ACTION")
+	public void statsReset()
+	{
+		_messagesReceived.set(0);
+		_messagesSent.set(0);
 	}
 
 }

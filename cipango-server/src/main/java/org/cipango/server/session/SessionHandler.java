@@ -68,6 +68,7 @@ public class SessionHandler extends SipHandlerWrapper
 			{
 				ApplicationSession appSession = _sessionManager.createApplicationSession();
 				session = appSession.createSession(request);
+				session.addServerTransaction((ServerTransaction) request.getTransaction());
 			}
 			else
 			{

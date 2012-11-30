@@ -39,6 +39,7 @@ import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.ClientTransaction;
 import org.cipango.server.transaction.ClientTransactionListener;
 import org.cipango.server.transaction.ServerTransaction;
+import org.cipango.server.transaction.ServerTransactionListener;
 import org.cipango.server.transaction.Transaction;
 import org.cipango.server.util.ReadOnlyAddress;
 import org.cipango.sip.AddressImpl;
@@ -358,7 +359,7 @@ public class Session implements SipSessionIf
 	{
 		SipRequest request = (SipRequest) response.getRequest();
 		int status = response.getStatus();
-				
+
 		if (request.isInitial() && (request.isInvite() || request.isSubscribe()))
 		{
 			switch (_state)
@@ -705,7 +706,7 @@ public class Session implements SipSessionIf
 		_serverTransactions.add(transaction);
 	}
 	
-	public void removeServerTransaction(ServerTransaction transaction)
+	private void removeServerTransaction(ServerTransaction transaction)
 	{
 		_serverTransactions.remove(transaction);
 	}
@@ -720,7 +721,7 @@ public class Session implements SipSessionIf
 		_clientTransactions.add(transaction);
 	}
 	
-	public void removeClientTransaction(ClientTransaction transaction)
+	private void removeClientTransaction(ClientTransaction transaction)
 	{
 		_clientTransactions.remove(transaction);
 	}
@@ -797,8 +798,8 @@ public class Session implements SipSessionIf
 		{
 			SipFields fields = request.getFields();
 			
-			fields.set(SipHeader.FROM, _localParty);
-			fields.set(SipHeader.TO, _remoteParty);
+			fields.set(SipHeader.FROM, _localParty.clone());
+			fields.set(SipHeader.TO, _remoteParty.clone());
 			
 			if (_remoteTarget != null)
 				request.setRequestURI((URI) _remoteTarget.clone());
@@ -828,7 +829,6 @@ public class Session implements SipSessionIf
 			{
 				String tag = response.to().getTag();
                 _remoteParty.setParameter(AddressImpl.TAG, tag);
-                
                 //System.out.println("Created dialog: " + tag);
                 setRoute(response, true);
 			}
@@ -1044,20 +1044,17 @@ public class Session implements SipSessionIf
 		@Override
 		public void transactionTerminated(Transaction transaction)
 		{
-			if (isUA())
+			if (transaction.isServer())
 			{
-				if (transaction.isServer())
+				removeServerTransaction((ServerTransaction)transaction);
+				if (transaction.isInvite())
 				{
-					removeServerTransaction((ServerTransaction)transaction);
-					if (transaction.isInvite())
-					{
-						long cseq = transaction.getRequest().getCSeq().getNumber();
-						removeServerInvite(cseq);
-					}
+					long cseq = transaction.getRequest().getCSeq().getNumber();
+					removeServerInvite(cseq);
 				}
-				else
-					removeClientTransaction((ClientTransaction)transaction);
 			}
+			else
+				removeClientTransaction((ClientTransaction)transaction);
 		}
 		
 		private ClientInvite getClientInvite(long cseq, boolean create)

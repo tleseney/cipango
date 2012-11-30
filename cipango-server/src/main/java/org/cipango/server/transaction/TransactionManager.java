@@ -72,12 +72,12 @@ public class TransactionManager extends SipProcessorWrapper implements Dumpable
 				return;
 			}
 		}
-	
-		ServerTransaction transaction = _serverTransactions.get(branch);
 
 		// FIXME handle CANCEL
 		if (request.isCancel()) 
 			branch = CANCEL_PREFIX + branch;
+		
+		ServerTransaction transaction = _serverTransactions.get(branch);
 		
 		LOG.debug("handling server transaction message with tx {}", transaction);
 		

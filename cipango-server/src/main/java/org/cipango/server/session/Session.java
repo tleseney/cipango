@@ -22,8 +22,10 @@ import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipSession;
 import javax.servlet.sip.SipSessionBindingEvent;
 import javax.servlet.sip.SipSessionBindingListener;
+import javax.servlet.sip.TooManyHopsException;
 import javax.servlet.sip.UAMode;
 import javax.servlet.sip.URI;
+import javax.servlet.sip.SipSession.State;
 import javax.servlet.sip.ar.SipApplicationRoutingRegion;
 
 import org.cipango.server.RequestCustomizer;
@@ -269,7 +271,8 @@ public class Session implements SipSessionIf
 			
 			if (tx == null || tx.isCompleted())
 				throw new IllegalStateException("no valid transaction");
-				
+			tx.setListener(_dialog);
+			
 			updateState(response, false);
 			
 			if (request.isInvite())
@@ -335,7 +338,23 @@ public class Session implements SipSessionIf
 	{
 		_state = state;
 	}
-		
+
+	public void invokeServlet(SipRequest request) throws SipException
+	{
+		try
+		{
+			_applicationSession.getSessionManager().getSipAppContext().handle(request);
+		}
+		catch (TooManyHopsException e)
+		{
+			throw new SipException(SipServletResponse.SC_TOO_MANY_HOPS);
+		}
+		catch (Throwable t)
+		{
+			throw new SipException(SipServletResponse.SC_SERVER_INTERNAL_ERROR, t);
+		}
+	}
+
 	public void invokeServlet(SipResponse response)
 	{
 		try
@@ -736,7 +755,7 @@ public class Session implements SipSessionIf
 		return _dialog;
 	}
 	
-	public class DialogInfo implements ClientTransactionListener
+	public class DialogInfo implements ClientTransactionListener, ServerTransactionListener
 	{
 		protected long _localCSeq = 1;
 		protected long _remoteCSeq = -1;
@@ -1004,6 +1023,30 @@ public class Session implements SipSessionIf
 			
 		}
 		
+		@Override
+		public void handleCancel(ServerTransaction tx, SipRequest cancel)
+				throws IOException
+		{
+			cancel.setSession(Session.this);
+			if (tx.isCompleted())
+			{
+				LOG.debug("ignoring late cancel {}", tx);
+			}
+			else
+			{
+				try
+				{
+					tx.getRequest().createResponse(SipServletResponse.SC_REQUEST_TERMINATED).send();
+					setState(State.TERMINATED);
+				}
+				catch (Exception e)
+				{
+					LOG.debug("failed to cancel request", e);
+				}
+			}
+			invokeServlet(cancel);
+		}
+
 		private boolean isTargetRefresh(SipMessage message)
 		{
 			if (message instanceof SipResponse)

@@ -33,7 +33,7 @@ import org.eclipse.jetty.util.log.Logger;
 
 public class Table extends AbstractList<Row>
 {
-	private static Logger __logger = Log.getLogger("console");
+	private static Logger __logger = Log.getLogger(Table.class);
 	private List<Row> _rows = new ArrayList<Row>();
 	private List<Header> _headers;
 	private String _title;

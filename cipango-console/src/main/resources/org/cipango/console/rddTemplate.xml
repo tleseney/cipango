@@ -6,7 +6,7 @@
      <step>5</step>
      <!-- at least one datasource must be supplied -->
      <datasource>
-         <name>calls</name>
+         <name>sessions</name>
          <type>GAUGE</type>
          <heartbeat>10</heartbeat>
          <min>0</min>

@@ -23,7 +23,7 @@ import org.eclipse.jetty.util.log.Logger;
 public class StatisticGraphServlet extends HttpServlet
 {
 	private static final Long ONE_HOUR = new Long(3600);
-	private Logger _logger = Log.getLogger("console");
+	private Logger _logger = Log.getLogger(StatisticGraphServlet.class);
 	
 
 	protected void doGet(HttpServletRequest request, HttpServletResponse response)

@@ -408,15 +408,15 @@ public class SipServer extends ContainerLifeCycle
 	}
 
 	@ManagedAttribute("Messages received")
-	public AtomicLong getMessagesReceived()
+	public long getMessagesReceived()
 	{
-		return _messagesReceived;
+		return _messagesReceived.get();
 	}
 
 	@ManagedAttribute("Messages sent")
-	public AtomicLong getMessagesSent()
+	public long getMessagesSent()
 	{
-		return _messagesSent;
+		return _messagesSent.get();
 	}
 	
 	@ManagedOperation(value="Reset statistics", impact="ACTION")

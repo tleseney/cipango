@@ -33,7 +33,7 @@ import org.eclipse.jetty.util.log.Logger;
 
 public abstract class Action
 {
-	private static Logger __logger = Log.getLogger("console");
+	private static Logger __logger = Log.getLogger(Action.class);
 	
 	public static final List<Action> ACTIONS = new ArrayList<Action>();
 		

@@ -11,6 +11,7 @@
 	<servlet>
 		<servlet-name>velocity</servlet-name>
 		<servlet-class>org.cipango.console.VelocityConsoleServlet</servlet-class>
+		<load-on-startup>1</load-on-startup>
 	</servlet>
 	
 	<servlet>
@@ -31,7 +32,7 @@
 
 	<servlet-mapping>
 	  <servlet-name>StatisticGraphServlet</servlet-name>
-	  <url-pattern>statistics/calls.png</url-pattern>
+	  <url-pattern>statistics/sessions.png</url-pattern>
 	</servlet-mapping>
 	<servlet-mapping>
 	  <servlet-name>StatisticGraphServlet</servlet-name>
@@ -44,6 +45,10 @@
 	<servlet-mapping>
 	  <servlet-name>StatisticGraphServlet</servlet-name>
 	  <url-pattern>statistics/cpu.png</url-pattern>
+	</servlet-mapping>
+		<servlet-mapping>
+	  <servlet-name>StatisticGraphServlet</servlet-name>
+	  <url-pattern>statistics/threads.png</url-pattern>
 	</servlet-mapping>
 	
 	<servlet-mapping>
@@ -58,6 +63,7 @@
   <!-- 
    A security constraint that restricts access to the Cipango console
    to users with the role admin 
+   (Default login is admin with password admin)
   -->
   <security-constraint>
     <web-resource-collection>
@@ -65,7 +71,7 @@
       <url-pattern>/</url-pattern>
     </web-resource-collection>
     <auth-constraint>
-      <role-name>user</role-name>
+      <role-name>admin</role-name>
     </auth-constraint>
   </security-constraint>
   <security-constraint>

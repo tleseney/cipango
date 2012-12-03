@@ -83,7 +83,7 @@ public class EnvManager
 		}	
 	});
 	
-	private static Logger __logger = Log.getLogger("console");
+	private static Logger __logger = Log.getLogger(EnvManager.class);
 	
 	public EnvManager(MBeanServerConnection mbsc)
 	{

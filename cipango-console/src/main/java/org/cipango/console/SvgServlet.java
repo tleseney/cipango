@@ -28,7 +28,7 @@ import org.w3c.dom.Node;
 
 public class SvgServlet extends HttpServlet
 {
-	private Logger _logger = Log.getLogger("console");
+	private Logger _logger = Log.getLogger(SvgServlet.class);
 	
 	@Override
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException

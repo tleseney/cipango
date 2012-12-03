@@ -8,39 +8,3 @@
 #table($sipManager.getAppSessionStats())
 
 #table($sipManager.getAppSessionTimeStats())
-
-#*
-#properties($sipManager.getMessageStats())
-
-
-#if ($statisticGraph)
-	<h2>Statistics Graph</h2>
-	#if ($statisticGraph.isStarted())
-		Statistics Graphs are activated: 
-		#action($field.in($sipManager).STOP_GRAPH)
-		<form method="post" class="well form-inline">
-			Display Statistics Graphs for: 
-			#if (!$time)
-				#set ($time = 3600)
-			#end
-			<select name="time">
-				#set ($statsTime = {800:"last 15 minutes", 3600:"last hour", 14400:"last 4 hours", 43200:"last 12 hours", 86400:"last day", 172800:"last 2 days", 604800:"last week", 1209600:"last 2 weeks"})
-				#foreach ($value in $statsTime.keySet())
-					<option value="$value" #if ($time == $value) selected="selected" #end >$statsTime.get($value)</option>
-				#end
-			</select>
-			<input type="hidden" name="action" value="change-time">
-			<input type="submit" value="change" class="btn">
-		</form>
-
-		#printGraph("Call Sessions", "calls")
-		#printGraph("SIP Messages", "messages")
-		#printGraph("JVM Memory", "memory")
-		#printGraph("CPU Usage", "cpu")
-		#printGraph("Threads", "threads")
-	#else
-		Statistics Graphs are deactivated
-		#action($field.in($sipManager).START_GRAPH)
-	#end
-#end
-*#

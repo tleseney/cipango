@@ -35,7 +35,7 @@ public class Deployer
 	private static final String JAR_PREFIX = "jar:";
 	private static final String JAR_POSTFIX = "!/";
 	private MBeanServerConnection _connection;
-	private Logger _logger = Log.getLogger("console");
+	private Logger _logger = Log.getLogger(Deployer.class);
 	
 	public Deployer(MBeanServerConnection connection)
 	{

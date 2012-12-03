@@ -5,12 +5,14 @@ import java.util.Iterator;
 import java.util.List;
 
 import javax.management.Attribute;
+import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import javax.servlet.http.HttpServletRequest;
 
 import org.cipango.console.data.Property;
 import org.cipango.console.data.PropertyList;
+import org.cipango.console.data.Row.Header;
 import org.cipango.console.data.Table;
 import org.cipango.console.menu.MenuImpl;
 import org.cipango.console.util.ObjectNameFactory;
@@ -85,7 +87,17 @@ public class JettyManager
 	
 	public Table getConnectorsConfig() throws Exception
 	{
-		return new Table(_mbsc, getConnectors(), "http.connectors");
+		return new Table(_mbsc, getConnectors(), "http.connectors")
+		{
+
+			@Override
+			protected Header getHeader(String param, MBeanAttributeInfo[] attrInfos, String propertyName)
+			{
+				String name = param.substring(1);
+				return new Header(param, Character.toUpperCase(param.charAt(0)) + name);
+			}
+			
+		};
 	}
 	
 	public List<PropertyList> getConnectorsStatistics() throws Exception

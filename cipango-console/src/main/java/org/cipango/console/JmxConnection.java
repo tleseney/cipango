@@ -24,7 +24,7 @@ public abstract class JmxConnection
 	private String _displayName;
 	private String _id;
 	protected MBeanServerConnection _mbsc;
-	private Logger _logger = Log.getLogger("console");
+	private Logger _logger = Log.getLogger(JmxConnection.class);
 	private Map<String, Object> _contextMap;
 
 	public synchronized MBeanServerConnection getMbsc()
@@ -119,7 +119,7 @@ public abstract class JmxConnection
 
 	public static class LocalConnection extends JmxConnection
 	{
-		private Logger _logger = Log.getLogger("console");
+		private Logger _logger = Log.getLogger(LocalConnection.class);
 		
 		public LocalConnection() throws IllegalStateException
 		{
@@ -166,7 +166,7 @@ public abstract class JmxConnection
 		private int _port;
 		private String _host;
 		private Map<String, Object> _environment;
-		private Logger _logger = Log.getLogger("console");
+		private Logger _logger = Log.getLogger(RmiConnection.class);
 		
 		public static List<RmiConnection> getRmiConnections()
 		{

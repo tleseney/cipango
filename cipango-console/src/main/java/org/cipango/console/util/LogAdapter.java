@@ -7,7 +7,7 @@ import org.eclipse.jetty.util.log.Logger;
 
 public class LogAdapter implements LogChute
 {
-	private Logger _logger = Log.getLogger("console");
+	private Logger _logger = Log.getLogger("org.cipango.console.util.LogAdapter.velocity");
 
 	@Override
 	public void init(RuntimeServices rs) throws Exception

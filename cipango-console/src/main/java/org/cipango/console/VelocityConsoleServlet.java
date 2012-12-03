@@ -31,7 +31,7 @@ import org.eclipse.jetty.util.log.Logger;
 public class VelocityConsoleServlet extends VelocityLayoutServlet
 {
 
-	private Logger _logger = Log.getLogger("console");
+	private Logger _logger = Log.getLogger(VelocityConsoleServlet.class);
 	
 	private Map<String, List<Action>> _actions = new HashMap<String, List<Action>>();
 	
@@ -47,20 +47,19 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 		super.init(config);
 		_localConnection = new JmxConnection.LocalConnection();
 		
-//	FIXME tmp
-//		if (_localConnection.isConnectionValid())
-//		{
-//			try
-//			{
-//				StatisticGraph statisticGraph = new StatisticGraph(_localConnection);
-//				statisticGraph.start();
-//				_statisticGraphs.put(_localConnection.getId(), statisticGraph);
-//			}
-//			catch (Exception e)
-//			{
-//				_logger.warn("Failed to start statistic graph", e);
-//			}
-//		}
+		if (_localConnection.isConnectionValid())
+		{
+			try
+			{
+				StatisticGraph statisticGraph = new StatisticGraph(_localConnection);
+				statisticGraph.start();
+				_statisticGraphs.put(_localConnection.getId(), statisticGraph);
+			}
+			catch (Exception e)
+			{
+				_logger.warn("Failed to start statistic graph", e);
+			}
+		}
 
 		_jmxMap.put(_localConnection.getId(), _localConnection);
 		
@@ -110,7 +109,7 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 		if (!connection.isConnectionValid() && !_localConnection.isConnectionValid())
 		{
 			response.sendError(503 ,"JMX is not enabled, unable to use cipango console. Please start Cipango with:\n" +
-			"\tjava -jar start.jar --ini=start-cipango.ini --pre=etc/cipango-jmx.xml");
+			"\tjava -jar start.jar --pre=etc/jetty-jmx.xml");
 			return;
 		}
 		
@@ -186,6 +185,8 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 				if (action.getParameter().equalsIgnoreCase(param))
 					return action;
 		}
+		
+		_logger.warn("No action found for parameter {} and page {}", param, page.getName());
 		return null;
 	}
 	

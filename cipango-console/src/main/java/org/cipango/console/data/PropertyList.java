@@ -34,7 +34,7 @@ import org.eclipse.jetty.util.log.Logger;
 
 public class PropertyList extends AbstractList<Property>
 {
-	private static Logger __logger = Log.getLogger("console");
+	private static Logger __logger = Log.getLogger(PropertyList.class);
 	private List<Property> _properties = new ArrayList<Property>();
 	public String _title;
 

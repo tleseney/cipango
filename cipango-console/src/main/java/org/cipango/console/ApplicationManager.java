@@ -49,7 +49,7 @@ import org.eclipse.jetty.util.log.Logger;
 
 public class ApplicationManager extends Manager
 {
-	private static Logger __logger = Log.getLogger("console");
+	private static Logger __logger = Log.getLogger(ApplicationManager.class);
 	
 	public static final ObjectName 
 		DAR = ObjectNameFactory.create("org.cipango.dar:type=defaultapplicationrouter,id=0"),

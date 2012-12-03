@@ -94,13 +94,15 @@ public class MenuImpl implements Menu
 		STATISTICS = PAGES.add(new PageImpl("Statistics")),
 		STATISTICS_SIP = STATISTICS.add(new PageImpl("statistics-sip.vm", "SIP Statistics", "SIP")),
 		STATISTICS_HTTP = STATISTICS.add(new PageImpl("statistics-http.vm", "HTTP Statistics", "HTTP")),
-		STATISTICS_DIAMETER = STATISTICS.add(new PageImpl("statistics-diameter.vm", "Diameter Statistics", "Diameter"){
+		STATISTICS_DIAMETER = STATISTICS.add(new PageImpl("statistics-diameter.vm", "Diameter Statistics", "Diameter")
+		{
 			@Override
 			public boolean isEnabled(MBeanServerConnection c) throws IOException
 			{
 				return c.isRegistered(DiameterManager.NODE);
 			}
 		}),
+		STATISTICS_GRAPH = STATISTICS.add(new PageImpl("statistics-graph.vm", "Statistics graphs", "Graphs")),
 		
 		LOGS = PAGES.add(new PageImpl("Logs")),
 		SIP_LOGS = LOGS.add(new PageImpl("logs-sip.vm", "SIP Logs", "SIP"){
@@ -141,7 +143,7 @@ public class MenuImpl implements Menu
 	protected MBeanServerConnection _connection;
 	protected PageImpl _currentPage;
 	protected List<PageImpl> _pages;
-	private static Logger _logger = Log.getLogger("console");
+	private static Logger _logger = Log.getLogger(MenuImpl.class);
 
 	public MenuImpl(MBeanServerConnection c, String command)
 	{

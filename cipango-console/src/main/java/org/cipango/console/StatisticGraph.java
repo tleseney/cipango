@@ -43,7 +43,7 @@ public class StatisticGraph
 	
 	public enum GraphType
 	{
-		CALLS("rddCallsGraphTemplate.xml"),
+		SESSIONS("rddSessionsGraph.xml"),
 		MEMORY("rddMemoryGraphTemplate.xml"),
 		MESSAGES("rddMessagesGraphTemplate.xml"),
 		CPU("rddCpuGraphTemplate.xml"),
@@ -79,16 +79,17 @@ public class StatisticGraph
 	private String _rrdPath;
 	private JmxConnection _connection;
 	private String _dataFileName;
-	private ObjectName _sessionManger;
 	private ObjectName _threadPool;
 
 	private static Timer __statTimer = new Timer("Statistics timer");
 
-	private Logger _logger = Log.getLogger("console");
+	private Logger _logger = Log.getLogger(StatisticGraph.class);
 
 	private boolean _started = false;
 	private boolean _cpuStatAvailable = false;
 	private boolean _systemCpuStatAvailable = false;
+	private ObjectName[] _contexts;
+	private ObjectName[] _sessionManagers;
 
 	public StatisticGraph(JmxConnection connection) throws AttributeNotFoundException,
 			InstanceNotFoundException, MBeanException, ReflectionException, IOException, RrdException
@@ -130,7 +131,8 @@ public class StatisticGraph
 		{
 			RrdDb rrdDb = _rrdPool.requestRrdDb(_rrdPath);
 			Sample sample = rrdDb.createSample();
-			sample.setValue("calls", (Integer) getMbsc().getAttribute(_sessionManger, "callSessions"));
+			MBeanServerConnection mbsc = _connection.getMbsc();
+			sample.setValue("sessions", getSessions(mbsc));
 			MemoryUsage r = getMemory().getHeapMemoryUsage();
 			sample.setValue("maxMemory", r.getMax());
 			sample.setValue("totalMemory", r.getCommitted());
@@ -145,6 +147,41 @@ public class StatisticGraph
 		}
 	}
 
+	protected long getSessions(MBeanServerConnection mbsc) throws AttributeNotFoundException, InstanceNotFoundException, MBeanException, ReflectionException, IOException
+	{
+		ObjectName[] contexts =  (ObjectName[]) _connection.getMbsc().getAttribute(SipManager.HANDLER_COLLECTION, "sipContexts");
+		
+		if (hasContextsChanged(contexts))
+		{
+			_logger.debug("Context has changed");
+			_sessionManagers = new ObjectName[contexts.length];
+			for (int i = 0; i < contexts.length; i++)
+			{
+				ObjectName sessionHandler = (ObjectName) mbsc.getAttribute(contexts[i], "sessionHandler");
+				_sessionManagers[i] = (ObjectName) mbsc.getAttribute(sessionHandler, "sessionManager");
+			}
+			_contexts = contexts;
+		}
+		
+		long sessions = 0;
+		for (ObjectName sessionManager : _sessionManagers)
+			sessions += (Long) mbsc.getAttribute(sessionManager, "sessions");
+		return sessions;
+	}
+	
+	private boolean hasContextsChanged(ObjectName[] contexts)
+	{
+		if (_contexts == contexts)
+			return false;
+		if (_contexts == null || _contexts.length != contexts.length)
+			return true;
+		
+		for (int i = 0; i < contexts.length; i++)
+			if (!_contexts[i].equals(contexts[i]))
+				return true;
+		return false;
+	}
+	
 	/**
 	 * Returns <code>true</code> if update has been successfully done.
 	 * @return
@@ -165,20 +202,19 @@ public class StatisticGraph
 			
 			RrdDb rrdDb = _rrdPool.requestRrdDb(_rrdPath);
 			Sample sample = rrdDb.createSample();
-			if (mbsc.isRegistered(_sessionManger))
-				sample.setValue("calls", (Integer) mbsc.getAttribute(_sessionManger, "callSessions"));
+			sample.setValue("sessions", getSessions(mbsc));
 			
 			MemoryUsage r = getMemory().getHeapMemoryUsage();
 
 			sample.setValue("maxMemory", r.getMax());
 			sample.setValue("totalMemory", r.getCommitted());
 			sample.setValue("usedMemory", r.getUsed());
-			if (mbsc.isRegistered(SipManager.CONNECTOR_MANAGER))
+			if (mbsc.isRegistered(SipManager.SERVER))
 			{
 				sample.setValue("incomingMessages",
-						(Long) mbsc.getAttribute(SipManager.CONNECTOR_MANAGER, "messagesReceived"));
+						(Long) mbsc.getAttribute(SipManager.SERVER, "messagesReceived"));
 				sample.setValue("outgoingMessages",
-						(Long) mbsc.getAttribute(SipManager.CONNECTOR_MANAGER, "messagesSent"));
+						(Long) mbsc.getAttribute(SipManager.SERVER, "messagesSent"));
 			}
 			
 			int nbCpu = (Integer) mbsc.getAttribute(OPERATING_SYSTEM, "AvailableProcessors");
@@ -260,8 +296,7 @@ public class StatisticGraph
 			return;
 		try
 		{
-			_sessionManger = (ObjectName) getMbsc().getAttribute(JettyManager.SERVER, "sessionManager");
-			_threadPool = (ObjectName) getMbsc().getAttribute(JettyManager.SERVER, "sipThreadPool");
+			_threadPool = (ObjectName) getMbsc().getAttribute(SipManager.SERVER, "threadPool");
 			
 			if (_dataFileName == null)
 			{
@@ -306,8 +341,8 @@ public class StatisticGraph
 				rrdDb.getRrdDef().getStep();
 				_rrdPool.release(rrdDb);
 			}
-			else
-				updateDb();
+//			else
+//				updateDb();
 
 			RrdDb rrdDb = _rrdPool.requestRrdDb(_rrdPath);
 			setRefreshPeriod(rrdDb.getRrdDef().getStep() * 1000);
@@ -357,7 +392,8 @@ public class StatisticGraph
 			synchronized (StatisticGraph.this)
 			{
 				boolean success = updateDb();
-				__statTimer.schedule(new StatisticGraphTask(), success ? _refreshPeriod : _timeoutPeriod);
+				if (_started)
+					__statTimer.schedule(new StatisticGraphTask(), success ? _refreshPeriod : _timeoutPeriod);
 			}
 		}
 

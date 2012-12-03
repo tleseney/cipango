@@ -60,7 +60,7 @@ public class SipManager extends Manager
 		HANDLER_COLLECTION = ObjectNameFactory.create("org.cipango.server.handler:type=sipcontexthandlercollection,id=0"),
 		TRANSACTION_MANAGER = ObjectNameFactory.create("org.cipango.server.transaction:type=transactionmanager,id=0");;
 	
-	public static final Action CHANGE_TIME_GRAPH = Action.add(new Action(MenuImpl.STATISTICS_SIP, "change-time")
+	public static final Action CHANGE_TIME_GRAPH = Action.add(new Action(MenuImpl.STATISTICS_GRAPH, "change-time")
 	{
 		@Override
 		public void doProcess(HttpServletRequest request, MBeanServerConnection mbsc) throws Exception

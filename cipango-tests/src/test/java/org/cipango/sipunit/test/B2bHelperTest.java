@@ -81,11 +81,11 @@ public class B2bHelperTest extends UaTestCase
 				SipServletResponse response = _ua.createResponse(
 						request, SipServletResponse.SC_SESSION_PROGRESS);
 				response.addHeader(SipHeaders.REQUIRE, "100rel");
-				response.send();
+				response.sendReliably();
 				
 				request = _dialog.waitForRequest();
 				assertThat(request.getMethod(), is(equalTo(SipMethods.PRACK)));
-				_ua.createResponse(request, SipServletResponse.SC_OK);
+				_ua.createResponse(request, SipServletResponse.SC_OK).send();
 				
 				request = _dialog.waitForRequest();
 				assertThat(request.getMethod(), is(equalTo(SipMethods.CANCEL)));
@@ -106,6 +106,7 @@ public class B2bHelperTest extends UaTestCase
 	        _ua.decorate(response.createPrack()).send();
 	        assertThat(callA.waitForResponse(), isSuccess());
 			Thread.sleep(50);
+			
 	        callA.createCancel().send();	        
 	        assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_REQUEST_TERMINATED));
 			callB.join(2000);

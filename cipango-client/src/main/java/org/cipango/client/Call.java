@@ -51,16 +51,9 @@ public class Call extends Dialog
 		if (_session != null)
 		{
 			SipServletResponse response = getSessionHandler().getLastResponse();
-			if (response == null)
-			{
-				SipServletRequest request = (SipServletRequest) _session
-						.getAttribute(INITIAL_REQUEST_ATTRIBUTE);
+			SipServletRequest request = (SipServletRequest) _session
+					.getAttribute(INITIAL_REQUEST_ATTRIBUTE);
 				return request.createCancel();
-			}
-			else if (response.getStatus() < SipServletResponse.SC_OK)
-			{
-				return response.getRequest().createCancel();
-			}
 		}
 		return null;
 	}

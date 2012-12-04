@@ -124,7 +124,7 @@ public class SipResponse extends SipMessage implements SipServletResponse
 		if (isCommitted())
 			throw new IllegalStateException("response is committed");
 		
-		_session.sendResponse(this);
+		_session.sendResponse(this, reliable);
 		//((ServerTransaction) getTransaction()).send(this);
 		
 		setCommitted(true);
@@ -351,8 +351,15 @@ public class SipResponse extends SipMessage implements SipServletResponse
 
 	@Override
 	public void sendReliably() throws Rel100Exception {
-		// TODO Auto-generated method stub
-		
+		// FIXME
+		try
+		{
+			send(true);
+		}
+		catch (IOException e)
+		{
+			LOG.warn(e);
+		}
 	}
 
 	

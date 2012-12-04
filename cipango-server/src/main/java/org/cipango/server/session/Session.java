@@ -48,6 +48,7 @@ import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipException;
 import org.cipango.sip.SipFields;
 import org.cipango.sip.SipFields.Field;
+import org.cipango.sip.SipGrammar;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
 import org.cipango.util.TimerTask;
@@ -239,9 +240,12 @@ public class Session implements SipSessionIf
 		_dialog = new DialogInfo();
 	}
 	
-	public void sendResponse(SipResponse response)
-	{		
+	public void sendResponse(SipResponse response, boolean reliable) throws IOException
+	{
 		accessed();
+		
+		if (_role == Role.UNDEFINED)
+			createUA(UAMode.UAS);
 		
 		if (isProxy()) // Virtual branch
 		{
@@ -266,44 +270,7 @@ public class Session implements SipSessionIf
 		
 		if (isUA())
 		{
-			ServerTransaction tx = (ServerTransaction) response.getTransaction();
-			SipRequest request = (SipRequest) response.getRequest();
-			
-			if (tx == null || tx.isCompleted())
-				throw new IllegalStateException("no valid transaction");
-			tx.setListener(_dialog);
-			
-			updateState(response, false);
-			
-			if (request.isInvite())
-			{
-				int status = response.getStatus();
-				long cseq = response.getCSeq().getNumber();
-				
-				if (200 <= status && (status < 300))
-				{
-					DialogInfo.ServerInvite invite = _dialog.getServerInvite(cseq, true);
-					invite.set2xx(response);
-				}
-//				else if ((100 < status) && (status < 200)  && reliable)
-//				{
-//					DialogInfo.ServerInvite invite = _dialog.getServerInvite(cseq, true);
-//					
-//					long rseq = _localRSeq++;
-//					response.getFields().addString(SipHeaders.REQUIRE_BUFFER, SipParams.REL_100);
-//					response.setRSeq(rseq);
-//					
-//					invite.addReliable1xx(response);
-//				}
-				else if (status >= 300)
-				{
-					DialogInfo.ServerInvite invite = _dialog.getServerInvite(cseq, false);
-					if (invite != null)
-						invite.stop1xxRetrans();
-				}
-			}
-			
-			tx.send(response);
+			_dialog.sendResponse(response, reliable);
 		}
 	}
 		
@@ -759,6 +726,9 @@ public class Session implements SipSessionIf
 	{
 		protected long _localCSeq = 1;
 		protected long _remoteCSeq = -1;
+		protected long _localRSeq = 1;
+		protected long _remoteRSeq = -1;
+
 		protected URI _remoteTarget;
 		protected LinkedList<String> _routeSet;
 		
@@ -926,7 +896,7 @@ public class Session implements SipSessionIf
 //			{
 //				RAck rack = null;
 //				
-//				try 
+//				try
 //				{
 //					rack = request.getRAck();
 //				}
@@ -939,7 +909,6 @@ public class Session implements SipSessionIf
 //				
 //				if (invite == null || !invite.prack(rack.getRSeq()))
 //					throw new SipException(SipServletResponse.SC_CALL_LEG_DONE, "No matching 100 rel for RAck " + rack);
-//				 
 //			}
 		}
 
@@ -998,14 +967,14 @@ public class Session implements SipSessionIf
 			}
 			else if (response.isReliable1xx())
 			{
-//				long rseq = response.getRSeq();
-//				if (_remoteRSeq != -1 && (_remoteRSeq + 1 != rseq))
-//				{
-//					if (LOG.isDebugEnabled())
-//						LOG.debug("Dropping 100rel with rseq {} since expecting {}", rseq, _remoteRSeq+1);
-//					return;
-//				}
-//				_remoteRSeq = rseq;
+				long rseq = response.getRSeq();
+				if (_remoteRSeq != -1 && (_remoteRSeq + 1 != rseq))
+				{
+					if (LOG.isDebugEnabled())
+						LOG.debug("Dropping 100rel with rseq {} since expecting {}", rseq, _remoteRSeq+1);
+					return;
+				}
+				_remoteRSeq = rseq;
 				long cseq = response.getCSeq().getNumber();
 				ClientInvite invite = getClientInvite(cseq, true);
 				invite.addReliable1xx(response);
@@ -1047,6 +1016,48 @@ public class Session implements SipSessionIf
 			invokeServlet(cancel);
 		}
 
+		public void sendResponse(SipResponse response, boolean reliable) throws IOException
+		{
+			ServerTransaction tx = (ServerTransaction) response.getTransaction();
+			SipRequest request = (SipRequest) response.getRequest();
+			
+			if (tx == null || tx.isCompleted())
+				throw new IllegalStateException("no valid transaction");
+			tx.setListener(_dialog);
+			
+			updateState(response, false);
+			
+			if (request.isInvite())
+			{
+				int status = response.getStatus();
+				long cseq = response.getCSeq().getNumber();
+				
+				if (200 <= status && (status < 300))
+				{
+					DialogInfo.ServerInvite invite = _dialog.getServerInvite(cseq, true);
+					invite.set2xx(response);
+				}
+				else if ((100 < status) && (status < 200)  && reliable)
+				{
+					DialogInfo.ServerInvite invite = _dialog.getServerInvite(cseq, true);
+					
+					long rseq = _localRSeq++;
+					response.getFields().addString(SipHeader.REQUIRE.toString(), SipGrammar.REL_100, false);
+					response.setRSeq(rseq);
+					
+					invite.addReliable1xx(response);
+				}
+				else if (status >= 300)
+				{
+					DialogInfo.ServerInvite invite = _dialog.getServerInvite(cseq, false);
+					if (invite != null)
+						invite.stop1xxRetrans();
+				}
+			}
+			
+			tx.send(response);
+		}
+		
 		private boolean isTargetRefresh(SipMessage message)
 		{
 			if (message instanceof SipResponse)

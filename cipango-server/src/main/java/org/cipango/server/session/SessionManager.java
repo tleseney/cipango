@@ -129,6 +129,18 @@ public class SessionManager extends AbstractLifeCycle
 		setScavengePeriod(getScavengePeriod());
 	}
 		
+	@Override
+	protected void doStop() throws Exception
+	{
+		super.doStop();
+
+		// Ensure that timer thread stops
+		synchronized (_timerQueue)
+		{
+			_timerQueue.notify();
+		}
+	}
+	
 	public ServletContext getContext()
 	{
 		return _sipAppContext.getServletContext();
@@ -515,30 +527,19 @@ public class SessionManager extends AbstractLifeCycle
 			printAttr(sb, "invalidateWhenReady", appSession.getInvalidateWhenReady());
 			printAttr(sb, "attributes", appSession._attributes);
 			
-			Iterator<ServletTimer> it4 = appSession._timers.iterator();
-			if (it4.hasNext())
+			if (appSession._timers != null && !appSession._timers.isEmpty())
+			{
+				Iterator<ServletTimer> it4 = appSession._timers.iterator();
 				sb.append("\t+ [Timers]\n");
-			while (it4.hasNext())
-				sb.append("\t\t+ ").append(it4.next()).append('\n');
+				while (it4.hasNext())
+					sb.append("\t\t+ ").append(it4.next()).append('\n');
+			}
 			
 			Iterator<Session> it = appSession._sessions.iterator();
 			if (it.hasNext())
 				sb.append("\t+ [sipSessions]\n");
 			while (it.hasNext())
 				printSession(sb, it.next());
-			
-//			Iterator<ClientTransaction> it2 = cSession._clientTransactions.iterator();
-//			if (it2.hasNext())
-//				sb.append("\t+ [clientTransaction]\n");
-//			while (it2.hasNext())
-//				sb.append("\t\t+ ").append(it2.next()).append('\n');
-//			
-//			Iterator<ServerTransaction> it3 = cSession._serverTransactions.iterator();
-//			if (it3.hasNext())
-//				sb.append("\t+ [serverTransaction]\n");
-//			while (it3.hasNext())
-//				sb.append("\t\t+ ").append(it3.next()).append('\n');
-
 		}
 		catch (Exception e)
 		{

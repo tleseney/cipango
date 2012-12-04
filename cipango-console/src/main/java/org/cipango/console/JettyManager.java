@@ -12,8 +12,6 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.cipango.console.data.Property;
 import org.cipango.console.data.PropertyList;
-import org.cipango.console.data.Row.Header;
-import org.cipango.console.data.Table;
 import org.cipango.console.menu.MenuImpl;
 import org.cipango.console.util.ObjectNameFactory;
 import org.cipango.console.util.PrinterUtil;
@@ -85,19 +83,31 @@ public class JettyManager
 		return properties;
 	}
 	
-	public Table getConnectorsConfig() throws Exception
+	public List<PropertyList> getConnectorsConfig() throws Exception
 	{
-		return new Table(_mbsc, getConnectors(), "http.connectors")
-		{
+		ObjectName[] connectors = getConnectors();
+		List<PropertyList> list = new ArrayList<PropertyList>(connectors.length);
 
-			@Override
-			protected Header getHeader(String param, MBeanAttributeInfo[] attrInfos, String propertyName)
+		for (ObjectName connector : connectors)
+		{
+			PropertyList propertyList = (new PropertyList(_mbsc, connector, "http.connectors")
 			{
-				String name = param.substring(1);
-				return new Header(param, Character.toUpperCase(param.charAt(0)) + name);
-			}
+
+				@Override
+				protected String getPropertName(String param, MBeanAttributeInfo[] attrInfo)
+				{
+					String name = param.substring(1);
+					return Character.toUpperCase(param.charAt(0)) + name;
+				}
+				
+			});
 			
-		};
+			if (connectors.length > 1)
+				propertyList.setTitle(connector.getKeyProperty("context"));
+			
+			list.add(propertyList);
+		}
+		return list;
 	}
 	
 	public List<PropertyList> getConnectorsStatistics() throws Exception

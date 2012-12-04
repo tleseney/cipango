@@ -6,9 +6,12 @@ import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
+import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Map;
 import java.util.SortedMap;
@@ -251,5 +254,25 @@ public class EnvManager
 	public boolean isStdErrorLoggerUsed()
 	{
 		return __logger instanceof StdErrLog;
+	}
+	
+	public ThreadInfo[] dumpThreads() throws IOException
+	{
+		ThreadInfo[] threadInfos = getThread().dumpAllThreads(true, false);
+		Arrays.sort(threadInfos, new Comparator<ThreadInfo>()
+		{
+
+			@Override
+			public int compare(ThreadInfo o1, ThreadInfo o2)
+			{
+				return o1.getThreadName().compareTo(o2.getThreadName());
+			}
+		});
+		return threadInfos;
+	}
+	
+	public String getCurrentTime()
+	{
+		return new Date().toString();
 	}
 }

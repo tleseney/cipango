@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
 
 import javax.management.MBeanServerConnection;
 import javax.servlet.ServletConfig;
@@ -40,18 +41,20 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 	// Use a separate map for statistic graph to ensure only one instance is created by connection
 	private Map<String, StatisticGraph> _statisticGraphs = new HashMap<String, StatisticGraph>();
 	private LocalConnection _localConnection;
+	private Timer _timer;
 	
 	@Override
 	public void init(ServletConfig config) throws ServletException
 	{
 		super.init(config);
 		_localConnection = new JmxConnection.LocalConnection();
+		_timer = new Timer("Console statistics timer");
 		
 		if (_localConnection.isConnectionValid())
 		{
 			try
 			{
-				StatisticGraph statisticGraph = new StatisticGraph(_localConnection);
+				StatisticGraph statisticGraph = new StatisticGraph(_localConnection, _timer);
 				statisticGraph.start();
 				_statisticGraphs.put(_localConnection.getId(), statisticGraph);
 			}
@@ -69,7 +72,7 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 			try
 			{
 				_jmxMap.put(connection.getId(), connection);
-				StatisticGraph statisticGraph = new StatisticGraph(connection);
+				StatisticGraph statisticGraph = new StatisticGraph(connection, _timer);
 				statisticGraph.start();
 				_statisticGraphs.put(connection.getId(), statisticGraph);
 			}
@@ -275,6 +278,7 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 	{	
 		for (StatisticGraph statisticGraph : _statisticGraphs.values())
 			statisticGraph.stop();
+		_timer.cancel();
 	}
 
 	@Override

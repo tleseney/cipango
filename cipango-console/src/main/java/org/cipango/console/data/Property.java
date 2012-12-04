@@ -38,6 +38,13 @@ public class Property
 		setNote(note);
 	}
 	
+	public Property(String name, Object value, String note)
+	{
+		setName(name);
+		setValue(value);
+		setNote(note);
+	}
+	
 	public String getName()
 	{
 		return _name;

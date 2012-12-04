@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.sip.SipServletResponse;
@@ -14,6 +15,7 @@ import org.cipango.server.SipRequest;
 import org.cipango.server.handler.AbstractSipHandler;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.sipapp.SipServletMapping;
+import org.eclipse.jetty.servlet.ServletContextHandler.Decorator;
 import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.MultiException;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
@@ -63,7 +65,7 @@ public class SipServletHandler extends AbstractSipHandler
         if (!(l instanceof SipServletHolder))
             super.start(l);
     }
-	
+    	
 	@ManagedAttribute(value="SIP servlets", readonly=true)
 	public SipServletHolder[] getServlets()
 	{
@@ -285,5 +287,14 @@ public class SipServletHandler extends AbstractSipHandler
 	public SipAppContext getAppContext()
 	{
 		return _appContext;
+	}
+	
+	protected void destroyServlet(Servlet servlet)
+	{
+		if (_appContext != null && _appContext.getWebAppContext() != null)
+		{
+			for (Decorator decorator : _appContext.getWebAppContext().getDecorators())
+				decorator.destroyServletInstance(servlet);
+		}
 	}
 }

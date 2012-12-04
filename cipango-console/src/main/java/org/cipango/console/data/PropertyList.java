@@ -113,22 +113,27 @@ public class PropertyList extends AbstractList<Property>
 				if (params[j] == null ||  "".equals(params[j].trim()))
 					continue;
 				
-				int k;
-				for (k = 0; k < attrInfo.length; k++)
-				{
-					if (attrInfo[k].getName().equals(params[j]))
-						break;
-				}
-				if (k >= attrInfo.length)
+				String name = getPropertName(params[j], attrInfo);
+				if (name == null)
 					__logger.warn("Could not found attribute: {} in {}", params[j], objectName);
 				else
 				{
 					String note = PrinterUtil.getNote(propertyName, params[j]);
-					Property property = new Property(attrInfo[k], connection.getAttribute(objectName, params[j]), note);
+					Property property = new Property(name, connection.getAttribute(objectName, params[j]), note);
 					add(property);
 				}
 			}
 		}
+	}
+	
+	protected String getPropertName(String param, MBeanAttributeInfo[] attrInfo)
+	{
+		for (int k = 0; k < attrInfo.length; k++)
+		{
+			if (attrInfo[k].getName().equals(param))
+				return attrInfo[k].getDescription();
+		}
+		return null;
 	}
 	
 	public String getTitle()

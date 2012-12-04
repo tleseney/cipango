@@ -51,7 +51,6 @@ public class SessionHandler extends SipHandlerWrapper
 	protected void doStart() throws Exception
 	{
 		_sessionManager.setSipAppContext(SipAppContext.getCurrentContext());
-		_sessionManager.start();
 		super.doStart();
 	}
 	

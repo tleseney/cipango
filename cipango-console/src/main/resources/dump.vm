@@ -2,30 +2,37 @@ $response.setContentType("text/plain")
 #set( $layout = "TextLayout.vm" ) 
 
 #header1("Server")
-#propertiesTxt ( $envManager.getVersion() )
-#propertiesTxt ($envManager.getJava() )
-#propertiesTxt ($envManager.getHardware() )
+#propertiesTxt ($envManager.getVersion())
+#propertiesTxt ($envManager.getJava())
+#propertiesTxt ($envManager.getHardware())
 
 #header1("SIP")
 #tableTxt($sipManager.getConnectorsConfig())
-#propertiesTxt ($sipManager.getThreadPool() )
+#propertiesTxt ($sipManager.getThreadPool())
 #propertiesTxt ($sipManager.getTimers())
 #propertiesTxt($sipManager.getMessageStats())
-#propertiesTxt($sipManager.getCallStats())
+#tableTxt($sipManager.getTransactionStats())
 #tableTxt($sipManager.getAppSessionStats())
+#tableTxt($sipManager.getAppSessionTimeStats())
+
 
 #header1("HTTP")
-#tableTxt($jettyManager.getConnectorsConfig())
-#propertiesTxt ($jettyManager.getHttpThreadPool() )
-#foreach( $properties in $jettyManager.getConnectorsStatistics() )
+#header2("HTTP Connectors")
+#foreach( $properties in $jettyManager.getConnectorsConfig() )
+#propertiesTxt($properties)
+#end
+#propertiesTxt ($jettyManager.getHttpThreadPool())
+#*
+#foreach( $properties in $jettyManager.getConnectorsStatistics())
 	#propertiesTxt($properties)
 #end
+*#
 
 #if($diameterManager.isRegistered())
 #header1("Diameter")
-#propertiesTxt ($diameterManager.getNodeConfig() )
+#propertiesTxt ($diameterManager.getNodeConfig())
 #tableTxt($diameterManager.getConnectors())
-#propertiesTxt ($diameterManager.getTimers() )
+#propertiesTxt ($diameterManager.getTimers())
 #tableTxt($diameterManager.getPeers())
 #propertiesTxt ($diameterManager.getSessionsStats() )
 #foreach ($properties in  $diameterManager.getMessageStats())
@@ -35,7 +42,7 @@ $response.setContentType("text/plain")
 #end
 
 #header1("System properties")
-#foreach( $entry in $envManager.getSystemProperties().entrySet() )
+#foreach( $entry in $envManager.getSystemProperties().entrySet())
 $entry.getKey(): $entry.getValue()
 #end
 
@@ -75,7 +82,7 @@ $replace.toFixedSize($title,80)
 ###############################################################################
 ###                        Properties Txt                                  ####
 #macro( propertiesTxt $properties )
-#header2($properties.getTitle())
+#if ($properties.getTitle())#header2($properties.getTitle())#end
 #foreach( $property in $properties )
 $property.name: $property.value
 #end

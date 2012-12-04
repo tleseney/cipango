@@ -93,7 +93,15 @@ public class MenuImpl implements Menu
 		
 		STATISTICS = PAGES.add(new PageImpl("Statistics")),
 		STATISTICS_SIP = STATISTICS.add(new PageImpl("statistics-sip.vm", "SIP Statistics", "SIP")),
-		STATISTICS_HTTP = STATISTICS.add(new PageImpl("statistics-http.vm", "HTTP Statistics", "HTTP")),
+		STATISTICS_HTTP = STATISTICS.add(new PageImpl("statistics-http.vm", "HTTP Statistics", "HTTP")
+		{
+			@Override
+			public boolean isEnabled(MBeanServerConnection c) throws IOException
+			{
+				// In current version of Jetty 9, no stats a available.
+				return false;
+			}
+		}),
 		STATISTICS_DIAMETER = STATISTICS.add(new PageImpl("statistics-diameter.vm", "Diameter Statistics", "Diameter")
 		{
 			@Override

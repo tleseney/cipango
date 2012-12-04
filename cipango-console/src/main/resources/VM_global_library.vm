@@ -28,7 +28,8 @@
 ###############################################################################
 ###                        Properties                                      ####
 #macro( properties $properties )
-	<h2>$properties.getTitle()</h2>
+  #if ($properties.getTitle()) <h2>$properties.getTitle()</h2> #end
+
 	<table class="table table-striped">
 		<tr>
 			<th>Name</th>
@@ -40,7 +41,7 @@
 		#foreach( $property in $properties )
 			<tr>
 				<td>$property.name</td>
-				<td>$property.value</td>
+				<td>#if ($property.getValue()) $property.getValue() #end</td>
 				#if ($properties.hasNotes())
 					<td>$property.note</td>
 				#end

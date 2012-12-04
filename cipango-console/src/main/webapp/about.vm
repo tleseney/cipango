@@ -3,3 +3,4 @@
 #properties ($envManager.getHardware() )
 
 <a class="btn" href="dump.vm">Dump all configuration and statistics</a>
+<a class="btn" href="threads-dump.vm">Dump threads</a>

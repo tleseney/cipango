@@ -1,0 +1,15 @@
+$response.setContentType("text/plain")
+#set( $layout = "TextLayout.vm" ) 
+#set($threads = $envManager.dumpThreads())
+-------------------------------------------------------------------------------
+Threads dump at $envManager.getCurrentTime()
+-------------------------------------------------------------------------------
+
+#foreach( $thread in $threads)
+$thread.getThreadName()  $thread.getThreadState() #if ($thread.getLockName()) on $thread.getLockName() #end
+Total blocked: $thread.getBlockedCount()  Total waited: $thread.getWaitedCount()
+#foreach( $e in $thread.getStackTrace())
+  $e.getClassName().$e.getMethodName() (#if ($e.getFileName())$e.getFileName():$e.getLineNumber()#else unknown#end)
+#end
+
+#end

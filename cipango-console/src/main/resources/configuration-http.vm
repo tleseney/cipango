@@ -1,4 +1,7 @@
 
-#table($jettyManager.getConnectorsConfig())
+<h2>HTTP Connectors</h2>
+#foreach( $properties in $jettyManager.getConnectorsConfig() )
+	#properties($properties)
+#end
 
 #properties ($jettyManager.getHttpThreadPool() )

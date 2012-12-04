@@ -81,7 +81,7 @@ public class StatisticGraph
 	private String _dataFileName;
 	private ObjectName _threadPool;
 
-	private static Timer __statTimer = new Timer("Statistics timer");
+	private Timer _statTimer;
 
 	private Logger _logger = Log.getLogger(StatisticGraph.class);
 
@@ -91,11 +91,12 @@ public class StatisticGraph
 	private ObjectName[] _contexts;
 	private ObjectName[] _sessionManagers;
 
-	public StatisticGraph(JmxConnection connection) throws AttributeNotFoundException,
+	public StatisticGraph(JmxConnection connection, Timer timer) throws AttributeNotFoundException,
 			InstanceNotFoundException, MBeanException, ReflectionException, IOException, RrdException
 	{
 		_connection = connection;
 		_rrdPool = RrdDbPool.getInstance();
+		_statTimer = timer;
 	}
 
 	/**
@@ -120,7 +121,7 @@ public class StatisticGraph
 
 			if (_refreshPeriod != -1)
 			{
-				__statTimer.schedule(_task, _refreshPeriod);
+				_statTimer.schedule(_task, _refreshPeriod);
 			}
 		}
 	}
@@ -150,22 +151,41 @@ public class StatisticGraph
 	protected long getSessions(MBeanServerConnection mbsc) throws AttributeNotFoundException, InstanceNotFoundException, MBeanException, ReflectionException, IOException
 	{
 		ObjectName[] contexts =  (ObjectName[]) _connection.getMbsc().getAttribute(SipManager.HANDLER_COLLECTION, "sipContexts");
+
 		
 		if (hasContextsChanged(contexts))
 		{
-			_logger.debug("Context has changed");
+			boolean valid = true;
+			_logger.debug("SIP Contexts have changed");
 			_sessionManagers = new ObjectName[contexts.length];
+
 			for (int i = 0; i < contexts.length; i++)
 			{
-				ObjectName sessionHandler = (ObjectName) mbsc.getAttribute(contexts[i], "sessionHandler");
-				_sessionManagers[i] = (ObjectName) mbsc.getAttribute(sessionHandler, "sessionManager");
+				if (contexts[i] != null)
+				{
+					ObjectName sessionHandler = (ObjectName) mbsc.getAttribute(contexts[i], "sessionHandler");
+					if (sessionHandler != null)
+						_sessionManagers[i] = (ObjectName) mbsc.getAttribute(sessionHandler, "sessionManager");
+				}
+				if (_sessionManagers[i] == null)
+				{
+					if (contexts[i] != null && "cipango-console".equals(contexts[i].getKeyProperty("context")))
+						_logger.debug("Could not get session manager for context {}", contexts[i]);
+					else
+						_logger.warn("Could not get session manager for context {}", contexts[i]);
+					valid = false;
+				}
 			}
-			_contexts = contexts;
+			if (valid)
+				_contexts = contexts;
 		}
 		
 		long sessions = 0;
 		for (ObjectName sessionManager : _sessionManagers)
-			sessions += (Long) mbsc.getAttribute(sessionManager, "sessions");
+		{
+			if (sessionManager != null)
+				sessions += (Long) mbsc.getAttribute(sessionManager, "sessions");
+		}
 		return sessions;
 	}
 	
@@ -355,7 +375,7 @@ public class StatisticGraph
 			_logger.warn("Unable to create RRD", e);
 
 			_startTask = new StartTask();
-			__statTimer.schedule(_startTask, _timeoutPeriod);
+			_statTimer.schedule(_startTask, _timeoutPeriod);
 		}
 	}
 
@@ -393,7 +413,7 @@ public class StatisticGraph
 			{
 				boolean success = updateDb();
 				if (_started)
-					__statTimer.schedule(new StatisticGraphTask(), success ? _refreshPeriod : _timeoutPeriod);
+					_statTimer.schedule(new StatisticGraphTask(), success ? _refreshPeriod : _timeoutPeriod);
 			}
 		}
 

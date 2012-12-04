@@ -49,7 +49,7 @@ public class SipServletHolder extends AbstractLifeCycle implements Comparable<Si
 	
 	private transient UnavailableException _unavailableEx;
 	
-	public void doStart() throws Exception
+	protected void doStart() throws Exception
 	{
 		_unavailable = 0;
 		try
@@ -90,6 +90,26 @@ public class SipServletHolder extends AbstractLifeCycle implements Comparable<Si
 				throw e;
 			}
 		}
+	}
+	
+    protected void doStop() throws Exception
+	{
+		if (_servlet != null)
+		{
+			try
+			{
+				_servlet.destroy();
+				_servletHandler.destroyServlet(_servlet);
+			}
+			catch (Exception e)
+			{
+				LOG.warn(e);
+			}
+
+		}
+
+		_servlet = null;
+		_config = null;
 	}
 	
 	public void setClassName(String className)

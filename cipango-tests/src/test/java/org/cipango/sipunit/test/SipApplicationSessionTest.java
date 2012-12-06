@@ -15,7 +15,7 @@ package org.cipango.sipunit.test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.cipango.sipunit.test.matcher.SipMatchers.*;
+import static org.cipango.test.matcher.SipMatchers.*;
 
 import java.util.concurrent.TimeUnit;
 

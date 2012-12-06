@@ -94,21 +94,27 @@ public class SessionHandler extends AbstractChallengedMessageHandler
 	
 	protected SipServletRequest getUnreadRequest()
 	{
-		for (ReadableMessage<SipServletRequest> request : _requests)
+		synchronized (_requests)
 		{
-			if (!request.isRead())
-				return request.getMessage();
+			for (ReadableMessage<SipServletRequest> request : _requests)
+			{
+				if (!request.isRead())
+					return request.getMessage();
+			}
 		}
 		return null;
 	}
 
 	protected SipServletResponse getUnreadResponse()
 	{
-		for (ReadableMessage<SipServletResponse> response : _responses)
+		synchronized (_responses)
 		{
-			if (!response.isRead())
+			for (ReadableMessage<SipServletResponse> response : _responses)
 			{
-				return response.getMessage();
+				if (!response.isRead())
+				{
+					return response.getMessage();
+				}
 			}
 		}
 		return null;

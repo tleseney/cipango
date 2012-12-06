@@ -190,6 +190,27 @@ public class Dialog
 		_outboundProxy = outboundProxy;
 	}
 	
+	/**
+	 * Update the dialog with the response.
+	 * Could be needed if there has been multiple dialogs.
+	 */
+	public void updateDialog(SipServletResponse response)
+	{
+		SipSession session = response.getSession();
+		if (session.equals(_session))
+			return;
+		
+		if (!session.getCallId().equals(_session.getCallId()))
+			throw new IllegalArgumentException("Session " + session + " is not a derived session from " + _session);
+		
+		String localTag = response.getFrom().getParameter("tag");
+		if (!localTag.equals(_session.getLocalParty().getParameter("tag"))
+				&& !localTag.equals(_session.getRemoteParty().getParameter("tag")))
+			throw new IllegalArgumentException("Session " + session + " is not a derived session from " + _session);
+		
+		_session = session;
+	}
+	
 	private void initialize(SipServletRequest request) throws ServletException
 	{
 		if (_session != null)

@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2010 NEXCOM Systems
+// Copyright 2010-2012 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,9 +13,11 @@
 // ========================================================================
 package org.cipango.sipunit.test;
 
+import static org.cipango.test.matcher.SipMatchers.hasStatus;
+import static org.cipango.test.matcher.SipMatchers.isSuccess;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.cipango.sipunit.test.matcher.SipMatchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
 import java.util.concurrent.Semaphore;
 
@@ -29,6 +31,8 @@ import org.cipango.sipunit.UaRunnable;
 import org.cipango.sipunit.UaTestCase;
 import org.cipango.sipunit.UasScript;
 import org.cipango.test.InvalidateWhenReadyServlet;
+import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.log.Logger;
 import org.junit.Test;
 
 /**
@@ -37,6 +41,8 @@ import org.junit.Test;
 public class InvalidateWhenReadyTest extends UaTestCase
 {
 
+	private static final Logger LOG = Log.getLogger(InvalidateWhenReadyTest.class);
+	
 	/**
 	 * <pre>
 	 * Alice                         AS
@@ -168,6 +174,9 @@ public class InvalidateWhenReadyTest extends UaTestCase
 	}
 	
 	/**
+	 * While INVITE transaction is in ACCEPTED state, the session cannot be in
+	 * invalidate-when-ready state. So a sleep should be done to ensure that transaction 
+	 * is terminated before checking the state.
 	 * <pre>
 	 * Alice       Proxy       Bob
 	 *   | INVITE    |          |
@@ -206,20 +215,20 @@ public class InvalidateWhenReadyTest extends UaTestCase
 				Boolean.toString(recordRoute));
 		callA = _ua.createCall(request);
 
-		try 
+        assertThat(callA.waitForResponse(), isSuccess());
+        callA.createAck().send();
+        Thread.sleep(200);
+        callA.createBye().send();
+        assertThat(callA.waitForResponse(), isSuccess());
+        
+        callB.assertDone();
+		if (!recordRoute)
 		{
-	        assertThat(callA.waitForResponse(), isSuccess());
-	        callA.createAck().send();
-	        Thread.sleep(200);
-	        callA.createBye().send();
-	        assertThat(callA.waitForResponse(), isSuccess());
-	        
-	        callB.assertDone();
+			LOG.info("Wait 32 seconds, to ensure INVITE transaction is terminated");
+			Thread.sleep(32000);
 		}
-		finally
-		{
-			checkForFailure();
-		}
+		checkForFailure();
+
 	}
 	
 	/**
@@ -473,28 +482,20 @@ public class InvalidateWhenReadyTest extends UaTestCase
 		request.addHeader("proxy", bob2.getContact().toString());
 		callA = _ua.createCall(request);
 		
-		try
-		{	
-			assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
-			assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
-	        assertThat(callA.waitForResponse(), isSuccess());
-	        callA.createAck().send();
-	        Thread.sleep(500);
-	        callA.createBye().send();
-	        assertThat(callA.waitForResponse(), isSuccess());
 
-	        callB.assertDone();
-	        callC.assertDone();
-		}
-		catch (Throwable e) 
-		{
-			e.printStackTrace();
-			throw e;
-		}
-        finally
-        {
-        	checkForFailure();
-        }
+		assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
+		assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
+        assertThat(callA.waitForResponse(), isSuccess());
+        callA.createAck().send();
+        Thread.sleep(500);
+        callA.createBye().send();
+        assertThat(callA.waitForResponse(), isSuccess());
+
+        callB.assertDone();
+        callC.assertDone();
+
+    	checkForFailure();
+
 	}
 	
 	/**
@@ -603,17 +604,19 @@ public class InvalidateWhenReadyTest extends UaTestCase
 			public void doTest() throws Throwable
 			{
 				SipServletRequest request = waitForInitialRequest();
-				assertThat(request.getMethod(), is(equalTo(SipMethods.INVITE)));
+				assertThat(request.getMethod(), is(SipMethods.INVITE));
 				
+				LOG.debug("Bob1 got request " + request);
 				if (!bobReplyFirst)
 				{
+					LOG.info("Waiting for semaphore release");
 					semaphore.acquire();
 				}
 
-				_ua.createResponse(request, SipServletResponse.SC_RINGING);
+				_ua.createResponse(request, SipServletResponse.SC_RINGING).send();
 				semaphore.release();
 				request = _dialog.waitForRequest();
-				assertThat(request.getMethod(), is(equalTo(SipMethods.CANCEL)));
+				assertThat(request.getMethod(), is(SipMethods.CANCEL));
 			}
 		};
 
@@ -624,22 +627,24 @@ public class InvalidateWhenReadyTest extends UaTestCase
 			public void doTest() throws Throwable
 			{
 				SipServletRequest request = waitForInitialRequest();
-				assertThat(request.getMethod(), is(equalTo(SipMethods.INVITE)));
+				assertThat(request.getMethod(), is(SipMethods.INVITE));
+				LOG.debug("Bob 2 got request " + request);
 
 				if (bobReplyFirst)
 				{
+					LOG.info("Waiting for semaphore release");
 					semaphore.acquire();
 				}
 
-				_ua.createResponse(request, SipServletResponse.SC_RINGING);
+				_ua.createResponse(request, SipServletResponse.SC_RINGING).send();
 				semaphore.release();
 				Thread.sleep(500);
-				_ua.createResponse(request, SipServletResponse.SC_OK);
+				_ua.createResponse(request, SipServletResponse.SC_OK).send();
 				request = _dialog.waitForRequest();
 				assertThat(request.getMethod(), is(equalTo(SipMethods.ACK)));
 				request = _dialog.waitForRequest();
 				assertThat(request.getMethod(), is(equalTo(SipMethods.BYE)));
-				_ua.createResponse(request, SipServletResponse.SC_OK);
+				_ua.createResponse(request, SipServletResponse.SC_OK).send();
 			}
 		};
 
@@ -653,28 +658,18 @@ public class InvalidateWhenReadyTest extends UaTestCase
 		request.addHeader("proxy", bob2.getContact().toString());
 		callA.start(request);
 
-		try
-		{	
-			assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
-			assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
-	        assertThat(callA.waitForResponse(), isSuccess());
-	        callA.createAck().send();
-	        Thread.sleep(500);
-	        callA.createBye().send();
-	        assertThat(callA.waitForResponse(), isSuccess());
+		assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
+		assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
+        assertThat(callA.waitForResponse(), isSuccess());
+        callA.createAck().send();
+        Thread.sleep(500);
+        callA.createBye().send();
+        assertThat(callA.waitForResponse(), isSuccess());
 
-	        callB.assertDone();
-	        callC.assertDone();
-		}
-		catch (Throwable e) 
-		{
-			e.printStackTrace();
-			throw e;
-		}
-        finally
-        {
-        	checkForFailure();
-        }
+        callB.assertDone();
+        callC.assertDone();
+    	checkForFailure();
+
 	}
 	
 	
@@ -787,7 +782,7 @@ public class InvalidateWhenReadyTest extends UaTestCase
 		
 		Endpoint bob = createEndpoint("bob");
 		UaRunnable callB = new UasScript.RingingNotFound(bob.getUserAgent());
-		Endpoint carol = createEndpoint("carol");
+		Endpoint carol = createEndpoint("bob");
 		UaRunnable callC = new UasScript.RingingOkBye(carol.getUserAgent());
 
 		callB.start();
@@ -798,25 +793,21 @@ public class InvalidateWhenReadyTest extends UaTestCase
 		request.addHeader("proxy", carol.getContact().toString());
 		callA = _ua.createCall(request);
 		        
-		try 
-		{
-			assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
-			assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
-	        assertThat(callA.waitForResponse(), isSuccess());
+		assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
+		assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
+		assertThat(callA.waitForResponse(), isSuccess());
 
-	        callA.createAck().send();
-	        
-	        Thread.sleep(500);
-	        callA.createBye().send();
-	        assertThat(callA.waitForResponse(), isSuccess());
+		callA.createAck().send();
 
-	        callB.assertDone();
-			callC.assertDone();
-		}
-		finally
-		{
-			checkForFailure();
-		}
+		Thread.sleep(500);
+		callA.createBye().send();
+		assertThat(callA.waitForResponse(), isSuccess());
+
+		callB.assertDone();
+		callC.assertDone();
+
+		checkForFailure();
+
 	}
 
 	/**

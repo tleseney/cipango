@@ -84,6 +84,14 @@ public class SipServletTestCase extends Assert
 		getServletContext().removeAttribute(getFailureKey());	
 	}
 	
+	public void resetFailure()
+	{
+		byte[] content = (byte[]) getServletContext().getAttribute(getFailureKey());
+		if (content != null)
+			__logger.warn("Got a failure key: {}, reset it", new String(content));
+		getServletContext().removeAttribute(getFailureKey());
+	}
+	
 	/**
 	 * Send a response with exception stack trace.
 	 * If the response cannot be created or sent (request is committed or ACK request) 

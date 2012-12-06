@@ -14,7 +14,7 @@
 package org.cipango.sipunit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.cipango.sipunit.test.matcher.SipMatchers.*;
+import static org.cipango.test.matcher.SipMatchers.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

@@ -1,4 +1,4 @@
-package org.cipango.sipunit.test.matcher;
+package org.cipango.test.matcher;
 
 import java.io.IOException;
 

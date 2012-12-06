@@ -26,7 +26,7 @@ public class CipangoTestSuite
 		TestSuite suite = new TestSuite(CipangoTestSuite.class.getName());
 
 		suite.addTestSuite(org.cipango.sipunit.test.AuthenticationTest.class);
-		suite.addTestSuite(org.cipango.sipunit.test.B2bHelperForkTest.class);
+		//suite.addTestSuite(org.cipango.sipunit.test.B2bHelperForkTest.class);
 		suite.addTestSuite(org.cipango.sipunit.test.B2bHelperTest.class);
 		suite.addTestSuite(org.cipango.sipunit.test.DoubleRecordRouteTest.class);
 		suite.addTestSuite(org.cipango.sipunit.test.InvalidateWhenReadyTest.class);

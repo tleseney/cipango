@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2007-2008 NEXCOM Systems
+// Copyright 2007-2012 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,6 +12,10 @@
 // limitations under the License.
 // ========================================================================
 package org.cipango.test;
+
+import static org.cipango.test.matcher.SipSessionMatchers.hasState;
+import static org.cipango.test.matcher.SipSessionMatchers.isReadyToInvalidate;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -50,15 +54,15 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		{
 			assertFalse(session.isReadyToInvalidate());
 			assertFalse(session.getApplicationSession().isReadyToInvalidate());
-			assertEquals(State.INITIAL, session.getState());
+			assertThat(session, hasState(State.INITIAL));
 			request.createResponse(SipServletResponse.SC_RINGING).send();
-			assertEquals(State.EARLY, session.getState());
+			assertThat(session, hasState(State.EARLY));
 		}
 		else if (method.equals("CANCEL"))
 		{
 			assertTrue(session.isReadyToInvalidate());
 			assertTrue(session.getApplicationSession().isReadyToInvalidate());
-			assertEquals(State.TERMINATED, session.getState());
+			assertThat(session, hasState(State.TERMINATED));
 		}
 	}
 	
@@ -84,33 +88,33 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		{
 			assertFalse(session.isReadyToInvalidate());
 			assertFalse(session.getApplicationSession().isReadyToInvalidate());
-			assertEquals(State.CONFIRMED, session.getState());
+			assertThat(session, hasState(State.CONFIRMED));
 		}
 		else if (method.equals("BYE"))
 		{
+			assertThat(session, hasState(State.TERMINATED));
 			assertTrue(session.isReadyToInvalidate());
 			assertTrue(session.getApplicationSession().isReadyToInvalidate());
-			assertEquals(State.TERMINATED, session.getState());
 		}
 	}
 	
 	public void testUac4xx(SipServletRequest request) throws Exception
 	{
-
-		assertEquals(State.INITIAL, request.getSession().getState());
+		SipSession session = request.getSession();
+		assertThat(session, hasState(State.INITIAL));
 		request.createResponse(SipServletResponse.SC_OK).send();
-		assertEquals(State.INITIAL, request.getSession().getState()); // State is not changed on non-dialog created request
+		assertThat(session, hasState(State.INITIAL));; // State is not changed on non-dialog created request
 		Thread.sleep(200);
 		
 		request.getApplicationSession().invalidate();
 		SipServletRequest invite = getSipFactory().createRequest(getSipFactory().createApplicationSession(),
 				"INVITE", request.getTo(), request.getFrom());
-		SipSession session = invite.getSession();
+		session = invite.getSession();
 		session.setHandler(getServletName());
 		invite.setRequestURI(request.getAddressHeader("Contact").getURI());
 		assertFalse(session.isReadyToInvalidate());
 		assertFalse(session.getApplicationSession().isReadyToInvalidate());
-		assertEquals(State.INITIAL, session.getState());
+		assertThat(session, hasState(State.INITIAL));
 		invite.send();
 	}
 	
@@ -121,13 +125,13 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		{
 			assertFalse(session.isReadyToInvalidate());
 			assertFalse(session.getApplicationSession().isReadyToInvalidate());
-			assertEquals(State.EARLY, session.getState());
+			assertThat(session, hasState(State.EARLY));
 		}
 		else // 4xx
 		{
 			assertTrue(session.isReadyToInvalidate());
 			assertTrue(session.getApplicationSession().isReadyToInvalidate());
-			assertEquals(State.INITIAL, session.getState());
+			assertThat(session, hasState(State.INITIAL));
 		}
 	}
 	
@@ -148,11 +152,11 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			proxy.setSupervised(true);
 			session.setAttribute(RECORD_ROUTE, recordRoute);
 			proxy.proxyTo(request.getRequestURI());	
-			assertEquals(State.INITIAL, session.getState());
+			assertThat(session, hasState(State.INITIAL));
 		}
 		else if (method.equals("BYE"))
 		{
-			assertEquals(State.CONFIRMED, session.getState());
+			assertThat(session, hasState(State.CONFIRMED));
 		}
 
 	}
@@ -165,16 +169,18 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 
 		if (method.equals("INVITE"))
 		{
-			boolean recordRoute = (Boolean) session.getAttribute(RECORD_ROUTE);
-			assertEquals(!recordRoute, session.isReadyToInvalidate());
-			assertEquals(!recordRoute, session.getApplicationSession().isReadyToInvalidate());	
-			assertEquals(State.CONFIRMED, session.getState());
+			// AS INVITE transaction is in state ACCEPTED, the session cannot be invalidated even if
+			// it is not Record-Route
+			//boolean recordRoute = (Boolean) session.getAttribute(RECORD_ROUTE);
+			assertFalse(session.isReadyToInvalidate());
+			assertFalse(session.getApplicationSession().isReadyToInvalidate());	
+			assertThat(session, hasState(State.CONFIRMED));
 		}
 		else if (method.equals("BYE"))
 		{
 			assertTrue(session.isReadyToInvalidate());
 			assertTrue(session.getApplicationSession().isReadyToInvalidate());
-			assertEquals(State.TERMINATED, session.getState());
+			assertThat(session, hasState(State.TERMINATED));
 		}
 	}
 
@@ -201,7 +207,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		proxy.setRecordRoute(true);
 		proxy.setSupervised(true);
 		proxy.proxyTo(request.getRequestURI());	
-		assertEquals(State.INITIAL, session.getState());
+		assertThat(session, hasState(State.INITIAL));
 
 	}
 	
@@ -210,7 +216,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		SipSession session = response.getSession();
 		addListenerTest(session);
 		// The session is not in the invalidate when ready state as a new branch can be created in doResponse().
-		assertEquals(State.INITIAL, session.getState());
+		assertThat(session, hasState(State.INITIAL));
 	}
 	
 	public void testProxySequential(SipServletRequest request) throws TooManyHopsException, IOException
@@ -228,11 +234,11 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			proxy.setRecordRoute(true);
 			proxy.setSupervised(true);
 			proxy.proxyTo(request.getRequestURI());	
-			assertEquals(State.INITIAL, session.getState());
+			assertThat(session, hasState(State.INITIAL));
 		}
 		else if (method.equals("BYE"))
 		{
-			assertEquals(State.CONFIRMED, session.getState());
+			assertThat(session, hasState(State.CONFIRMED));
 		}
 
 	}
@@ -248,13 +254,13 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			assertFalse(session.getApplicationSession().isReadyToInvalidate());	
 			if (response.getStatus() == SipServletResponse.SC_NOT_FOUND)
 			{
-				assertEquals(State.INITIAL, session.getState());
+				assertThat(session, hasState(State.INITIAL));
 				URI uri = response.getRequest().getAddressHeader("proxy").getURI();
 				response.getProxy().proxyTo(uri);
 			}
 			else if (response.getStatus() == SipServletResponse.SC_OK)
 			{
-				assertEquals(State.CONFIRMED, session.getState());
+				assertThat(session, hasState(State.CONFIRMED));
 			}
 			else
 				throw new IllegalAccessException("Unexpected " + response.getStatus() + "/INVITE");
@@ -263,7 +269,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		{
 			assertTrue(session.isReadyToInvalidate());
 			assertTrue(session.getApplicationSession().isReadyToInvalidate());
-			assertEquals(State.TERMINATED, session.getState());
+			assertThat(session, hasState(State.TERMINATED));
 		}
 	}
 	
@@ -282,11 +288,11 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			proxy.setRecordRoute(true);
 			proxy.setSupervised(true);
 			proxy.proxyTo(request.getRequestURI());	
-			assertEquals(State.INITIAL, session.getState());
+			assertThat(session, hasState(State.INITIAL));
 		}
 		else if (method.equals("BYE"))
 		{
-			assertEquals(State.CONFIRMED, session.getState());
+			assertThat(session, hasState(State.CONFIRMED));
 		}
 
 	}
@@ -304,17 +310,17 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			int status = response.getStatus();
 			if (status == SipServletResponse.SC_RINGING)
 			{
-				assertEquals(State.EARLY, session.getState());
+				assertThat(session, hasState(State.EARLY));
 			}
 			else if (status == SipServletResponse.SC_NOT_FOUND)
 			{
-				assertEquals(State.EARLY, session.getState()); // FIXME EARLY or INITIAL ????
+				assertThat(session, hasState(State.INITIAL));// FIXME EARLY or INITIAL ????
 				URI uri = response.getRequest().getAddressHeader("proxy").getURI();
 				response.getProxy().proxyTo(uri);
 			}
 			else if (status == SipServletResponse.SC_OK)
 			{
-				assertEquals(State.CONFIRMED, session.getState());
+				assertThat(session, hasState(State.CONFIRMED));
 			}
 			else
 				throw new IllegalAccessException("Unexpected " + status + "/INVITE");
@@ -324,7 +330,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			assertTrue(session.isReadyToInvalidate());
 			// The app session may not be ready to invalidate as the derived session is not in ready
 			// to invalidate state.
-			assertEquals(State.TERMINATED, session.getState());
+			assertThat(session, hasState(State.TERMINATED));
 		}
 	}
 	
@@ -347,11 +353,11 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			l.add(request.getRequestURI());
 			l.add(request.getAddressHeader("proxy").getURI());
 			proxy.proxyTo(l);	
-			assertEquals(State.INITIAL, session.getState());
+			assertThat(session, hasState(State.INITIAL));
 		}
 		else if (method.equals("BYE"))
 		{
-			assertEquals(State.CONFIRMED, session.getState());
+			assertThat(session, hasState(State.CONFIRMED));
 		}
 	}
 	
@@ -367,16 +373,16 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			int status = response.getStatus();
 			if (status == SipServletResponse.SC_RINGING)
 			{
-				assertEquals(State.EARLY, session.getState());
+				assertThat(session, hasState(State.EARLY));
 			}
 			else if (status == SipServletResponse.SC_NOT_FOUND)
 			{
-				assertEquals(State.EARLY, session.getState()); // FIXME state initial or early ? ?
+				assertThat(session, hasState(State.INITIAL)); // FIXME state initial or early ? ?
 				response.getApplicationSession().setAttribute("received 404", true);
 			}
 			else if (status == SipServletResponse.SC_OK)
 			{
-				assertEquals(State.CONFIRMED, session.getState());
+				assertThat(session, hasState(State.CONFIRMED));
 				assertNotNull(response.getApplicationSession().getAttribute("received 404"));
 			}
 			else
@@ -384,10 +390,10 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		}
 		else if (method.equals("BYE"))
 		{
-			assertTrue(session.isReadyToInvalidate());
+			assertThat(session, isReadyToInvalidate());
 			// The app session may not be ready to invalidate as the derived session is not in ready
 			// to invalidate state.
-			assertEquals(State.TERMINATED, session.getState());
+			assertThat(session, hasState(State.TERMINATED));
 		}
 	}
 	
@@ -410,11 +416,11 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			l.add(request.getRequestURI());
 			l.add(request.getAddressHeader("proxy").getURI());
 			proxy.proxyTo(l);	
-			assertEquals(State.INITIAL, session.getState());
+			assertThat(session, hasState(State.INITIAL));
 		}
 		else if (method.equals("BYE"))
 		{
-			assertEquals(State.CONFIRMED, session.getState());
+			assertThat(session, hasState(State.CONFIRMED));
 		}
 	}
 	
@@ -430,11 +436,11 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			int status = response.getStatus();
 			if (status == SipServletResponse.SC_RINGING)
 			{
-				assertEquals(State.EARLY, session.getState());
+				assertThat(session, hasState(State.EARLY));
 			}
 			else if (status == SipServletResponse.SC_OK)
 			{
-				assertEquals(State.CONFIRMED, session.getState());
+				assertThat(session, hasState(State.CONFIRMED));
 			}
 			else
 				throw new IllegalAccessException("Unexpected " + status + "/INVITE");
@@ -444,7 +450,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			assertTrue(session.isReadyToInvalidate());
 			// The app session may not be ready to invalidate as the derived session is not in ready
 			// to invalidate state.
-			assertEquals(State.TERMINATED, session.getState());
+			assertThat(session, hasState(State.TERMINATED));
 		}
 	}
 	
@@ -463,7 +469,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		SipSession session = request.getSession();
 		assertFalse(session.isReadyToInvalidate());
 		assertFalse(session.getApplicationSession().isReadyToInvalidate());
-		assertEquals(State.INITIAL, session.getState());
+		assertThat(session, hasState(State.INITIAL));
 		request.createResponse(SipServletResponse.SC_OK).send();
 	}
 	
@@ -484,11 +490,11 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			request.pushRoute(getOwnUri());
 			request.setHeader(MainServlet.SERVLET_HEADER, ProxyTwoServlet.class.getName());
 			proxy.proxyTo(request.getRequestURI());	
-			assertEquals(State.INITIAL, session.getState());
+			assertThat(session, hasState(State.INITIAL));
 		}
 		else if (method.equals("BYE"))
 		{
-			assertEquals(State.CONFIRMED, session.getState());
+			assertThat(session, hasState(State.CONFIRMED));
 		}
 	}
 	
@@ -503,11 +509,11 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			assertFalse(session.getApplicationSession().isReadyToInvalidate());	
 			if (response.getStatus() == SipServletResponse.SC_RINGING)
 			{
-				assertEquals(State.EARLY, session.getState());
+				assertThat(session, hasState(State.EARLY));
 			}
 			else if (response.getStatus() == SipServletResponse.SC_OK)
 			{
-				assertEquals(State.CONFIRMED, session.getState());
+				assertThat(session, hasState(State.CONFIRMED));
 			}
 			else
 				throw new IllegalAccessException("Unexpected " + response.getStatus() + "/INVITE");
@@ -515,7 +521,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		else if (method.equals("BYE"))
 		{
 			assertTrue(session.isReadyToInvalidate());
-			assertEquals(State.TERMINATED, session.getState());
+			assertThat(session, hasState(State.TERMINATED));
 		}
 	}
 	
@@ -524,7 +530,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		SipSession session = request.getSession();
 		assertFalse(session.isReadyToInvalidate());
 		assertFalse(session.getApplicationSession().isReadyToInvalidate());
-		assertEquals(State.INITIAL, session.getState());
+		assertThat(session, hasState(State.INITIAL));
 		request.createResponse(SipServletResponse.SC_OK).send();
 		Thread.sleep(50);
 		session.createRequest("NOTIFY").send();

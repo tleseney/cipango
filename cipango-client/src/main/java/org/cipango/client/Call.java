@@ -21,6 +21,7 @@ public class Call extends Dialog
 		{
 			if (response.getStatus() >= 200 && response.getStatus() < 300 && !response.isCommitted())
 			{
+				updateDialog(response);
 				return response.createAck();
 			}
 		}

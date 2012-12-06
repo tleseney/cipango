@@ -15,8 +15,8 @@ import org.cipango.server.SipMessage;
 import org.cipango.server.SipMessageGenerator;
 import org.cipango.server.SipServer;
 import org.cipango.server.Transport;
+import org.cipango.server.util.FixedBufferPool;
 import org.cipango.sip.SipParser;
-import org.eclipse.jetty.io.ArrayByteBufferPool;
 import org.eclipse.jetty.io.ByteBufferPool;
 import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.annotation.Name;
@@ -57,7 +57,7 @@ public class UdpConnector extends AbstractSipConnector
             @Name("acceptors") int acceptors)
     {
     	super(server, executor, acceptors);
-    	_mtu = DEFAULT_MTU;
+    	_mtu = MAX_UDP_SIZE;
     	_sipGenerator = new SipMessageGenerator();
     }
 
@@ -83,7 +83,7 @@ public class UdpConnector extends AbstractSipConnector
 		for (int i = _inBuffers.length; i-->0;)
 			_inBuffers[i] = BufferUtil.allocateDirect(MAX_UDP_SIZE);
 		
-		_outBuffers = new ArrayByteBufferPool(_mtu, MAX_UDP_SIZE/2, MAX_UDP_SIZE);
+		_outBuffers = new FixedBufferPool(_mtu);
 		super.doStart();
 	}
 	
@@ -118,16 +118,7 @@ public class UdpConnector extends AbstractSipConnector
 		BufferUtil.flipToFlush(buffer, 0);
 	
 	
-		new UdpConnection(address).process(buffer);
-		
-		
-		//getServer().handle(message);
-		//System.out.println(message.getHeader("Call-Id"));
-		//try { Thread.sleep(5); } catch (Exception e) {}
-		//int length = p.getLength();
-		//if (length == 2 || length == 4) return;
-		
-		
+		new UdpConnection(address).process(buffer);		
 	}
 	
 	@Override
@@ -180,8 +171,10 @@ public class UdpConnector extends AbstractSipConnector
 			ByteBuffer buffer = _outBuffers.acquire(_mtu, false);
 
 			buffer.clear();
-
+			
+			// TODO Should ensure that response could be sent even if it is greater than MTU
 			_sipGenerator.generateMessage(buffer, message);
+			
 			if (message.isRequest() && (buffer.position() + 200 > _mtu))
 				throw new MessageTooLongException();
 			

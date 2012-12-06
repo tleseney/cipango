@@ -111,6 +111,11 @@ public abstract class SipMessage implements SipServletMessage
 		return getSipMethod() == SipMethod.BYE;
 	}
 	
+    public boolean isPrack()
+    {
+        return getSipMethod() == SipMethod.PRACK;
+    }
+    
 	public boolean isSubscribe()
 	{
 		return getSipMethod() == SipMethod.SUBSCRIBE;

@@ -54,6 +54,7 @@ import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipFields.Field;
+import org.cipango.sip.RAck;
 import org.cipango.sip.SipGenerator;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
@@ -348,6 +349,13 @@ public class SipRequest extends SipMessage implements SipServletRequest
 			}
 		};
 	}
+	
+	public RAck getRAck() throws ServletParseException
+	{
+		String s = getFields().getString(SipHeader.RACK);
+		return (s == null)? null: new RAck(s);
+	}
+	
 	@Override
 	public RequestDispatcher getRequestDispatcher(String path) {
 		throw new UnsupportedOperationException("Not Applicable");

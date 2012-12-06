@@ -194,6 +194,8 @@ public class ServerTransaction extends Transaction
 		super.terminate();
 		_latestResponse = null;
 		
+        if (_listener != null)
+        	_listener.transactionTerminated(this);
 		_transactionManager.transactionTerminated(this);
 		if (_listener != null)
 			_listener.transactionTerminated(this);

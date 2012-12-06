@@ -47,6 +47,7 @@ import org.cipango.server.transaction.ServerTransactionListener;
 import org.cipango.server.transaction.Transaction;
 import org.cipango.server.util.ReadOnlyAddress;
 import org.cipango.sip.AddressImpl;
+import org.cipango.sip.RAck;
 import org.cipango.sip.SipException;
 import org.cipango.sip.SipFields;
 import org.cipango.sip.SipFields.Field;
@@ -1024,41 +1025,41 @@ public class Session implements SipSessionIf, Dumpable
 					addServerTransaction((ServerTransaction) request.getTransaction());
 			}
 			
-//	FIXME		if (request.isAck())
-//			{
-//				ServerInvite invite = getServerInvite(_remoteCSeq, false);
-//				if (invite == null)
-//				{
-//					if (LOG.isDebugEnabled())
-//						LOG.debug("dropping ACK without INVITE context");
+			if (request.isAck())
+			{
+				ServerInvite invite = getServerInvite(_remoteCSeq, false);
+				if (invite == null)
+				{
+					if (LOG.isDebugEnabled())
+						LOG.debug("dropping ACK without INVITE context");
 //					request.setHandled(true);
-//				}
-//				else
-//				{
-//					if (invite.getResponse() != null)
-//						invite.ack();
+				}
+				else
+				{
+					if (invite.getResponse() != null)
+						invite.ack();
 //					else // retrans or late
 //						request.setHandled(true);
-//				}
-//			}
-//			else if (request.isPrack())
-//			{
-//				RAck rack = null;
-//				
-//				try
-//				{
-//					rack = request.getRAck();
-//				}
-//				catch (Exception e)
-//				{
-//					throw new SipException(SipServletResponse.SC_BAD_REQUEST, e.getMessage());
-//				}
-//				
-//				ServerInvite invite = getServerInvite(rack.getCSeq(), false);
-//				
-//				if (invite == null || !invite.prack(rack.getRSeq()))
-//					throw new SipException(SipServletResponse.SC_CALL_LEG_DONE, "No matching 100 rel for RAck " + rack);
-//			}
+				}
+			}
+			else if (request.isPrack())
+			{
+				RAck rack = null;
+				
+				try
+				{
+					rack = request.getRAck();
+				}
+				catch (Exception e)
+				{
+					throw new SipException(SipServletResponse.SC_BAD_REQUEST, e.getMessage());
+				}
+				
+				ServerInvite invite = getServerInvite(rack.getCSeq(), false);
+				
+				if (invite == null || !invite.prack(rack.getRSeq()))
+					throw new SipException(SipServletResponse.SC_CALL_LEG_DONE, "No matching 100 rel for RAck " + rack);
+			}
 		}
 
 		@Override
@@ -1094,18 +1095,18 @@ public class Session implements SipSessionIf, Dumpable
 				ClientInvite invite = getClientInvite(cseq, true);
 				if (invite._2xx != null || invite._ack != null)
 				{
-//					if (invite._ack != null)
-//					{
-//						try
-//						{
-//							ClientTransaction tx = (ClientTransaction) invite._ack.getTransaction();
-//							getServer().getConnectorManager().send(invite._ack, tx.getConnection());
-//						}
-//						catch (Exception e)
-//						{
-//							LOG.ignore(e);
-//						}
-//					}
+					if (invite._ack != null)
+					{
+						try
+						{
+							ClientTransaction tx = (ClientTransaction) invite._ack.getTransaction();
+							getServer().sendRequest(invite._ack, tx.getConnection());
+						}
+						catch (Exception e)
+						{
+							LOG.ignore(e);
+						}
+					}
 					return;
 				}
 				else
@@ -1251,10 +1252,13 @@ public class Session implements SipSessionIf, Dumpable
 		public void transactionTerminated(Transaction transaction)
 		{
 			removeTransaction(transaction);
-			if (transaction.isServer() && transaction.isInvite())
+			if (transaction.isInvite())
 			{
 				long cseq = transaction.getRequest().getCSeq().getNumber();
-				removeServerInvite(cseq);
+				if (transaction.isServer()) 
+					removeServerInvite(cseq);
+				else
+					removeClientInvite(cseq);
 			}
 		}
 		
@@ -1298,6 +1302,23 @@ public class Session implements SipSessionIf, Dumpable
 			}
 			return null;
 		}
+		
+		private ClientInvite removeClientInvite(long cseq)
+		{
+			for (int i = LazyList.size(_clientInvites); i-->0;)
+			{
+				ClientInvite invite = (ClientInvite) LazyList.get(_clientInvites, i);
+				if (invite.getCSeq() == cseq)
+				{
+					_clientInvites = LazyList.remove(_clientInvites, i);
+            	
+					if (LOG.isDebugEnabled())
+						LOG.debug("removed client invite context for cseq " + cseq);
+					return invite;
+				}
+			}
+			return null;
+	    }
 		
 		private ServerInvite removeServerInvite(long cseq)
 		{
@@ -1454,11 +1475,13 @@ public class Session implements SipSessionIf, Dumpable
 			
 			public void startRetrans(SipResponse response)
 			{
-//				_response = response;
-//				
-//				_timers = new TimerTask[2];
-//				_timers[TIMER_RETRANS] = getCallSession().schedule(new Timer(TIMER_RETRANS), _retransDelay);
-//				_timers[TIMER_WAIT_ACK] = getCallSession().schedule(new Timer(TIMER_WAIT_ACK), 64*Transaction.__T1);
+				_response = response;
+				
+				_timers = new TimerTask[2];
+				_timers[TIMER_RETRANS] = appSession().getSessionManager()
+						.schedule(new Timer(TIMER_RETRANS), _retransDelay);
+				_timers[TIMER_WAIT_ACK] = appSession().getSessionManager()
+						.schedule(new Timer(TIMER_WAIT_ACK), 64 * Transaction.__T1);
 			}
 			
 			public void stopRetrans()
@@ -1475,10 +1498,10 @@ public class Session implements SipSessionIf, Dumpable
 			
 			private void cancelTimer(int id)
 			{
-//				TimerTask timer = _timers[id];
-//				if (timer != null)
-//					getCallSession().cancel(timer);
-//				_timers[id] = null;
+				TimerTask timer = _timers[id];
+				if (timer != null)
+					timer.cancel();
+				_timers[id] = null;
 			}
 			
 			/** 
@@ -1489,27 +1512,28 @@ public class Session implements SipSessionIf, Dumpable
 			
 			protected void timeout(int id)
 			{
-//				switch(id)
-//				{
-//				case TIMER_RETRANS:
-//					if (_response != null)
-//					{
-//						_retransDelay = retransmit(_retransDelay);
-//						if (_retransDelay > 0)
-//							_timers[TIMER_RETRANS] = getCallSession().schedule(new Timer(TIMER_RETRANS), _retransDelay);
-//					}
-//					break;
-//				case TIMER_WAIT_ACK:
-//					cancelTimer(TIMER_RETRANS);
-//					if (_response != null)
-//					{
-//						noAck();
-//						_response = null;
-//					}
-//					break;
-//				default:
-//					throw new IllegalArgumentException("unknown id " + id);
-//				}
+				switch(id)
+				{
+				case TIMER_RETRANS:
+					if (_response != null)
+					{
+						_retransDelay = retransmit(_retransDelay);
+						if (_retransDelay > 0)
+							_timers[TIMER_RETRANS] = appSession().getSessionManager().schedule(
+									new Timer(TIMER_RETRANS), _retransDelay);
+					}
+					break;
+				case TIMER_WAIT_ACK:
+					cancelTimer(TIMER_RETRANS);
+					if (_response != null)
+					{
+						noAck();
+						_response = null;
+					}
+					break;
+				default:
+					throw new IllegalArgumentException("unknown id " + id);
+				}
 			}
 			
 			class Timer implements Runnable
@@ -1573,19 +1597,22 @@ public class Session implements SipSessionIf, Dumpable
 
 			public long retransmit(long delay) 
 			{
-//				ServerTransaction tx = (ServerTransaction) getResponse().getTransaction();
-//				if (tx != null)
-//					tx.send(getResponse());
-//				else
-//				{
-//					try
-//					{
-//						getServer().getConnectorManager().sendResponse(getResponse());
-//					}
-//					catch (IOException e) {
-//						LOG.debug(e);
-//					}
-//				}
+				SipResponse response = getResponse();
+				ServerTransaction tx = (ServerTransaction) response.getTransaction();
+				if (tx != null)
+					tx.send(response);
+				else
+				{
+					try
+					{
+				    	SipRequest request = (SipRequest) response.getRequest();
+				    	if (request != null)
+				    		getServer().sendResponse(response, request.getConnection());
+					}
+					catch (IOException e) {
+						LOG.debug(e);
+					}
+				}
 				return Math.min(delay*2, Transaction.__T2);
 			}
 			
@@ -1595,12 +1622,12 @@ public class Session implements SipSessionIf, Dumpable
 				
 				public long retransmit(long delay)
 				{
-//					ServerTransaction tx = (ServerTransaction) getResponse().getTransaction();
-//					if (tx.getState() == Transaction.STATE_PROCEEDING)
-//					{
-//						tx.send(getResponse());
-//						return delay*2;
-//					}
+					ServerTransaction tx = (ServerTransaction) getResponse().getTransaction();
+					if (tx.getState() == Transaction.State.PROCEEDING)
+					{
+						tx.send(getResponse());
+						return delay*2;
+					}
 					return -1;
 				}
 				

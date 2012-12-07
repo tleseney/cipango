@@ -169,10 +169,7 @@ public class StatisticGraph
 				}
 				if (_sessionManagers[i] == null)
 				{
-					if (contexts[i] != null && "cipango-console".equals(contexts[i].getKeyProperty("context")))
-						_logger.debug("Could not get session manager for context {}", contexts[i]);
-					else
-						_logger.warn("Could not get session manager for context {}", contexts[i]);
+					_logger.debug("Could not get session manager for context {}", contexts[i]);
 					valid = false;
 				}
 			}

@@ -245,6 +245,7 @@ public class Session implements SipSessionIf, Dumpable
 	
 	public void createUA(UAMode mode)
 	{
+		// FIXME merge setUAS and createUA
 		if (_role != Role.UNDEFINED)
 			throw new IllegalStateException("Session is " + _role);
 		

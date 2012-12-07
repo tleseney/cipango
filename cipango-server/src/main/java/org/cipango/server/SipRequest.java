@@ -395,6 +395,11 @@ public class SipRequest extends SipMessage implements SipServletRequest
 			throw new IllegalStateException("getProxy() had already been called");
 
 		_b2bHelper = B2bHelper.getInstance();
+		if (!_session.isUA() && getTransaction().isServer())
+		{
+			_session.setUAS();
+			((ServerTransaction) getTransaction()).setListener(_session.getUa());
+		}
 		return _b2bHelper;
 	}
 

@@ -323,17 +323,41 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 	 * @see SipApplicationSession#invalidate()
 	 */
 	public void invalidate()
-	{
+	{		
 		checkValid();
 
-		if (LOG.isDebugEnabled())
-			LOG.debug("invalidating SipApplicationSession: " + this);
-
-		synchronized (this)
+		try
 		{
-			_sessionManager.removeApplicationSession(this);
-			try
+			if (LOG.isDebugEnabled())
+				LOG.debug("invalidating SipApplicationSession: " + this);
+	
+			synchronized (this)
 			{
+				for (Session session : _sessions)
+					if (session.isValid()) // As it a copy of the list, 
+						session.invalidate();
+				
+				if (_otherSessions != null)
+				{
+					for (Object session : _otherSessions)
+					{
+						if (session instanceof HttpSession)
+							((HttpSession) session).invalidate();
+					}
+					_otherSessions = null;
+				}
+				
+				if (_timers != null)
+				{
+					for (ServletTimer timer : _timers)
+					{
+						timer.cancel();
+					}
+					_timers = null;
+				}
+				
+				_sessionManager.removeApplicationSession(this);
+	
 				while (_attributes != null && _attributes.size() > 0)
 				{
 					ArrayList<String> keys = new ArrayList<String>(_attributes.keySet());
@@ -341,10 +365,10 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 						removeAttribute(key);
 				}
 			}
-			finally
-			{
-				_valid = false;
-			}
+		}
+		finally
+		{
+			_valid = false;
 		}
 	}
 

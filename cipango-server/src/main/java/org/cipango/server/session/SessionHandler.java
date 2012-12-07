@@ -101,6 +101,11 @@ public class SessionHandler extends SipHandlerWrapper
 				notFound(request, "No SIP Session");
 				return;
 			}
+			if (request.isInvite()) 
+	        { 
+				SipResponse response = (SipResponse) request.createResponse(SipServletResponse.SC_TRYING);
+				((ServerTransaction) request.getTransaction()).send(response);
+			}
 			session.accessed();
 			request.setSession(session);
 			

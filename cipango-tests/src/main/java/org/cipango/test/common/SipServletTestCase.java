@@ -137,7 +137,9 @@ public class SipServletTestCase extends Assert
 			}
 			catch (Exception e1)
 			{
-				__logger.warn("Failed to send error on " + request.getMethod(), e1);
+				if (!(e instanceof IllegalStateException) 
+						|| !"Session is proxy".equalsIgnoreCase(e.getMessage()))
+					__logger.warn("Failed to send error on " + request.getMethod(), e1);
 			}
 		}
 		

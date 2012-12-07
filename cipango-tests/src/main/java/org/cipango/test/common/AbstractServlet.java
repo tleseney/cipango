@@ -53,8 +53,10 @@ public abstract class AbstractServlet extends SipServletTestCase
 			else
 			{
 				if (request.isInitial())
+				{
 					resetFailure();
-
+					request.getApplicationSession().setAttribute("Tests method", methodName);
+				}
 				__logger.info((request.isInitial() ? "Starting test " : "continue test ")
 						+ getServletSimpleName() + "." + methodName + "()" 
 						+ (request.isInitial() ? "" : " on " + request.getMethod()));

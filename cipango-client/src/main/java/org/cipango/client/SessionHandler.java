@@ -40,7 +40,13 @@ public class SessionHandler extends AbstractChallengedMessageHandler
 	{
 		boolean result = super.handleAuthentication(response);
 		if (result)
-			_responses.add(new ReadableMessage<SipServletResponse>(response));
+		{
+			synchronized (_responses)
+			{
+				_responses.add(new ReadableMessage<SipServletResponse>(response));
+				_responses.notifyAll();
+			}
+		}
 		return result;
 	}
 	
@@ -80,15 +86,21 @@ public class SessionHandler extends AbstractChallengedMessageHandler
 		
 		if (message instanceof SipServletRequest)
 		{
-			for (ReadableMessage<SipServletRequest> request : _requests)
-				if (request.getMessage().equals(message))
-					request.setRead(true);
+			synchronized (_requests)
+			{
+				for (ReadableMessage<SipServletRequest> request : _requests)
+					if (request.getMessage().equals(message))
+						request.setRead(true);
+			}
 		}
 		else
 		{
-			for (ReadableMessage<SipServletResponse> response : _responses)
-				if (response.getMessage().equals(message))
-					response.setRead(true);
+			synchronized (_responses)
+			{
+				for (ReadableMessage<SipServletResponse> response : _responses)
+					if (response.getMessage().equals(message))
+						response.setRead(true);
+			}	
 		}
 	}
 	
@@ -161,17 +173,15 @@ public class SessionHandler extends AbstractChallengedMessageHandler
 	public SipServletResponse waitForFinalResponse()
 	{
 		long end = System.currentTimeMillis() + getTimeout();
-		synchronized (this)
+
+		while (System.currentTimeMillis() <= end)
 		{
-			while (System.currentTimeMillis() <= end)
+			doWait(_responses, end - System.currentTimeMillis());
+			SipServletResponse response = waitForResponse(false);
+			if (response.getStatus() >= 200)
 			{
-				doWait(_responses, end - System.currentTimeMillis());
-				SipServletResponse response = waitForResponse(false);
-				if (response.getStatus() >= 200)
-				{
-					setRead(response);
-					return response;
-				}
+				setRead(response);
+				return response;
 			}
 		}
 		return null;

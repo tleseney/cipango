@@ -14,14 +14,19 @@
 package org.cipango.test;
 
 import static org.cipango.test.matcher.SipSessionMatchers.hasState;
-import static org.cipango.test.matcher.SipSessionMatchers.isReadyToInvalidate;
+import static org.cipango.test.matcher.SipSessionMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.servlet.sip.Proxy;
+import javax.servlet.sip.SipApplicationSessionEvent;
+import javax.servlet.sip.SipApplicationSessionListener;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipSession;
@@ -35,20 +40,26 @@ import javax.servlet.sip.annotation.SipServlet;
 
 import org.cipango.test.common.AbstractServlet;
 import org.cipango.test.common.MainServlet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("serial")
 @SipListener
 @SipServlet (name="org.cipango.sipunit.test.InvalidateWhenReadyTest")
-public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSessionListener
+public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSessionListener, SipApplicationSessionListener
 {
+	
+	private static final Logger __logger = LoggerFactory.getLogger(InvalidateWhenReadyServlet.class);
+	
 	public static final String RECORD_ROUTE = "serverIsRecordRoute";
-	private static final String LISTENER_TEST = "Ready to invalidate listener has not been called";
+	private static final String SIP_SESSION_READY_TO_INVALIDATE = "Ready to invalidate listener has not been called for SIP session";
+	private static final String APP_SESSION_READY_TO_INVALIDATE = "Ready to invalidate listener has not been called for SIP Application session";
 	
 	public void testUasCancel(SipServletRequest request) throws TooManyHopsException, IOException
 	{
 		String method = request.getMethod();
 		SipSession session = request.getSession();
-		addListenerTest(session);
+		addApplicationSessionListenerTest(session);
 		assertTrue(session.isValid());
 		if (method.equals("INVITE"))
 		{
@@ -66,11 +77,20 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		}
 	}
 	
-	private void addListenerTest(SipSession session)
+	private void addApplicationSessionListenerTest(SipSession session)
 	{
 		if (getServletContext().getAttribute(getFailureKey()) == null)
 		{
-			getServletContext().setAttribute(getFailureKey(), LISTENER_TEST.getBytes());
+			getServletContext().setAttribute(getFailureKey(), APP_SESSION_READY_TO_INVALIDATE.getBytes());
+			session.getApplicationSession().setAttribute(InvalidateWhenReadyServlet.class.getName(), getFailureKey());
+		}
+	}
+	
+	private void addSipSessionListenerTest(SipSession session)
+	{
+		if (getServletContext().getAttribute(getFailureKey()) == null)
+		{
+			getServletContext().setAttribute(getFailureKey(), SIP_SESSION_READY_TO_INVALIDATE.getBytes());
 			session.setAttribute(InvalidateWhenReadyServlet.class.getName(), getFailureKey());
 		}
 	}
@@ -79,7 +99,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 	{
 		String method = request.getMethod();
 		SipSession session = request.getSession();
-		addListenerTest(session);
+		addApplicationSessionListenerTest(session);
 		assertTrue(session.isValid());
 		if (!method.equals("ACK"))
 			request.createResponse(SipServletResponse.SC_OK).send();
@@ -139,7 +159,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 	{
 		String method = request.getMethod();
 		SipSession session = request.getSession();
-		addListenerTest(session);
+		addApplicationSessionListenerTest(session);
 		assertTrue(session.isValid());
 		
 		assertFalse(session.isReadyToInvalidate());
@@ -165,7 +185,6 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 	{
 		String method = response.getMethod();
 		SipSession session = response.getSession();
-		addListenerTest(session);
 
 		if (method.equals("INVITE"))
 		{
@@ -197,7 +216,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 	public void testProxy4xx(SipServletRequest request) throws TooManyHopsException, IOException
 	{
 		SipSession session = request.getSession();
-		addListenerTest(session);
+		addApplicationSessionListenerTest(session);
 		assertTrue(session.isValid());
 		
 		assertFalse(session.isReadyToInvalidate());
@@ -214,7 +233,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 	public void testProxy4xx(SipServletResponse response) throws TooManyHopsException, IOException
 	{
 		SipSession session = response.getSession();
-		addListenerTest(session);
+		addApplicationSessionListenerTest(session);
 		// The session is not in the invalidate when ready state as a new branch can be created in doResponse().
 		assertThat(session, hasState(State.INITIAL));
 	}
@@ -223,7 +242,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 	{
 		String method = request.getMethod();
 		SipSession session = request.getSession();
-		addListenerTest(session);
+		addApplicationSessionListenerTest(session);
 		assertTrue(session.isValid());
 		
 		assertFalse(session.isReadyToInvalidate());
@@ -239,8 +258,22 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		else if (method.equals("BYE"))
 		{
 			assertThat(session, hasState(State.CONFIRMED));
+			assertHasOnlyOneSipSession(session);
 		}
 
+	}
+	
+	private void assertHasOnlyOneSipSession(SipSession session)
+	{
+		Iterator<?> it = session.getApplicationSession().getSessions();
+		List<Object> l = new ArrayList<Object>();
+		while (it.hasNext())
+			l.add(it.next());
+			
+		if (l.size() != 1)
+		{
+			fail("Got sessions " + l + " while expected only one: " + session);
+		}
 	}
 	
 	public void testProxySequential(SipServletResponse response) throws Exception
@@ -277,7 +310,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 	{
 		String method = request.getMethod();
 		SipSession session = request.getSession();
-		addListenerTest(session);
+		addApplicationSessionListenerTest(session);
 		assertTrue(session.isValid());
 		
 		assertFalse(session.isReadyToInvalidate());
@@ -293,6 +326,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		else if (method.equals("BYE"))
 		{
 			assertThat(session, hasState(State.CONFIRMED));
+			assertHasOnlyOneSipSession(session);
 		}
 
 	}
@@ -338,7 +372,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 	{
 		String method = request.getMethod();
 		SipSession session = request.getSession();
-		addListenerTest(session);
+		addApplicationSessionListenerTest(session);
 		assertTrue(session.isValid());
 		
 		assertFalse(session.isReadyToInvalidate());
@@ -358,6 +392,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		else if (method.equals("BYE"))
 		{
 			assertThat(session, hasState(State.CONFIRMED));
+			assertHasOnlyOneSipSession(session);
 		}
 	}
 	
@@ -368,7 +403,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 
 		if (method.equals("INVITE"))
 		{
-			assertFalse(session.isReadyToInvalidate());
+			assertThat(session, isNotReadyToInvalidate());
 			assertFalse(session.getApplicationSession().isReadyToInvalidate());	
 			int status = response.getStatus();
 			if (status == SipServletResponse.SC_RINGING)
@@ -384,6 +419,9 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			{
 				assertThat(session, hasState(State.CONFIRMED));
 				assertNotNull(response.getApplicationSession().getAttribute("received 404"));
+				
+				// The others derived sessions should be now invalidated.
+				
 			}
 			else
 				throw new IllegalAccessException("Unexpected " + status + "/INVITE");
@@ -393,6 +431,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			assertThat(session, isReadyToInvalidate());
 			// The app session may not be ready to invalidate as the derived session is not in ready
 			// to invalidate state.
+			assertThat(session.getApplicationSession().isReadyToInvalidate(), is(true));
 			assertThat(session, hasState(State.TERMINATED));
 		}
 	}
@@ -401,7 +440,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 	{
 		String method = request.getMethod();
 		SipSession session = request.getSession();
-		addListenerTest(session);
+		addApplicationSessionListenerTest(session);
 		assertTrue(session.isValid());
 		
 		assertFalse(session.isReadyToInvalidate());
@@ -421,6 +460,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		else if (method.equals("BYE"))
 		{
 			assertThat(session, hasState(State.CONFIRMED));
+			assertHasOnlyOneSipSession(session);
 		}
 	}
 	
@@ -477,7 +517,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 	{
 		String method = request.getMethod();
 		SipSession session = request.getSession();
-		addListenerTest(session);
+		addSipSessionListenerTest(session);
 		assertTrue(session.isValid());
 		
 		assertFalse(session.isReadyToInvalidate());
@@ -548,21 +588,49 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 
 	public void sessionReadyToInvalidate(SipSessionEvent e)
 	{
-		//System.out.println("sessionReadyToInvalidate");
-		//new Exception("sessionReadyToInvalidate").printStackTrace();
 		try
 		{
 			String key = (String) e.getSession().getAttribute(InvalidateWhenReadyServlet.class.getName());
 			if (key != null)
 			{
 				byte[] c = (byte[]) getServletContext().getAttribute(key);
-				if (c != null && LISTENER_TEST.equals(new String(c)))
+				if (c != null && SIP_SESSION_READY_TO_INVALIDATE.equals(new String(c)))
 					getServletContext().removeAttribute(key);
 			}
 		}
 		catch (Throwable e1) 
 		{
-			e1.printStackTrace();
+			__logger.warn("Failed to handle sessionReadyToInvalidate", e1);
+		}
+	}
+
+	public void sessionCreated(SipApplicationSessionEvent e)
+	{
+	}
+
+	public void sessionDestroyed(SipApplicationSessionEvent e)
+	{
+	}
+
+	public void sessionExpired(SipApplicationSessionEvent e)
+	{
+	}
+
+	public void sessionReadyToInvalidate(SipApplicationSessionEvent e)
+	{
+		try
+		{
+			String key = (String) e.getApplicationSession().getAttribute(InvalidateWhenReadyServlet.class.getName());
+			if (key != null)
+			{
+				byte[] c = (byte[]) getServletContext().getAttribute(key);
+				if (c != null && APP_SESSION_READY_TO_INVALIDATE.equals(new String(c)))
+					getServletContext().removeAttribute(key);
+			}
+		}
+		catch (Throwable e1) 
+		{
+			__logger.warn("Failed to handle sessionReadyToInvalidate", e1);
 		}
 	}
 

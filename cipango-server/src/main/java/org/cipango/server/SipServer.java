@@ -357,7 +357,8 @@ public class SipServer extends ContainerLifeCycle
 				catch (IOException io) 
 				{
 					LOG.warn("Failed to switch to TCP.");
-
+					// TODO force sending on initial transport
+					
 					// 	Update via to ensure that right value is used in logs
 					Via via = request.getTopVia();
 					SipConnector connector = connection.getConnector();

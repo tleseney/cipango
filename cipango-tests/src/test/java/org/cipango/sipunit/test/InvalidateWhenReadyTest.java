@@ -611,6 +611,7 @@ public class InvalidateWhenReadyTest extends UaTestCase
 				{
 					LOG.info("Waiting for semaphore release");
 					semaphore.acquire();
+					Thread.sleep(50); // Ensure that the response will be proceeded after the other leg
 				}
 
 				_ua.createResponse(request, SipServletResponse.SC_RINGING).send();
@@ -634,6 +635,7 @@ public class InvalidateWhenReadyTest extends UaTestCase
 				{
 					LOG.info("Waiting for semaphore release");
 					semaphore.acquire();
+					Thread.sleep(50); // Ensure that the response will be proceeded after the other leg
 				}
 
 				_ua.createResponse(request, SipServletResponse.SC_RINGING).send();

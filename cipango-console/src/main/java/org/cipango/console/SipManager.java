@@ -304,6 +304,9 @@ public class SipManager extends Manager
 	public String getSipApplicationSession(String id, String objectName) throws Exception
 	{
 		ObjectName sessionManager = new ObjectName(objectName);
+		if (!_mbsc.isRegistered(sessionManager))
+			return "The application with name " + sessionManager.getKeyProperty("context") + " is no more registered";
+		
 		return (String) _mbsc.invoke(sessionManager, 
 				"viewApplicationSession",
 				new Object[] { id }, 

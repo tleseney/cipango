@@ -89,7 +89,7 @@ public class ClientTransaction extends Transaction
 		}
 	}
 	
-	public void cancel(SipRequest cancel)
+	public synchronized void cancel(SipRequest cancel)
 	{
 		if (_canceled) 
 			return;
@@ -161,7 +161,7 @@ public class ClientTransaction extends Transaction
 	
 
 	
-	public void start() throws IOException 
+	public synchronized void start() throws IOException 
     {
         if (_state != State.UNDEFINED)
             throw new IllegalStateException("!undefined: " + _state);
@@ -201,7 +201,7 @@ public class ClientTransaction extends Transaction
 		}
 	}
 	
-	public void handleResponse(SipResponse response) 
+	public synchronized void handleResponse(SipResponse response) 
     {
 		int status = response.getStatus(); 
         

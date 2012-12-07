@@ -54,7 +54,7 @@ public class ServerTransaction extends Transaction
 	/**
 	 * Subsequent request in transaction (retransmission or ACK for negative response)
 	 */
-	public void handleRequest(SipRequest request)
+	public synchronized void handleRequest(SipRequest request)
 	{
 		request.setTransaction(this);
 		if (request.isAck())
@@ -114,7 +114,7 @@ public class ServerTransaction extends Transaction
 	/**
 	 * Sends a response within this transaction
 	 */
-	public void send(SipResponse response)
+	public synchronized void send(SipResponse response)
 	{
 		int status = response.getStatus();
 		

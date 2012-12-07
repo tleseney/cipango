@@ -13,16 +13,19 @@
 // ========================================================================
 package org.cipango.server.session;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.servlet.http.HttpSession;
 import javax.servlet.sip.Address;
@@ -46,16 +49,19 @@ import org.cipango.server.SipRequest;
 import org.cipango.server.session.SessionManager.AppSessionIf;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.util.TimerTask;
+import org.eclipse.jetty.util.component.ContainerLifeCycle;
+import org.eclipse.jetty.util.component.Dumpable;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
-public class ApplicationSession implements SipApplicationSession, AppSessionIf
+public class ApplicationSession implements SipApplicationSession, AppSessionIf, Dumpable
 {
 	private static final Logger LOG = Log.getLogger(ApplicationSession.class);
 	
 	private final String _id;
 	
-	protected final List<Session> _sessions = new ArrayList<Session>(1);
+	// Use CopyOnWriteArrayList to ensure no issue on invalidateIfReady
+	protected final List<Session> _sessions = new CopyOnWriteArrayList<Session>();
 	protected List<?> _otherSessions;
 	
 	private final long _created;
@@ -118,7 +124,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 	public Session createSession(SipRequest initial)
 	{
 		Session session = new Session(this, _sessionManager.newSessionId(), initial);
-		_sessions.add(session);
+		addSession(session);
 		return session;
 	}
 	
@@ -126,7 +132,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 	{
 		Session session = new Session(this, _sessionManager.newSessionId(), callId, from, to);
 	
-		_sessions.add(session);
+		addSession(session);
 		session.createUA(UAMode.UAC);
 		return session;
 	}
@@ -139,10 +145,21 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 
 		Session derived = new Session(_sessionManager.newSessionId(), session);
 		derived.setInvalidateWhenReady(_invalidateWhenReady);
-		_sessions.add(derived);
+		addSession(derived);
 		return derived;
 	}
 
+	protected void addSession(Session session)
+	{
+		_sessions.add(session);
+		List<SipSessionListener> listeners = getSessionManager().getSessionListeners();
+		if (!listeners.isEmpty())
+		{
+			SipSessionEvent event = new SipSessionEvent((SipSession) session);
+			getContext().fire(listeners, __sessionCreated, event);
+		}
+	}
+	
 	public String newCallId()
 	{
 		return _sessionManager.newCallId();
@@ -162,12 +179,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 	{
 		return _sessionManager.newBranch();
 	}
-	
-	public Session getSession(SipRequest request)
-	{
-		return _sessions.get(0);
-	}
-	
+		
 	protected void putAttribute(String name, Object value)
 	{
 		Object old = null;
@@ -215,9 +227,9 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 	
 	public void removeSession(Object session)
 	{
-		if (session instanceof Session)
+		if (session instanceof SipSession)
 		{
-			_sessions.remove((Session) session);
+			_sessions.remove((SipSession) session);
 			
 			List<SipSessionListener> listeners = getSessionManager().getSessionListeners();
 			if (!listeners.isEmpty())
@@ -447,7 +459,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 			throw new NullPointerException("null protocol");
 		
 		if ("sip".equalsIgnoreCase(protocol))
-			return _sessions.iterator();
+			return new ArrayList<SipSession>(_sessions).iterator();
 		
 		if ("http".equalsIgnoreCase(protocol))
 		{
@@ -599,6 +611,88 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
 		return null;
 	}
 	
+	public void invalidateIfReady()
+	{
+		boolean invalidateSessionsWhenReady = true;
+		
+		// Could use iterator as list is CopyOnWriteArrayList
+		for (Session session : _sessions)
+		{
+			if (session.getInvalidateWhenReady())
+				session.invalidateIfReady();
+			else
+				invalidateSessionsWhenReady = false;
+		}
+		
+		if (isValid() && getInvalidateWhenReady() && invalidateSessionsWhenReady && isReadyToInvalidate())
+		{
+			List<SipApplicationSessionListener> listeners = getSessionManager().getApplicationSessionListeners();
+			if (!listeners.isEmpty())
+				getContext().fire(listeners, __appSessionReadyToInvalidate, new SipApplicationSessionEvent(this));
+			
+			if (getInvalidateWhenReady() && isValid())
+				invalidate();
+		}
+	}
+	
+	/**
+	 * Returns the derived sessions for session 
+	 * The session session is included in the list.
+	 */
+	public List<Session> getDerivedSessions(Session session) 
+	{
+		String tag = session.getLocalTag();
+		String callID = session.getCallId();
+
+		List<Session> list = new ArrayList<Session>(1);
+		for (Session sipSession : _sessions)
+		{
+			if (tag.equals(sipSession.getLocalTag())
+					&& callID.equals(sipSession.getCallId()))
+				list.add(sipSession);
+		}
+		return list;
+	}
+	
+
+	@Override
+	public String dump()
+	{
+		return ContainerLifeCycle.dump(this);
+	}
+
+	@Override
+	public void dump(Appendable out, String indent) throws IOException
+	{
+		out.append(indent).append("+ ").append(getId()).append('\n');
+		indent += "  ";
+		printAttr(out, "created", new Date(getCreationTime()), indent);
+		printAttr(out, "accessed", new Date(getLastAccessedTime()), indent);
+		printAttr(out, "expirationTime", new Date(getExpirationTime()), indent);
+		printAttr(out, "context", getContext().getName(), indent);
+		printAttr(out, "invalidateWhenReady", getInvalidateWhenReady(), indent);
+		printAttr(out, "attributes", _attributes, indent);
+		
+		if (_timers != null && !_timers.isEmpty())
+		{
+			Iterator<ServletTimer> it4 = _timers.iterator();
+			out.append(indent).append("+ [Timers]\n");
+			while (it4.hasNext())
+				out.append(indent).append("  + ").append(it4.next().toString()).append('\n');
+		}
+		
+		Iterator<Session> it = _sessions.iterator();
+		if (it.hasNext())
+			out.append(indent).append("+ [sipSessions]\n");
+		while (it.hasNext())
+			it.next().dump(out, indent + "  ");
+	}
+	
+	private void printAttr(Appendable out, String name, Object value, String indent) throws IOException
+	{
+		out.append(indent).append("- ").append(name).append(": ").append(String.valueOf(value)).append('\n');
+	}
+	
     public class Timer implements ServletTimer, Runnable
     {
 		private Serializable _info;
@@ -711,4 +805,5 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf
             }
         }
     }
+
 }

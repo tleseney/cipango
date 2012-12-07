@@ -81,7 +81,7 @@ public class SipResponse extends SipMessage implements SipServletResponse
 			if (_request.isInitial())
 			{
 				AddressImpl to = (AddressImpl) _fields.get(SipHeader.TO);
-				if (!_session.isProxy() && to.getTag() == null)
+				if (!_session.isProxy() && to.getTag() == null) // FIXME better handling proxy case (Virtual branch)
 				{
 					_session.setUAS();
 					to.setParameter(AddressImpl.TAG, _session.getLocalTag());

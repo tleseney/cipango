@@ -191,10 +191,12 @@ public class ServerTransaction extends Transaction
 	
 	protected void terminate()
 	{
+		super.terminate();
 		_latestResponse = null;
-		setState(State.TERMINATED);
 		
 		_transactionManager.transactionTerminated(this);
+		if (_listener != null)
+			_listener.transactionTerminated(this);
 	}
 	
 	private void doSend(SipResponse response) throws IOException

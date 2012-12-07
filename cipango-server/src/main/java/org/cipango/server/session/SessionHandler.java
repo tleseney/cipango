@@ -117,6 +117,8 @@ public class SessionHandler extends SipHandlerWrapper
 			Proxy proxy = request.getProxy();
 			proxy.proxyTo(request.getRequestURI());
 		}
+		
+		message.appSession().invalidateIfReady();
 	}
 	
 	protected void notFound(SipRequest request, String reason)

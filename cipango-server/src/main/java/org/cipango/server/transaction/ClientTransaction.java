@@ -26,6 +26,7 @@ import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
 import org.cipango.server.Transport;
+import org.cipango.server.log.AccessLog;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
@@ -118,7 +119,7 @@ public class ClientTransaction extends Transaction
 		ClientTransaction cancelTx = new ClientTransaction(cancel, _listener, cancel.getTopVia().getBranch());
 		cancelTx.setTransactionManager(_transactionManager);
 		cancelTx._connection = getConnection();
-		
+		cancelTx._listener = _listener;
 		
 		_transactionManager.addClientTransaction(cancelTx);
 		
@@ -318,10 +319,12 @@ public class ClientTransaction extends Transaction
 		return false;
 	}
 	
-	public void terminate() 
+	protected void terminate() 
     {
-		setState(State.TERMINATED);
+		super.terminate();
 		_transactionManager.transactionTerminated(this);
+		if (_listener != null)
+			_listener.transactionTerminated(this);
     }
 	
 	
@@ -332,9 +335,9 @@ public class ClientTransaction extends Transaction
 		if (responseB.to().getTag() == null)
 			responseB.to().setParameter(AddressImpl.TAG, responseB.appSession().newUASTag());
 		
-// FIXME		AccessLog accessLog = getServer().getConnectorManager().getAccessLog();
-//		if (accessLog != null)
-//			accessLog.messageReceived(responseB, new TimeoutConnection());
+		AccessLog accessLog = getServer().getAccessLog();
+		if (accessLog != null)
+			accessLog.messageReceived(responseB, new TimeoutConnection());
 		
 		return responseB;
 	}
@@ -369,7 +372,7 @@ public class ClientTransaction extends Transaction
 				LOG.debug("Failed to (re)send request " + _request);
 			}
 			_aDelay = _aDelay * 2;
-			startTimer(timer.A, _aDelay);
+			startTimer(Timer.A, _aDelay);
 			break;
 		case B:
 			cancelTimer(Timer.A);

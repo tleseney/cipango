@@ -146,9 +146,12 @@ public class SipRequest extends SipMessage implements SipServletRequest
     		_session.sendRequest(this);
 	}
 	
-	public Address getTopRoute()
+	public Address getTopRoute() throws ServletParseException
 	{
-		return (Address) _fields.get(SipHeader.ROUTE);
+		Field field = _fields.getField(SipHeader.ROUTE);
+		if (field == null)
+			return null;
+		return field.asAddress();
 	}
 	
 	public Address removeTopRoute()

@@ -6,6 +6,7 @@ import java.net.InetAddress;
 import java.util.Iterator;
 
 import javax.servlet.sip.Address;
+import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
@@ -34,7 +35,7 @@ public class TransportProcessor extends SipProcessorWrapper
 		super(processor);
 	}
 	
-	protected Address popLocalRoute(SipRequest request)
+	protected Address popLocalRoute(SipRequest request) throws ServletParseException
 	{
 		Address route = request.getTopRoute();
 		
@@ -166,7 +167,15 @@ public class TransportProcessor extends SipProcessorWrapper
     {
 		URI uri = null;
 		
-		Address route = request.getTopRoute();
+		Address route;
+		try
+		{
+			route = request.getTopRoute();
+		}
+		catch (ServletParseException e)
+		{
+			throw new IOException("Invalid top route", e);
+		}
 		
 		if (route != null /* && !_request.isNextHopStrictRouting() */)
 			uri = route.getURI();

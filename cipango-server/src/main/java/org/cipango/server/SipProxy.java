@@ -521,7 +521,11 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
     
     public void transactionTerminated(Transaction transaction)
     {
-    	
+		if (transaction.isServer() && transaction.getRequest().isInitial())
+		{
+			updateStateOnProxyComplete(true);
+		}
+    	_tx.getRequest().session().removeTransaction(transaction);
     }
 	
 	private void tryFinal()
@@ -550,6 +554,14 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
             return;
         }
 		forward(_best);
+		
+		// Update state for all derived sessions
+		if (_tx.getRequest().isInitial() && _tx.getRequest().isInvite())
+			updateStateOnProxyComplete(false);
+		
+		// FIXME is it the best place to call invalidateIfReady
+		// InvalidateIfReady must be call after best response forwarding as state can is updated on best response
+		_best.appSession().invalidateIfReady();
 	}
 	
     private void invokeServlet(SipResponse response)
@@ -560,21 +572,26 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
     
 	private void forward(SipResponse response)
     {	
-        
-        /*
-        if (_tx.getRequest().getTo().getParameter("tag") == null)
-        {
-            if (response.getStatus() < 300 && (response.isInvite() || response.isSubscribe()))
-            {
-                response.session().registerProxy(response);
-            }
-        }
-        */
 		if (response.getStatus() >= 300)
 			response.session().updateState(response, false);
         _tx.send(response);
 		response.setCommitted(true);
 	}    
+	
+	
+	/**
+	 * 
+	 * @param forceTerminated force state to terminated even if state is EARLY
+	 */
+	private void updateStateOnProxyComplete(boolean forceTerminated)
+	{
+		if (_tx.isCompleted())
+		{
+			Session session = _tx.getRequest().session();
+			for (Session s : session.appSession().getDerivedSessions(session))
+				s.updateStateOnProxyComplete(forceTerminated);
+		}
+	}
 	
 	static class TimeoutC implements Runnable, Serializable, Cancelable
 	{
@@ -915,9 +932,39 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 			
 			if (status == 100)
 				return;
+	        	        
+	        SipRequest request = _tx.getRequest();
+	        
+	        Session session = request.session();
+	        
+	        if (request.isInitial())
+	        { 
+	        	ApplicationSession appSession = session.appSession();
+	        	// Search if there is a session with the same remote tag
+	        	Session best = appSession.getSession(response);
+	        	
+	        	if (best == null)
+	        	{
+	        		// We need to create a derived session if original session has a remote tag
+	        		// and the response could create a dialog
+	        		if (session.getRemoteParty().getParameter(AddressImpl.TAG) != null	&& status < 300)
+	        		{
+	        			best = appSession.createDerivedSession(session);
+						if (LOG.isDebugEnabled())
+							LOG.debug("Create derived session {} from session {}", best, session);
+	        		}
+	        		else
+	        			best = session;
+	        	}
+	        	session = best;
+	        }
+			
+	        response.setSession(session);
 	        
 	        if (_tx.isCompleted() && !response.is2xx())
 			{
+	        	session.updateStateOnProxyComplete(response.getStatus() >= 300);
+	        	
 				if (LOG.isDebugEnabled())
 					LOG.debug("Dropping response " + response.getStatus() + " since proxy is completed");
 				return;
@@ -926,29 +973,9 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 	        if (LOG.isDebugEnabled()) 
 	        	LOG.debug("Got response {}", response);
 	        
-	        SipRequest request = _tx.getRequest();
-	        
-	        Session session = request.session();
-	        
-	        if (request.isInitial() && status < 300)
-	        { 
-	        	if (!session.isSameDialog(response))
-	        	{
-	        		ApplicationSession appSession = session.appSession();
-	        		Session derived = appSession.getSession(response);
-	        		if (derived == null)
-	        		{
-	        			derived = appSession.createDerivedSession(session);
-	        			 if (LOG.isDebugEnabled()) 
-	        		        	LOG.debug("Create derived session {} from session {}", derived, session);
-	        		}
-	        		session = derived;
-	        	}	
-	        }
-			
-	        response.setSession(session);
-			if (status < 300)
-				session.updateState(response, false);
+	        session.updateState(response, false);
+	        if (request.isInitial())
+				session.setRecordRoute(getRecordRoute());
 	        
 			response.removeTopVia();
 			response.setProxyBranch(this);
@@ -1007,6 +1034,8 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 				
 				if (status < 300) 
 	            {
+					updateStateOnProxyComplete(false);	
+					
 	                invokeServlet(response);
 					forward(response);
 					
@@ -1032,6 +1061,7 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 		
 		public void transactionTerminated(Transaction transaction)
 		{	
+			transaction.getRequest().session().removeTransaction(transaction);
 		}
 
 		public void customizeRequest(SipRequest request, SipConnection connection)
@@ -1050,6 +1080,7 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 //				request.addRecordRoute(new AddressImpl(rrUri));
 //			}
 		}
+	
     }
 	
 	class BranchIterator implements Iterator<Branch>

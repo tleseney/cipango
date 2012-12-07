@@ -28,7 +28,7 @@ public abstract class Transaction
 {
 	private static final Logger LOG = Log.getLogger(Transaction.class);
 			
-	enum State 
+	public enum State 
 	{
 		UNDEFINED,
 		CALLING,
@@ -37,10 +37,10 @@ public abstract class Transaction
 		COMPLETED,
 		CONFIRMED,
 		ACCEPTED,
-		TERMINATED
+		TERMINATED;
 	}
 	
-	enum Timer
+	protected enum Timer
 	{ 
 		/** INVITE request retransmit, for UDP only */ A, 
 		/** INVITE transaction timeout */ B, 
@@ -54,7 +54,7 @@ public abstract class Transaction
 		/** Wait time for response retransmits*/ K,
 		/** Wait time for accepted INVITE request retransmits*/ L, 
 		/** Wait time for retransmission of 2xx to INVITE or additional 2xx 
-		 * from other branches of a forked INVITE*/ M 
+		 * from other branches of a forked INVITE*/ M; 
 	}
 	
 	public static final int DEFAULT_T1 = 500;
@@ -144,7 +144,17 @@ public abstract class Transaction
 		TimerTask task = _timerTasks.get(timer);
 		if (task != null)
 			task.cancel();
-		_timerTasks.put(timer, _transactionManager.schedule(new Timeout(timer), delay));
+		
+		if (_state != State.TERMINATED)
+			_timerTasks.put(timer, _transactionManager.schedule(new Timeout(timer), delay));
+	}
+	
+	protected void terminate() 
+	{
+		setState(State.TERMINATED);
+		for (TimerTask task : _timerTasks.values())
+			task.cancel();
+		_timerTasks.clear();
 	}
 	
 	protected void cancelTimer(Timer timer)

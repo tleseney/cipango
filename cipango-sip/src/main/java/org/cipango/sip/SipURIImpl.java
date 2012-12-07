@@ -443,6 +443,9 @@ public class SipURIImpl implements SipURI, Serializable
 
 	public void setParameter(String name, String value) 
 	{
+		if (name == null || value == null)
+			throw new NullPointerException("Null value or name");
+		
 		Param param = (Param) CACHE.get(name);
 		if (param != null)
 			setParameter(param, value);	

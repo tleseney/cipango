@@ -316,8 +316,12 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 	 */
 	public void setOutboundInterface(InetAddress address)
 	{
+		if (!_tx.getRequest().session().isValid())
+			throw new IllegalStateException("Session not valid");
 		if (address == null)
 			throw new NullPointerException("Null address");
+		
+		// TODO
 		
 	}
 
@@ -326,8 +330,12 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 	 */
 	public void setOutboundInterface(InetSocketAddress address)
 	{
+		if (!_tx.getRequest().session().isValid())
+			throw new IllegalStateException("Session not valid");
 		if (address == null)
 			throw new NullPointerException("Null address");
+		
+		// TODO
 	}
 
 	/**
@@ -802,6 +810,8 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 				throw new IllegalStateException("Session not valid");
 			if (address == null)
 				throw new NullPointerException("Null address");
+			
+			// TODO
 		}
 		
 		/**
@@ -813,6 +823,8 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 				throw new IllegalStateException("Session not valid");
 			if (address == null)
 				throw new NullPointerException("Null address");
+			
+			// TODO
 		}
 
 		/**
@@ -930,7 +942,7 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 			
 			int status = response.getStatus();
 			
-			if (status == 100)
+			if (status == SipServletResponse.SC_TRYING)
 				return;
 	        	        
 	        SipRequest request = _tx.getRequest();
@@ -1011,6 +1023,8 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 										_recursedBranches = new ArrayList<SipProxy.Branch>(1);
 									_recursedBranches.add(branch);
 									branch.setRecurse(_branchRecurse);
+									branch.setRecordRoute(getRecordRoute());
+									branch.setAddToPath(getAddToPath());
 								}
 							}
 						}

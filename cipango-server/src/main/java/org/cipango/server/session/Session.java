@@ -62,7 +62,7 @@ import org.eclipse.jetty.util.log.Logger;
 
 public class Session implements SipSessionIf, Dumpable
 {
-	enum Role { UNDEFINED, UAC, UAS, PROXY_RECORD_ROUTE, PROXY_NO_RECORD_ROUTE}
+	public enum Role { UNDEFINED, UAC, UAS, PROXY_RECORD_ROUTE, PROXY_NO_RECORD_ROUTE}
 	
 	private static final Logger LOG = Log.getLogger(Session.class);
 	

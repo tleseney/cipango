@@ -20,6 +20,7 @@ import java.util.EventListener;
 import javax.servlet.ServletException;
 import javax.servlet.sip.Proxy;
 import javax.servlet.sip.SipServletResponse;
+import javax.servlet.sip.TooManyHopsException;
 
 import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
@@ -27,6 +28,8 @@ import org.cipango.server.SipResponse;
 import org.cipango.server.handler.SipHandlerWrapper;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.ServerTransaction;
+import org.cipango.server.util.ExceptionUtil;
+import org.cipango.sip.SipException;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.log.Log;
@@ -56,13 +59,21 @@ public class SessionHandler extends SipHandlerWrapper
 	
 	public void handle(SipMessage message) throws IOException, ServletException 
 	{
-		SipRequest request = null;
-		Session session = message.session();
-		// The session can be not null in case of forward
-		if (session == null && message.isRequest())
+		if (message instanceof SipRequest)
+			handleRequest((SipRequest) message);
+		else
 		{
-			request = (SipRequest) message;
-									
+			_handler.handle(message);
+			message.appSession().invalidateIfReady();
+		}
+	}
+	
+	public void handleRequest(SipRequest request) throws IOException, ServletException 
+	{
+		Session session = request.session();
+		// The session can be not null in case of servletContext.getNamedDispatcher().forward()
+		if (session == null)
+		{									
 			if (request.isInitial())
 			{
 				ApplicationSession appSession = _sessionManager.createApplicationSession();
@@ -113,17 +124,50 @@ public class SessionHandler extends SipHandlerWrapper
 				session.getUa().handleRequest(request);
 			
 		}
+		
+		try
+		{
 
 // FIXME		if (!request.isHandled())
-		_handler.handle(message);
-		
-		if (request != null && !request.isInitial() && session.isProxy()  && !request.isCancel())
+			_handler.handle(request);
+			
+			if (!request.isInitial() && session.isProxy()  && !request.isCancel())
+			{
+				Proxy proxy = request.getProxy();
+				proxy.proxyTo(request.getRequestURI());
+			}
+		}
+		catch (Throwable e)
 		{
-			Proxy proxy = request.getProxy();
-			proxy.proxyTo(request.getRequestURI());
+        	if (!request.isAck() && !request.isCommitted())
+        	{
+        		int code = SipServletResponse.SC_SERVER_INTERNAL_ERROR;
+        		if (e instanceof SipException)
+        			code = ((SipException) e).getStatus();
+        		else if (e instanceof TooManyHopsException)
+        			code = SipServletResponse.SC_TOO_MANY_HOPS;
+        		
+        		SipServletResponse response;
+        		if (code == SipServletResponse.SC_SERVER_INTERNAL_ERROR)
+        		{
+        			response = request.createResponse(
+    	        			SipServletResponse.SC_SERVER_INTERNAL_ERROR,
+    	        			"Error in handler: " + e.getMessage());
+        			ExceptionUtil.fillStackTrace(response, e);
+        		}
+        		else
+        		{
+        			response = request.createResponse(code);
+        		}
+	        	response.send();
+        	}
+        	else
+        	{
+        		LOG.debug(e);
+        	}
 		}
 		
-		message.appSession().invalidateIfReady();
+		request.appSession().invalidateIfReady();
 	}
 	
 	protected void notFound(SipRequest request, String reason)

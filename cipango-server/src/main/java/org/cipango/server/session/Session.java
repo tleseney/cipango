@@ -1420,6 +1420,38 @@ public class Session implements SipSessionIf, Dumpable
 				return list;
 		}
 		
+		@Override
+		public String dump()
+		{
+			return ContainerLifeCycle.dump(this);
+		}
+
+		@Override
+		public void dump(Appendable sb, String indent) throws IOException
+		{
+			sb.append(indent).append("+ [ua]\n");
+			indent += "  ";
+			printAttr(sb, "local CSeq", _localCSeq, indent);
+			printAttr(sb, "Remote CSeq", _remoteCSeq, indent);
+			printAttr(sb, "Remote Target", _remoteTarget, indent);
+			printAttr(sb, "route Set", _routeSet, indent);
+			printAttr(sb, "Secure", _secure, indent);
+			printAttr(sb, "local RSeq", _localRSeq, indent);
+			printAttr(sb, "Remote RSeq", _remoteRSeq, indent);
+			if (LazyList.size(_serverInvites) != 0)
+			{
+				sb.append(indent).append("+ [serveur INVITES]\n");
+				for (int i = 0; i< LazyList.size(_serverInvites); i++)
+					sb.append(indent + "  ").append("- ").append(LazyList.get(_serverInvites, i).toString()).append('\n');
+			}
+			if (LazyList.size(_clientInvites) != 0)
+			{
+				sb.append(indent).append("+ [client INVITES]\n");
+				for (int i = 0; i< LazyList.size(_clientInvites); i++)
+					sb.append(indent + "  ").append("- ").append(LazyList.get(_clientInvites, i).toString()).append('\n');
+			}
+		}
+		
 		class ClientInvite
 		{
 			private long _cseq;
@@ -1450,6 +1482,21 @@ public class Session implements SipSessionIf, Dumpable
 				return false;
 			}
 			
+			@Override 
+			public String toString()
+			{
+				StringBuilder sb = new StringBuilder();
+				sb.append("CSeq: ").append(_cseq);
+				if (LazyList.size(_reliable1xxs) != 0)
+				{
+					sb.append(", RSeq={");
+					for (int i = 0; i < LazyList.size(_reliable1xxs); i++)
+						sb.append(LazyList.get(_reliable1xxs, i));
+					sb.append("}");
+				}
+				return sb.toString();
+			}
+			
 			class Reliable1xxClient
 			{
 				private SipResponse _1xx;
@@ -1457,6 +1504,8 @@ public class Session implements SipSessionIf, Dumpable
 				public Reliable1xxClient(SipResponse response) { _1xx = response; }
 				public long getRSeq() { return _1xx.getRSeq(); }
 				public SipResponse getResponse() { return _1xx; }
+				
+				@Override public String toString(){ return String.valueOf(getRSeq());}
 			}
 		}
 		
@@ -1538,6 +1587,8 @@ public class Session implements SipSessionIf, Dumpable
 				}
 			}
 			
+			@Override public String toString(){ return String.valueOf(getSeq());}
+			
 			class Timer implements Runnable
 			{
 				private int _id;
@@ -1618,6 +1669,21 @@ public class Session implements SipSessionIf, Dumpable
 				return Math.min(delay*2, Transaction.__T2);
 			}
 			
+			@Override 
+			public String toString()
+			{
+				StringBuilder sb = new StringBuilder();
+				sb.append("CSeq: ").append(getSeq());
+				if (LazyList.size(_reliable1xxs) != 0)
+				{
+					sb.append(", RSeq={");
+					for (int i = 0; i < LazyList.size(_reliable1xxs); i++)
+						sb.append(LazyList.get(_reliable1xxs, i));
+					sb.append("}");
+				}
+				return sb.toString();
+			}
+			
 			class Reliable1xx extends ReliableResponse
 			{
 				public Reliable1xx(long rseq) { super(rseq); }
@@ -1639,26 +1705,6 @@ public class Session implements SipSessionIf, Dumpable
 //						_applicationSession.noPrack(getResponse().getRequest(), getResponse());
 				}
 			}
-		}
-
-		@Override
-		public String dump()
-		{
-			return ContainerLifeCycle.dump(this);
-		}
-
-		@Override
-		public void dump(Appendable sb, String indent) throws IOException
-		{
-			sb.append(indent).append("+ [ua]\n");
-			indent += "  ";
-			printAttr(sb, "local CSeq", _localCSeq, indent);
-			printAttr(sb, "Remote CSeq", _remoteCSeq, indent);
-			printAttr(sb, "Remote Target", _remoteTarget, indent);
-			printAttr(sb, "route Set", _routeSet, indent);
-			printAttr(sb, "Secure", _secure, indent);
-			printAttr(sb, "local RSeq", _localRSeq, indent);
-			printAttr(sb, "Remote RSeq", _remoteRSeq, indent);
 		}
 	}
 	

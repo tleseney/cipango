@@ -49,7 +49,7 @@ public class SipApplicationKeyAnnotationHandlerTest
 	public void testApplicationKey() throws Exception
 	{	
        parse(GoodApplicationKey.class);
-       assertNotNull(_context.getSipApplicationKeyMethod());
+       assertNotNull(_context.getSessionHandler().getSipApplicationKeyMethod());
 	}
 	
 	@SuppressWarnings("rawtypes")

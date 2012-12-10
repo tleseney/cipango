@@ -15,6 +15,7 @@
 package org.cipango.server.session;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.EventListener;
 
 import javax.servlet.ServletException;
@@ -42,6 +43,7 @@ public class SessionHandler extends SipHandlerWrapper
 	public static final String APP_ID = "appid";
 	private static final Logger LOG = Log.getLogger(SessionHandler.class);
 	private final SessionManager _sessionManager;
+    private Method _sipApplicationKeyMethod;
 	
 	public SessionHandler()
 	{
@@ -76,7 +78,32 @@ public class SessionHandler extends SipHandlerWrapper
 		{									
 			if (request.isInitial())
 			{
-				ApplicationSession appSession = _sessionManager.createApplicationSession();
+				ApplicationSession appSession = null;
+				if (_sipApplicationKeyMethod != null)
+				{
+					try
+					{
+						String key = (String) _sipApplicationKeyMethod.invoke(null, request);
+						if (LOG.isDebugEnabled())
+							LOG.debug("routing initial request to key {}", key);
+						
+						if (key != null)
+						{
+							String id = _sessionManager.getApplicationSessionIdByKey(key);
+							appSession = _sessionManager.getApplicationSession(id);
+							if (appSession == null)
+								appSession = _sessionManager.createApplicationSession(id);
+						}
+					}
+					catch (Exception e)
+					{
+						LOG.debug("failed to get SipApplicationKey", e);
+					}	
+				}
+				
+				if (appSession == null)
+					appSession = _sessionManager.createApplicationSession();
+				
 				session = appSession.createSession(request);
 				session.addServerTransaction((ServerTransaction) request.getTransaction());
 			}
@@ -212,5 +239,15 @@ public class SessionHandler extends SipHandlerWrapper
     {
         _sessionManager.clearEventListeners();
     }
+    
+	public Method getSipApplicationKeyMethod()
+	{
+		return _sipApplicationKeyMethod;
+	}
+
+	public void setSipApplicationKeyMethod(Method sipApplicationKeyMethod)
+	{
+		_sipApplicationKeyMethod = sipApplicationKeyMethod;
+	}
 	
 }

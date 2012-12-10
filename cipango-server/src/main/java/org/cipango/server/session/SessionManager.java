@@ -17,6 +17,7 @@ import static java.lang.Math.round;
 
 import java.lang.reflect.Method;
 import java.net.InetAddress;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.EventListener;
 import java.util.List;
@@ -162,6 +163,23 @@ public class SessionManager extends AbstractLifeCycle
 		return appSession;
 	}
 	
+	public ApplicationSession createApplicationSession(String id)
+	{
+		ApplicationSession appSession;
+		synchronized (this)
+		{
+			appSession = new ApplicationSession(this, id);
+			_appSessions.put(id, appSession);
+		}
+		
+		_sessionsStats.increment();
+		appSession.setExpires(_sessionTimeout);
+		if (!_applicationSessionListeners.isEmpty())
+			getSipAppContext().fire(_applicationSessionListeners, __appSessionCreated,  new SipApplicationSessionEvent(appSession));
+
+		return appSession;
+	}
+	
 	public ApplicationSession getApplicationSession(String id)
 	{
 		return _appSessions.get(id);
@@ -189,6 +207,28 @@ public class SessionManager extends AbstractLifeCycle
 		if (r<0)
 			r = -r;
 		return StringUtil.toBase62String2(r);
+	}
+	
+	public String getApplicationSessionIdByKey(String key)
+	{
+		try
+		{
+			MessageDigest md = MessageDigest.getInstance("MD5");
+			byte[] bytes = md.digest(key.getBytes(StringUtil.__UTF8_CHARSET));
+			long i = 0;
+			for (byte b : bytes)
+				i =  i * 31 + b;
+			
+			key = StringUtil.toBase62String2(Math.abs(i));
+			if (key.length() > 7)
+				key = key.substring(0, 7);
+		}
+		catch (Exception e)
+		{
+			LOG.warn("Unable to create session key", e);
+		}
+		
+		return _sipAppContext.getContextId() + CONTEXT_ID_SEPARATOR + key;
 	}
 	
 	public String newTimerId()

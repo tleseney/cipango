@@ -61,6 +61,7 @@ import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.session.ApplicationSession;
 import org.cipango.server.session.Session;
 import org.cipango.server.session.SessionHandler;
+import org.cipango.server.session.SessionManager;
 import org.cipango.server.session.SessionManager.AppSessionIf;
 import org.cipango.server.util.ReadOnlySipURI;
 import org.cipango.sip.AddressImpl;
@@ -132,7 +133,6 @@ public class SipAppContext extends SipHandlerWrapper
     private SipSessionsUtil _sipSessionsUtil = new SessionUtil();
     
     protected final List<Decorator> _decorators= new ArrayList<Decorator>();
-    private Method _sipApplicationKeyMethod;
     
     private String _id;
     private ServerListener _serverListener;
@@ -590,16 +590,6 @@ public class SipAppContext extends SipHandlerWrapper
 		return _sipSessionsUtil;
 	}
 	
-	public Method getSipApplicationKeyMethod()
-	{
-		return _sipApplicationKeyMethod;
-	}
-
-	public void setSipApplicationKeyMethod(Method sipApplicationKeyMethod)
-	{
-		_sipApplicationKeyMethod = sipApplicationKeyMethod;
-	}
-
 	@ManagedAttribute(value="context session handler", readonly=true)
 	public SessionHandler getSessionHandler()
 	{
@@ -731,8 +721,15 @@ public class SipAppContext extends SipHandlerWrapper
 		@Override
 		public SipApplicationSession getApplicationSessionByKey(String key, boolean create)
 		{
-			// TODO Auto-generated method stub
-			return null;
+			if (key == null)
+				throw new NullPointerException("Null key");
+			// TODO scope
+			SessionManager manager = _sessionHandler.getSessionManager();
+			String id = manager.getApplicationSessionIdByKey(key);
+			ApplicationSession appSession = manager.getApplicationSession(id);
+			if (appSession != null || !create)
+				return appSession;
+			return manager.createApplicationSession(id);
 		}
 
 		@Override
@@ -783,10 +780,14 @@ public class SipAppContext extends SipHandlerWrapper
 		}
 
 		@Override
-		public SipApplicationSession createApplicationSessionByKey(String arg0)
+		public SipApplicationSession createApplicationSessionByKey(String key)
 		{
-			// TODO Auto-generated method stub
-			return null;
+			SessionManager manager = _sessionHandler.getSessionManager();
+			String id = manager.getApplicationSessionIdByKey(key);
+			ApplicationSession appSession = manager.getApplicationSession(id);
+			if (appSession != null)
+				return appSession;
+			return manager.createApplicationSession(id);
 		}
 
 		@Override

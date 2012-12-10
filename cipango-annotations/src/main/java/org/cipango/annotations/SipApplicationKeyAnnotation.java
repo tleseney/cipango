@@ -69,7 +69,7 @@ public class SipApplicationKeyAnnotation extends DiscoveredAnnotation
             	if (m.getReturnType() != String.class)
             		throw new IllegalStateException(m.getName() + " must return a String");
             	
-            	_context.getBean(SipAppContext.class).setSipApplicationKeyMethod(m);
+            	_context.getBean(SipAppContext.class).getSessionHandler().setSipApplicationKeyMethod(m);
             }
         }
     }

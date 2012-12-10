@@ -83,6 +83,7 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	private SipRequest _linkedRequest;
 	
     private boolean _nextHopStrictRouting = false;
+    private boolean _handled = false;
 	
     public SipRequest()
     {
@@ -696,6 +697,15 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	{
 		_subscriberURI = uri;
 	}
+	public boolean isHandled()
+	{
+		return _handled;
+	}
+
+	public void setHandled(boolean handled)
+	{
+		_handled = handled;
+	}
 	
 	@Override
 	public String toString()
@@ -758,4 +768,5 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	{
 		__strictRoutingEnabled = strictRoutingEnabled;
 	}
+
 }

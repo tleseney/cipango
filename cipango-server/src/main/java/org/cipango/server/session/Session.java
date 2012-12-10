@@ -633,6 +633,7 @@ public class Session implements SipSessionIf, Dumpable
 	 */
 	public State getState() 
 	{
+		checkValid();
 		return _state;
 	}
 
@@ -1033,14 +1034,14 @@ public class Session implements SipSessionIf, Dumpable
 				{
 					if (LOG.isDebugEnabled())
 						LOG.debug("dropping ACK without INVITE context");
-//					request.setHandled(true);
+					request.setHandled(true);
 				}
 				else
 				{
 					if (invite.getResponse() != null)
 						invite.ack();
-//					else // retrans or late
-//						request.setHandled(true);
+					else // retrans or late
+						request.setHandled(true);
 				}
 			}
 			else if (request.isPrack())

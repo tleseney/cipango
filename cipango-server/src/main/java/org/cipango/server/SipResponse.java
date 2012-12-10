@@ -27,18 +27,17 @@ import javax.servlet.sip.Rel100Exception;
 import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
-import javax.servlet.sip.SipServletMessage.HeaderForm;
 
 import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipFields;
+import org.cipango.sip.SipFields.Field;
 import org.cipango.sip.SipGenerator;
 import org.cipango.sip.SipGrammar;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipStatus;
 import org.cipango.sip.Via;
-import org.cipango.sip.SipFields.Field;
 import org.eclipse.jetty.util.StringUtil;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
@@ -350,8 +349,37 @@ public class SipResponse extends SipMessage implements SipServletResponse
 	}
 
 	@Override
-	public void sendReliably() throws Rel100Exception {
-		// FIXME
+	public void sendReliably() throws Rel100Exception 
+	{
+		SipRequest request = (SipRequest) getRequest();
+        if (!request.isInvite())
+            throw new Rel100Exception(Rel100Exception.NOT_INVITE);
+        if (_status < 101 || _status > 199)
+            throw new Rel100Exception(Rel100Exception.NOT_1XX);
+    
+        Iterator<String> it = _request.getHeaders(SipHeader.SUPPORTED.asString());
+        boolean supports100rel = false;
+        
+        while (it.hasNext() && !supports100rel)
+        {
+            String s = it.next();
+            if (s.equals(SipGrammar.REL_100))
+                supports100rel = true;
+        }
+        
+        if (!supports100rel)
+        {
+            it = _request.getHeaders(SipHeader.REQUIRE.asString());
+            while (it.hasNext() && !supports100rel)
+            {
+                String s = (String) it.next();
+                if (s.equals(SipGrammar.REL_100))
+                    supports100rel = true;
+            }
+        }
+        
+        if (!supports100rel)
+            throw new Rel100Exception(Rel100Exception.NO_REQ_SUPPORT);
 		try
 		{
 			send(true);

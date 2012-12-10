@@ -128,8 +128,8 @@ public class SessionHandler extends SipHandlerWrapper
 		try
 		{
 
-// FIXME		if (!request.isHandled())
-			_handler.handle(request);
+			if (!request.isHandled())
+				_handler.handle(request);
 			
 			if (!request.isInitial() && session.isProxy()  && !request.isCancel())
 			{

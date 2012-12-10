@@ -334,7 +334,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 			synchronized (this)
 			{
 				for (Session session : _sessions)
-					if (session.isValid()) // As it a copy of the list, 
+					if (session.isValid()) // As it a copy of the list, other sessions can have been invalidated
 						session.invalidate();
 				
 				if (_otherSessions != null)
@@ -347,14 +347,11 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 					_otherSessions = null;
 				}
 				
-				if (_timers != null)
+				while (_timers != null && !_timers.isEmpty())
 				{
-					for (ServletTimer timer : _timers)
-					{
-						timer.cancel();
-					}
-					_timers = null;
+					_timers.get(0).cancel(); // Cancel a timer remove it from list
 				}
+				_timers = null;
 				
 				_sessionManager.removeApplicationSession(this);
 	

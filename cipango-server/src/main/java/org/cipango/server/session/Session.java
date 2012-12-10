@@ -18,6 +18,8 @@ import javax.servlet.ServletException;
 import javax.servlet.sip.Address;
 import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.SipApplicationSession;
+import javax.servlet.sip.SipErrorEvent;
+import javax.servlet.sip.SipErrorListener;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipSession;
@@ -1440,13 +1442,13 @@ public class Session implements SipSessionIf, Dumpable
 			printAttr(sb, "Remote RSeq", _remoteRSeq, indent);
 			if (LazyList.size(_serverInvites) != 0)
 			{
-				sb.append(indent).append("+ [serveur INVITES]\n");
+				sb.append(indent).append("+ [serveur INVITE]\n");
 				for (int i = 0; i< LazyList.size(_serverInvites); i++)
 					sb.append(indent + "  ").append("- ").append(LazyList.get(_serverInvites, i).toString()).append('\n');
 			}
 			if (LazyList.size(_clientInvites) != 0)
 			{
-				sb.append(indent).append("+ [client INVITES]\n");
+				sb.append(indent).append("+ [client INVITE]\n");
 				for (int i = 0; i< LazyList.size(_clientInvites); i++)
 					sb.append(indent + "  ").append("- ").append(LazyList.get(_clientInvites, i).toString()).append('\n');
 			}
@@ -1644,8 +1646,13 @@ public class Session implements SipSessionIf, Dumpable
 			
 			public void noAck() 
 			{
-//				if (isValid())
-//					_applicationSession.noAck(getResponse().getRequest(), getResponse());
+				if (isValid())
+				{
+					List<SipErrorListener> listeners = _applicationSession.getContext().getSipErrorListeners();
+					if (!listeners.isEmpty())
+						 _applicationSession.getContext().fire(listeners, ApplicationSession.__noAck, 
+								 new SipErrorEvent(getResponse().getRequest(), getResponse()));
+				}
 			}
 
 			public long retransmit(long delay) 
@@ -1701,8 +1708,16 @@ public class Session implements SipSessionIf, Dumpable
 				
 				public void noAck()
 				{
-//					if (isValid())
-//						_applicationSession.noPrack(getResponse().getRequest(), getResponse());
+					if (isValid())
+					{
+						if (isValid())
+						{
+							List<SipErrorListener> listeners = _applicationSession.getContext().getSipErrorListeners();
+							if (!listeners.isEmpty())
+								 _applicationSession.getContext().fire(listeners, ApplicationSession.__noPrack, 
+										 new SipErrorEvent(getResponse().getRequest(), getResponse()));
+						}
+					}
 				}
 			}
 		}

@@ -596,10 +596,14 @@ public class SipAppContext extends SipHandlerWrapper
 		return _sessionHandler;
 	}
 
-
 	public List<TimerListener> getTimerListeners()
 	{
 		return _timerListeners;
+	}
+	
+	public List<SipErrorListener> getSipErrorListeners()
+	{
+		return _errorListeners;
 	}
 	
 
@@ -811,32 +815,31 @@ public class SipAppContext extends SipHandlerWrapper
 		}
 
 		@Override
-		public SipServletRequest createRequest(SipServletRequest srcRequest, boolean sameCallId) 
-        {
-//        	SipRequest origRequest = (SipRequest) srcRequest;
-//        	ApplicationSession appSession = origRequest.appSession();
-//        	Address local = (Address) origRequest.getFrom().clone();
-//        	local.setParameter(AddressImpl.TAG, appSession.newUASTag());
-//        	
-//        	Address remote = (Address) origRequest.to().clone();
-//        	remote.removeParameter(AddressImpl.TAG);
-//        	
-//        	String callId = null;
-//        	
-//        	if (sameCallId)
-//        		callId = origRequest.getCallId();
-//        	else
-//        		callId = appSession.getSessionManager().newCallId();
-//        	            
-//            Session session = appSession.createUacSession(callId, local, remote);
-//            session.setHandler(getSipServletHandler().getDefaultServlet());
-//
-// FIXME           SipRequest request = session.getUa().createRequest((SipRequest) srcRequest);
-//            request.setRoutingDirective(SipApplicationRoutingDirective.CONTINUE, srcRequest);
-//            
-//            return request;
-			return null;
-        }
+		public SipServletRequest createRequest(SipServletRequest srcRequest, boolean sameCallId)
+		{
+			SipRequest origRequest = (SipRequest) srcRequest;
+			ApplicationSession appSession = origRequest.appSession();
+			Address local = (Address) origRequest.getFrom().clone();
+			local.setParameter(AddressImpl.TAG, appSession.newUASTag());
+
+			Address remote = (Address) origRequest.to().clone();
+			remote.removeParameter(AddressImpl.TAG);
+
+			String callId = null;
+
+			if (sameCallId)
+				callId = origRequest.getCallId();
+			else
+				callId = appSession.getSessionManager().newCallId();
+
+			Session session = appSession.createUacSession(callId, local, remote);
+			session.setHandler(getServletHandler().getDefaultServlet());
+
+			SipRequest request = session.getUa().createRequest((SipRequest) srcRequest);
+			request.setRoutingDirective(SipApplicationRoutingDirective.CONTINUE, srcRequest);
+
+			return request;
+		}
 
 		public SipServletRequest createRequest(SipApplicationSession sipAppSession, String method,
 				Address from, Address to)

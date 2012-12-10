@@ -198,8 +198,7 @@ public class ReliableTest extends UaTestCase
 				
 				SipServletResponse response = _ua.createResponse(invite,
 						SipServletResponse.SC_SESSION_PROGRESS);
-				response.addHeader(SipHeaders.REQUIRE, "100rel");
-				response.send();
+				response.sendReliably();
 				
 				SipServletRequest prack = _dialog.waitForRequest();
 				_ua.createResponse((latePrackAnswer) ? invite : prack,

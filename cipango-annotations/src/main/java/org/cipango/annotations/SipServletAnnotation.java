@@ -55,10 +55,24 @@ public class SipServletAnnotation extends DiscoveredAnnotation
         
         SipServlet annotation = (SipServlet) clazz.getAnnotation(SipServlet.class);
         
+        String servletName;
+        if (annotation.name() != null && !"".equals(annotation.name()))
+        	servletName = annotation.name();
+        else
+        	servletName = _className.substring(_className.lastIndexOf('.') + 1); 
         
-        SipServletHolder holder = new SipServletHolder();
-        
+
         SipAppContext context = _context.getBean(SipAppContext.class);
+        SipServletHolder holder = context.getServletHandler().getHolder(servletName);
+		
+		if (holder == null)
+        {
+            holder = new SipServletHolder();
+            holder.setName(servletName);
+
+            // FIXME use same instance for listener and servlet
+    		context.getServletHandler().addServlet(holder);
+        }   
 		
         if (!Util.isEmpty(annotation.applicationName()))
         {
@@ -69,15 +83,9 @@ public class SipServletAnnotation extends DiscoveredAnnotation
         	context.getMetaData().setAppName(annotation.applicationName());
         }
         
-        if (annotation.name() != null && !"".equals(annotation.name()))
-        	holder.setName(annotation.name());
-        else
-        	holder.setName(_className.substring(_className.lastIndexOf('.') + 1));
-        
         holder.setInitOrder(annotation.loadOnStartup());
         holder.setDisplayName(annotation.description());
         holder.setClassName(_className);
         
-        context.getServletHandler().addServlet(holder);
     }
 }

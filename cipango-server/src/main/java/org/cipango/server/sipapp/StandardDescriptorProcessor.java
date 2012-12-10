@@ -13,9 +13,7 @@
 
 package org.cipango.server.sipapp;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 
 import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.sipapp.rules.AndRule;
@@ -26,12 +24,8 @@ import org.cipango.server.sipapp.rules.MatchingRule;
 import org.cipango.server.sipapp.rules.NotRule;
 import org.cipango.server.sipapp.rules.OrRule;
 import org.cipango.server.sipapp.rules.SubdomainRule;
-import org.eclipse.jetty.security.ConstraintMapping;
-import org.eclipse.jetty.security.ConstraintSecurityHandler;
-import org.eclipse.jetty.security.UserDataConstraint;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
-import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.webapp.Descriptor;
 import org.eclipse.jetty.webapp.IterativeDescriptorProcessor;
 import org.eclipse.jetty.webapp.WebAppContext;
@@ -131,8 +125,19 @@ public class StandardDescriptorProcessor extends IterativeDescriptorProcessor
     	String servletName = node.getString("servlet-name", false, true);
 		String servletClass = node.getString("servlet-class", false, true);
 		// FIXME allow deploy with prefix: javaee:servlet-name
-		SipServletHolder holder = new SipServletHolder();
-		holder.setName(servletName);
+		SipAppContext appContext = getContext(context);
+		
+		SipServletHolder holder = appContext.getServletHandler().getHolder(servletName);
+		
+		if (holder == null)
+        {
+            holder = new SipServletHolder();
+            holder.setName(servletName);
+
+            // FIXME use same instance for listener and servlet
+    		appContext.getServletHandler().addServlet(holder);
+        }
+		
 		holder.setClassName(servletClass);
 		
 		Iterator params = node.iterator("init-param");
@@ -164,8 +169,6 @@ public class StandardDescriptorProcessor extends IterativeDescriptorProcessor
 			holder.setInitOrder(order);
 		}
 		
-        // FIXME use same instance for listener and servlet
-		getContext(context).getServletHandler().addServlet(holder);
 		
 		
         Iterator sRefsIter = node.iterator("security-role-ref");

@@ -95,7 +95,7 @@ public abstract class UaTestCase extends TestCase
 	public String getHttpBaseUrl()
 	{
 		return "http://" + getRemoteHost() + ":" + _properties.getProperty("sipunit.http.port")
-				+ "/cipango-servlet-test";
+				+ "/cipango-tests";
 	}
 
 	public String getFrom()

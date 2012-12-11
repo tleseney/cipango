@@ -144,7 +144,7 @@ public class SessionHandler extends SipHandlerWrapper
 				SipResponse response = (SipResponse) request.createResponse(SipServletResponse.SC_TRYING);
 				((ServerTransaction) request.getTransaction()).send(response);
 			}
-			session.accessed();
+			session.access();
 			request.setSession(session);
 			
 			if (!request.isInitial() && session.isUA())

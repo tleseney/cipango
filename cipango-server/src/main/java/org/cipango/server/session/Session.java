@@ -257,7 +257,7 @@ public class Session implements SipSessionIf, Dumpable
 	
 	public void sendResponse(SipResponse response, boolean reliable) throws IOException
 	{
-		accessed();
+		access();
 		
 		if (_role == Role.UNDEFINED)
 			createUA(UAMode.UAS);
@@ -291,7 +291,7 @@ public class Session implements SipSessionIf, Dumpable
 		
 	public ClientTransaction sendRequest(SipRequest request, ClientTransactionListener listener) throws IOException
 	{
-		accessed();
+		access();
 		
 		SipServer server = getServer();
 		
@@ -351,10 +351,10 @@ public class Session implements SipSessionIf, Dumpable
 		}
 	}
 	
-	public void accessed()
+	public void access()
 	{
 		_lastAccessed = System.currentTimeMillis();
-		_applicationSession.accessed();
+		_applicationSession.access(_lastAccessed);
 	}
 	
 	/**
@@ -368,7 +368,7 @@ public class Session implements SipSessionIf, Dumpable
 		if (!isProxy())
 			throw new IllegalStateException("Not proxy");
 		
-		accessed();
+		access();
 		
 		switch (_state)
 		{
@@ -1091,7 +1091,7 @@ public class Session implements SipSessionIf, Dumpable
 			
 			response.setSession(Session.this);
 			
-			accessed();
+			access();
 			
 			if (response.isInvite() && response.is2xx())
 			{

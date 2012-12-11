@@ -62,7 +62,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 	
 	// Use CopyOnWriteArrayList to ensure no issue on invalidateIfReady
 	protected final List<Session> _sessions = new CopyOnWriteArrayList<Session>();
-	protected List<?> _otherSessions;
+	protected List<Object> _otherSessions;
 	
 	private final long _created;
 	private long _accessed;
@@ -149,15 +149,25 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 		return derived;
 	}
 
-	protected void addSession(Session session)
+	public void addSession(Object session)
 	{
-		_sessions.add(session);
-		List<SipSessionListener> listeners = getSessionManager().getSessionListeners();
-		if (!listeners.isEmpty())
+		if (session instanceof Session)
 		{
-			SipSessionEvent event = new SipSessionEvent((SipSession) session);
-			getContext().fire(listeners, __sessionCreated, event);
+			_sessions.add((Session) session);
+			List<SipSessionListener> listeners = getSessionManager().getSessionListeners();
+			if (!listeners.isEmpty())
+			{
+				SipSessionEvent event = new SipSessionEvent((SipSession) session);
+				getContext().fire(listeners, __sessionCreated, event);
+			}
 		}
+		else
+		{
+			if (_otherSessions == null)
+				_otherSessions = new ArrayList<Object>();
+			_otherSessions.add(session);
+		}
+		
 	}
 	
 	public String newCallId()
@@ -263,9 +273,9 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 		return _created;
 	}
 	
-	protected void accessed()
+	public void access(long time)
 	{
-		_accessed = System.currentTimeMillis();
+		_accessed = time;
 	}
 
 	@Override
@@ -339,7 +349,8 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 				
 				if (_otherSessions != null)
 				{
-					for (Object session : _otherSessions)
+					List<Object> otherSessions = new ArrayList<Object>(_otherSessions);
+					for (Object session : otherSessions)
 					{
 						if (session instanceof HttpSession)
 							((HttpSession) session).invalidate();
@@ -378,15 +389,41 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 	@Override
 	public void encodeURI(URI uri) 
 	{
-		// TODO Auto-generated method stub
-		
+		checkValid();
+		uri.setParameter(SessionHandler.APP_ID, getId());
 	}
 
 	@Override
 	public URL encodeURL(URL url) 
 	{
-		// TODO Auto-generated method stub
-		return null;
+		checkValid();
+		String appIdPrefix = ';' + SessionHandler.APP_ID + '=';
+		
+		try {
+			String sUrl = url.toExternalForm();
+			String id= getId().replace(";", "%3B");
+			int prefix=sUrl.indexOf(appIdPrefix);
+	        if (prefix!=-1)
+	        {
+	            int suffix=sUrl.indexOf("?",prefix);
+	            if (suffix<0)
+	                suffix=sUrl.indexOf("#",prefix);
+	
+	            if (suffix<=prefix)
+	                return new URL(sUrl.substring(0, prefix + appIdPrefix.length()) + id);
+	            return new URL(sUrl.substring(0, prefix + appIdPrefix.length()) + id + sUrl.substring(suffix));
+	        }
+	
+	        // edit the session
+	        int suffix=sUrl.indexOf('?');
+	        if (suffix<0)
+	            suffix=sUrl.indexOf('#');
+	        if (suffix<0)
+	            return new URL(sUrl+appIdPrefix+id);
+	        return new URL(sUrl.substring(0,suffix) + appIdPrefix + id + sUrl.substring(suffix));
+		} catch (Exception e) {
+			throw new IllegalStateException(e);
+		}
 	}
 
 	@Override

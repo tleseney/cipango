@@ -28,8 +28,9 @@ public class SipAppProvider extends WebAppProvider
     public ContextHandler createContextHandler(final App app) throws Exception
     {
         WebAppContext context = (WebAppContext) super.createContextHandler(app);
+                
         SipAppContext sipAppContext = new SipAppContext();
-        sipAppContext.setWebAppContext(context);
+        sipAppContext.setWebAppContext(context, true);
         context.addBean(sipAppContext);
         if (_defaultsSipDescriptor != null)
         	sipAppContext.setDefaultsDescriptor(_defaultsSipDescriptor);

@@ -41,14 +41,12 @@ public class SipApplicationSessionTest extends UaTestCase
 	{
 		String baseUri = getHttpBaseUrl() + "/SipApplicationSession";
 		testSetUri(baseUri);
-		testSetUri(baseUri + "?param=1");
 	}
 
 	@Test
 	public void testSetUriWithParam() throws Throwable 
 	{
 		String baseUri = getHttpBaseUrl() + "/SipApplicationSession";
-		testSetUri(baseUri);
 		testSetUri(baseUri + "?param=1");
 	}
 	
@@ -120,7 +118,11 @@ public class SipApplicationSessionTest extends UaTestCase
 	
 	private String getCookie(ContentResponse response)
 	{
-		String cookie = response.getHeaders().get(HttpHeader.COOKIE);
+		String cookie = response.getHeaders().get(HttpHeader.SET_COOKIE);
+		
+		if (cookie == null)
+			return null;
+		
 		String[] s = cookie.split(";");
 		for (String string : s)
 		{
@@ -128,6 +130,69 @@ public class SipApplicationSessionTest extends UaTestCase
 				return string;
 		}
 		return null;
+	}
+	
+	/**
+	 * The HTTP session is created on first GET,
+	 * then a second GET is sent with the URL encoded. 
+	 * <pre>
+	 * Alice                         AS
+	 *   | INVITE urlToEncode         |
+	 *   |--------------------------->|
+	 *   |             200 urlEncoded |
+	 *   |<---------------------------|
+	 *   | ACK                        |
+	 *   |--------------------------->|
+	 *   | GET url                    |
+	 *   |--------------------------->|
+	 *   |                        200 |
+	 *   |<---------------------------|
+	 *   |--------------------------->|
+	 *   | GET urlToEncode with cookie|
+	 *   |--------------------------->|
+	 *   |                        200 |
+	 *   |<---------------------------|
+	 *   |                        BYE |
+	 *   |<---------------------------|
+	 *   | 200                        |
+	 *   |--------------------------->|
+	 * </pre>
+	 */
+	public void testSetUriLate() throws Exception
+	{
+		Call call = (Call) _ua.customize(new Call());
+		
+		SipServletRequest request = call.createInitialInvite(
+				_ua.getFactory().createURI(getFrom()),
+				_ua.getFactory().createURI(getTo()));
+		
+		String urlToEncode = getHttpBaseUrl() + "/SipApplicationSession?test=testSetUriLate";
+		request.addHeader(ENCODED_URL_HEADER, urlToEncode);
+		call.start(request);
+
+		SipServletResponse response = call.waitForResponse(); 
+        assertThat(response, isSuccess());
+		call.createAck().send();
+
+        String encodedUrl = response.getHeader(ENCODED_URL_HEADER).toString();
+
+        HttpClient client = new HttpClient();
+		client.start();
+		 
+		ContentResponse httpResponse = client.GET(urlToEncode).get(3, TimeUnit.SECONDS);
+		assertThat(httpResponse.getStatus(), is(HttpStatus.OK_200));
+		
+		String cookie = getCookie(httpResponse);
+		Request httpRequest = client.newRequest(encodedUrl);
+		httpRequest.getHeaders().add(HttpHeader.COOKIE, cookie);
+		httpResponse = httpRequest.send().get(3, TimeUnit.SECONDS);
+		assertThat(httpResponse.getStatus(), is(HttpStatus.OK_200));
+		
+		request = call.waitForRequest();
+		assertThat(request.getMethod(), is(equalTo(SipMethods.BYE)));
+		_ua.createResponse(request, SipServletResponse.SC_OK).send();
+		
+		checkForFailure();
 	}
 
 }

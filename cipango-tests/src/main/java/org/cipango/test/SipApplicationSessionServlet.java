@@ -70,4 +70,14 @@ public class SipApplicationSessionServlet extends AbstractServlet
 	{
 		testSetUri(response);
 	}
+	
+	public void testSetUriLate(SipServletRequest request) throws Exception
+	{
+		testSetUri(request);
+	}
+	
+	public void testSetUriLate(SipServletResponse response) throws Exception
+	{
+		testSetUri(response);
+	}
 }

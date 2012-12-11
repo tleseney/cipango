@@ -29,6 +29,7 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.sip.Address;
 import javax.servlet.sip.AuthInfo;
+import javax.servlet.sip.ConvergedHttpSession;
 import javax.servlet.sip.Parameterable;
 import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.ServletTimer;
@@ -63,6 +64,7 @@ import org.cipango.server.session.Session;
 import org.cipango.server.session.SessionHandler;
 import org.cipango.server.session.SessionManager;
 import org.cipango.server.session.SessionManager.AppSessionIf;
+import org.cipango.server.session.http.ConvergedSessionManager;
 import org.cipango.server.util.ReadOnlySipURI;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.ParameterableImpl;
@@ -345,6 +347,24 @@ public class SipAppContext extends SipHandlerWrapper
 					String.class);
 			context.setConfigurationClasses(classes);
 		}
+	}
+	
+	/**
+	 * Sets the WebAppContext.
+	 * If <code>converged</code>, then the HTTP session will be {@link ConvergedHttpSession}.
+	 * 
+	 * @param context The associated WebAppContext
+	 * @param converged if <code>true</code>, replace the WebAppContext session handler by
+	 *  an instance of {@link org.cipango.server.session.http.SessionHandler}.
+	 *  
+	 *  @see ConvergedSessionManager
+	 *  @see org.cipango.server.session.http.SessionHandler
+	 */
+	public void setWebAppContext(WebAppContext context, boolean converged)
+	{
+		setWebAppContext(context);
+		if (converged)
+			context.setSessionHandler(new org.cipango.server.session.http.SessionHandler(new ConvergedSessionManager()));
 	}
 	
 	public ServletContext getServletContext()

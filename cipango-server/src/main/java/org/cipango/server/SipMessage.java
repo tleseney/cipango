@@ -2,6 +2,7 @@ package org.cipango.server;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Collections;
@@ -69,6 +70,10 @@ public abstract class SipMessage implements SipServletMessage
 	private Attributes _attributes;
 	
 	private SipServletHolder _handler;
+	
+	private String _initialRemoteAddr;
+	private int _initialRemotePort;
+	private String _initialTransport;
 	
 	public SipMessage()
 	{
@@ -575,22 +580,25 @@ public abstract class SipMessage implements SipServletMessage
 	@Override
 	public String getInitialRemoteAddr()
 	{
-		// TODO Auto-generated method stub
-		return null;
+		if (_initialRemoteAddr == null)
+			return getRemoteAddr();
+		return _initialRemoteAddr;
 	}
 
 	@Override
 	public int getInitialRemotePort()
 	{
-		// TODO Auto-generated method stub
-		return 0;
+		if (_initialRemoteAddr == null)
+			return getRemotePort();
+		return _initialRemotePort;
 	}
 
 	@Override
 	public String getInitialTransport()
 	{
-		// TODO Auto-generated method stub
-		return null;
+		if (_initialTransport == null)
+			return getTransport();
+		return _initialTransport;
 	}
 
 	@Override
@@ -990,6 +998,21 @@ public abstract class SipMessage implements SipServletMessage
 	public void setHandler(SipServletHolder handler)
 	{
 		_handler = handler;
+	}
+
+	public void setInitialRemoteAddr(String initialRemoteAddr)
+	{
+		_initialRemoteAddr = initialRemoteAddr;
+	}
+
+	public void setInitialRemotePort(int initialRemotePort)
+	{
+		_initialRemotePort = initialRemotePort;
+	}
+
+	public void setInitialTransport(String initialTransport)
+	{
+		_initialTransport = initialTransport;
 	}
 
 }

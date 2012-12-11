@@ -106,6 +106,8 @@ public class SessionHandler extends SipHandlerWrapper
 				
 				session = appSession.createSession(request);
 				session.addServerTransaction((ServerTransaction) request.getTransaction());
+				session.setSubscriberURI(request.getSubscriberURI());
+				session.setRegion(request.getRegion());
 			}
 			else
 			{

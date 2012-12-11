@@ -35,7 +35,7 @@ public class TransportProcessor extends SipProcessorWrapper
 		super(processor);
 	}
 	
-	protected Address popLocalRoute(SipRequest request) throws ServletParseException
+	public Address popLocalRoute(SipRequest request) throws ServletParseException
 	{
 		Address route = request.getTopRoute();
 		

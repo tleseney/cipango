@@ -93,6 +93,9 @@ public class Session implements SipSessionIf, Dumpable
 	private DialogInfo _dialog;
 	private SipServletHolder _handler;
 	private boolean _invalidateWhenReady = true;
+
+	protected SipApplicationRoutingRegion _region;
+	protected URI _subscriberURI;
 	
 	public Session(ApplicationSession applicationSession, String id, SipRequest request)
 	{
@@ -606,9 +609,10 @@ public class Session implements SipSessionIf, Dumpable
 	}
 
 	@Override
-	public SipApplicationRoutingRegion getRegion() {
-		// TODO Auto-generated method stub
-		return null;
+	public SipApplicationRoutingRegion getRegion() 
+	{
+		checkValid();
+		return _region;
 	}
 
 	@Override
@@ -640,9 +644,10 @@ public class Session implements SipSessionIf, Dumpable
 	}
 
 	@Override
-	public URI getSubscriberURI() {
-		// TODO Auto-generated method stub
-		return null;
+	public URI getSubscriberURI() 
+	{
+		checkValid();
+		return _subscriberURI;
 	}
 
 	@Override
@@ -831,6 +836,16 @@ public class Session implements SipSessionIf, Dumpable
 	public List<ClientTransaction> getClientTransactions() 
 	{
 		return _clientTransactions;
+	}
+	
+	public void setSubscriberURI(URI uri)
+	{
+		_subscriberURI = uri;
+	}
+	
+	public void setRegion(SipApplicationRoutingRegion region)
+	{
+		_region = region;
 	}
 	
 	public DialogInfo getUa()

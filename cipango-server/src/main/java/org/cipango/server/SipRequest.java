@@ -71,6 +71,7 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	
 	private Transaction _transaction;
 	private Address _poppedRoute;
+    private Address _initialPoppedRoute;
 	
 	private Serializable _stateInfo;    
 	private SipApplicationRouterInfo _nextRouterInfo;
@@ -93,6 +94,11 @@ public class SipRequest extends SipMessage implements SipServletRequest
     {
     	super(other);
     	_requestUri = other._requestUri.clone();
+    	_stateInfo = other._stateInfo;
+    	_nextRouterInfo = other._nextRouterInfo;
+    	_directive = other._directive;
+    	_subscriberURI = other._subscriberURI;
+    	_initialPoppedRoute = other._initialPoppedRoute;
     }
 
 	public boolean isRequest()
@@ -407,9 +413,16 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	@Override
 	public Address getInitialPoppedRoute()
 	{
-		// TODO Auto-generated method stub
-		return null;
+		if (_initialPoppedRoute == null)
+			return _poppedRoute;
+		return _initialPoppedRoute;
 	}
+	
+	public void setInitialPoppedRoute(Address route)
+	{
+		_initialPoppedRoute = route;
+	}
+	
 	@Override
 	public ServletInputStream getInputStream() throws IOException 
 	{

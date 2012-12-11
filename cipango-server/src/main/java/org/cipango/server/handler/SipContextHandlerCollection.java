@@ -21,6 +21,7 @@ import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
 import org.cipango.server.ar.ApplicationRouterLoader;
+import org.cipango.server.ar.InitialRequestUtil;
 import org.cipango.server.ar.RouterInfoUtil;
 import org.cipango.server.session.SessionHandler;
 import org.cipango.server.session.SessionManager;
@@ -112,14 +113,15 @@ public class SipContextHandlerCollection extends AbstractSipHandler implements R
 				{
 					if (route != null)
 					{
-//	FIXME					SipURI uri = (SipURI) route.getURI();
-//						if (RouterInfoUtil.ROUTER_INFO.equals(uri.getUser()))
-//						{
-//							routerInfo = RouterInfoUtil.decode(uri);
-//							route = popLocalRoute(request);
-//							if (route != null)
-//								request.setPoppedRoute(route);
-//						}
+						SipURI uri = (SipURI) route.getURI();
+						if (RouterInfoUtil.ROUTER_INFO.equals(uri.getUser()))
+						{
+							routerInfo = RouterInfoUtil.decode(uri);
+							InitialRequestUtil.decode(uri, request);
+							route = getServer().getTransportProcessor().popLocalRoute(request);
+							if (route != null)
+								request.setPoppedRoute(route);
+						}
 					}
 					
 					if (routerInfo == null)
@@ -228,7 +230,7 @@ public class SipContextHandlerCollection extends AbstractSipHandler implements R
 		{
 			if (SipRouteModifier.ROUTE == routerInfo.getRouteModifier() && routes != null)
 			{
-				Address topRoute = new AddressImpl(routes[0]);
+				Address topRoute = new AddressImpl(routes[0], true);
 				if (getServer().isLocalURI(topRoute.getURI()))
 					request.setPoppedRoute(topRoute);
 				else
@@ -241,8 +243,7 @@ public class SipContextHandlerCollection extends AbstractSipHandler implements R
 			}
 			else if (SipRouteModifier.ROUTE_BACK == routerInfo.getRouteModifier() && routes != null)
 			{
-				SipConnector defaultConnector = getServer().getConnectors()[0];
-    			SipURI ownRoute = new SipURIImpl(null, defaultConnector.getHost(), defaultConnector.getPort());
+    			SipURI ownRoute = (SipURI) getServer().getConnectors()[0].getURI().clone();
     			RouterInfoUtil.encode(ownRoute, routerInfo);
 
     			ownRoute.setLrParam(true);
@@ -365,11 +366,13 @@ public class SipContextHandlerCollection extends AbstractSipHandler implements R
     			null,
     			request.getStateInfo());
     	
+
     	if (routerInfo != null && routerInfo.getNextApplicationName() != null)
     	{
     		SipConnector connector = getServer().getConnectors()[0];
     		SipURI route = new SipURIImpl(null, connector.getHost(), connector.getPort());
     		RouterInfoUtil.encode(route, routerInfo);
+    		InitialRequestUtil.encode(route, request);
     		route.setLrParam(true);
     		
     		request.pushRoute(route);

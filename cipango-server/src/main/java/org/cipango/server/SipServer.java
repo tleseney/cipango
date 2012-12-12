@@ -1,3 +1,16 @@
+// ========================================================================
+// Copyright 2012 NEXCOM Systems
+// ------------------------------------------------------------------------
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at 
+// http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ========================================================================
 package org.cipango.server;
 
 import java.io.IOException;
@@ -14,6 +27,7 @@ import org.cipango.server.nio.UdpConnector;
 import org.cipango.server.processor.TransportProcessor;
 import org.cipango.server.transaction.TransactionManager;
 import org.cipango.sip.Via;
+import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.MultiException;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
@@ -21,6 +35,7 @@ import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.annotation.ManagedOperation;
 import org.eclipse.jetty.util.annotation.Name;
 import org.eclipse.jetty.util.component.ContainerLifeCycle;
+import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
@@ -43,6 +58,7 @@ public class SipServer extends ContainerLifeCycle
 	private AccessLog _accessLog;
     private final AtomicLong _messagesReceived = new AtomicLong();
     private final AtomicLong _messagesSent = new AtomicLong();
+    private Server _server;
 		
 	static 
 	{
@@ -426,5 +442,61 @@ public class SipServer extends ContainerLifeCycle
 		_messagesReceived.set(0);
 		_messagesSent.set(0);
 	}
+	
+	public void setServer(Server server)
+	{
+		if (server != null && _server != server)
+		{
+			if (isStarted())
+				throw new IllegalStateException("Started");
+			
+			_server = server;
+			// Transport should be started after servlet application init
+			// So sip server is started once jetty server started. This is done using lifecycle listener
+			_server.addLifeCycleListener(new ServerListener());
+			// Not managed to prevent automatic start.
+			_server.addBean(this, false);
+		}
+	}
 
+	
+	private class ServerListener extends AbstractLifeCycleListener
+	{
+
+		@Override
+		public void lifeCycleStarted(LifeCycle event)
+		{
+			try
+			{
+				// In order to be expose by JMX, the SIP server should be managed
+				_server.manage(SipServer.this);
+				SipServer.this.start();
+			}
+			catch (RuntimeException e)
+			{
+				throw e;
+			}
+			catch (Exception e)
+			{
+				throw new RuntimeException(e);
+			}
+		}
+
+		@Override
+		public void lifeCycleStopping(LifeCycle event)
+		{
+			try
+			{
+				SipServer.this.stop();
+			}
+			catch (RuntimeException e)
+			{
+				throw e;
+			}
+			catch (Exception e)
+			{
+				throw new RuntimeException(e);
+			}
+		}
+	}
 }

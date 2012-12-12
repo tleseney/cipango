@@ -253,6 +253,9 @@ public class StatisticGraph
 			sample.setValue("timeInGc", timeInGc / nbCpu);
 			
 			sample.setValue("totalThreads", (Integer) mbsc.getAttribute(THREAD, "ThreadCount"));
+			if (_threadPool == null)
+				_threadPool = (ObjectName) getMbsc().getAttribute(SipManager.SERVER, "threadPool");
+				
 			long threadsInPool =  (Integer) mbsc.getAttribute(_threadPool, "threads");
 			sample.setValue("activeThreadsInPool", threadsInPool - (Integer) mbsc.getAttribute(_threadPool, "idleThreads"));
 			sample.setValue("threadsInPool",threadsInPool);

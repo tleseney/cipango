@@ -673,7 +673,7 @@ public class SipAppContext extends SipHandlerWrapper
 	/**
 	 * Use the a LifeCycle.Listener as some stuff should be done before and other after WebApp start.
 	 */
-	private class WebAppContextListener implements LifeCycle.Listener
+	private class WebAppContextListener extends AbstractLifeCycleListener
 	{
 
 		@SuppressWarnings("deprecation")
@@ -704,13 +704,6 @@ public class SipAppContext extends SipHandlerWrapper
 		}
 
 		@Override
-		public void lifeCycleFailure(LifeCycle event, Throwable cause)
-		{
-			// TODO Auto-generated method stub
-			
-		}
-
-		@Override
 		public void lifeCycleStopping(LifeCycle event)
 		{
 			try
@@ -721,13 +714,6 @@ public class SipAppContext extends SipHandlerWrapper
 			{
 				LOG.warn("Failed to stop SipAppContext " + getName(), e);
 			}
-		}
-
-		@Override
-		public void lifeCycleStopped(LifeCycle event)
-		{
-			// TODO Auto-generated method stub
-			
 		}
 		
 	}
@@ -941,38 +927,13 @@ public class SipAppContext extends SipHandlerWrapper
         }
     }
     
-    private class ServerListener implements LifeCycle.Listener
+    private class ServerListener extends AbstractLifeCycleListener
     {
-
-		@Override
-		public void lifeCycleStarting(LifeCycle event)
-		{
-		}
-
 		@Override
 		public void lifeCycleStarted(LifeCycle event)
 		{
 			serverStarted();
-		}
-
-		@Override
-		public void lifeCycleFailure(LifeCycle event, Throwable cause)
-		{
-		}
-
-		@Override
-		public void lifeCycleStopping(LifeCycle event)
-		{
-			
-		}
-
-		@Override
-		public void lifeCycleStopped(LifeCycle event)
-		{
-			// TODO Auto-generated method stub
-			
-		}
-    	
+		}	
     }
 	
 	public interface Decorator extends org.eclipse.jetty.servlet.ServletContextHandler.Decorator

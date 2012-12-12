@@ -42,6 +42,7 @@ import org.cipango.server.transaction.ClientTransaction;
 import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.server.util.ContactAddress;
 import org.cipango.sip.AddressImpl;
+import org.cipango.sip.SipFields.Field;
 import org.cipango.sip.SipHeader;
 
 public class B2bHelper implements B2buaHelper
@@ -346,14 +347,14 @@ public class B2bHelper implements B2buaHelper
 					{
 						try
 						{
-							AddressImpl contact = (AddressImpl) request
-									.getFields().getField(header).asAddress();
+							Field contact = request.getFields().getField(header);
 							if (contact != null)
 							{
 								try
 								{
+									Address dest = contact.asAddress();
 									AddressImpl source = new AddressImpl(contacts.get(0), true);
-									mergeContact(source, contact);
+									mergeContact(source, dest);
 								}
 								catch (ParseException e)
 								{

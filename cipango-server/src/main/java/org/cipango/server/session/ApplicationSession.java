@@ -751,38 +751,43 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 		out.append(indent).append("- ").append(name).append(": ").append(String.valueOf(value)).append('\n');
 	}
 	
-    public class Timer implements ServletTimer, Runnable
+    public static class Timer implements ServletTimer, Runnable
     {
 		private Serializable _info;
         private long _period;
         private TimerTask _timerTask;
         private boolean _persistent;
         private final String _id;
+        private long _scheduleExecutionTime = -1;
+        private ApplicationSession _session;
+        private boolean _fixedDelay;
         
-        public Timer(long delay, boolean persistent, Serializable info)
+        public Timer(ApplicationSession session, long delay, boolean persistent, Serializable info)
         {
-        	this(delay, -1, false, persistent, info);
+        	this(session, delay, -1, false, persistent, info);
         }
         
-        public Timer(long delay, long period, boolean fixedDelay, boolean isPersistent, Serializable info)
+        public Timer(ApplicationSession session, long delay, long period, boolean fixedDelay, boolean isPersistent, Serializable info)
         {
-        	this(delay, period, fixedDelay, isPersistent, info, getSessionManager().newTimerId());
+        	this(session, delay, period, fixedDelay, isPersistent, info, session.getSessionManager().newTimerId());
         }
         
-        public Timer(long delay, long period, boolean fixedDelay, boolean isPersistent, Serializable info, String id)
+        public Timer(ApplicationSession session, long delay, long period, boolean fixedDelay, boolean isPersistent, Serializable info, String id)
         {
-        	checkValid();
-            addTimer(this);
+        	_session = session;
+        	session.checkValid();
+            session.addTimer(this);
             _info = info;
             _period = period;
-            _timerTask = getSessionManager().schedule(this, delay);
+            _timerTask = session.getSessionManager().schedule(this, delay);
             _persistent = isPersistent;
             _id = id;
+            _fixedDelay = fixedDelay;
         }
         
         public SipApplicationSession getApplicationSession()
         {
-            return ApplicationSession.this;
+            return _session;
         }
 
         public Serializable getInfo()
@@ -792,7 +797,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 
         public long scheduledExecutionTime()
         {
-            return _timerTask.getExecutionTime();
+            return _scheduleExecutionTime;
         }
 
         public String getId()
@@ -815,12 +820,16 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 			return _persistent;
 		}
 		
-        public void cancel()
-        {
-        	_timerTask.cancel();
-        	removeTimer(this);
-           _period = -1;
-        }
+		public void cancel()
+		{
+			if (_session != null)
+			{
+				_timerTask.cancel();
+				_session.removeTimer(this);
+				_period = -1;
+				_session = null;
+			}
+		}
         
         @Override
         public String toString()
@@ -832,8 +841,9 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
         
         public void run()
         {
+    		_scheduleExecutionTime = _timerTask.getExecutionTime();
         	// Do not change the class loader as it has been already done in the timer thread start (See SessionManager.Timer).
-        	List<TimerListener> listeners = getContext().getTimerListeners();
+        	List<TimerListener> listeners = _session.getContext().getTimerListeners();
         	
         	if (!listeners.isEmpty())
         	{
@@ -851,17 +861,20 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
         	}
         	else
         		LOG.warn("The timer {} has been created by application {} but no timer listeners defined",
-        				toString(), getApplicationName());
+        				toString(), _session.getApplicationName());
 
         	if (_period != -1)
-            {
-                _timerTask = getSessionManager().schedule(this, _period);
-            }
-            else
-            {
-               removeTimer(this);
-            }
-        }
+        	{
+        		long delay;
+        		if (_fixedDelay)
+        			delay = _period + _scheduleExecutionTime - System.currentTimeMillis();
+        		else
+        			delay = _period;
+        		_timerTask = _session.getSessionManager().schedule(this, delay);
+        	}
+            else if (_session != null) // Session can be null if cancel() has been called
+               _session.removeTimer(this);
+       }
     }
 
 }

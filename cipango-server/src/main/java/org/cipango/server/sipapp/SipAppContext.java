@@ -916,14 +916,14 @@ public class SipAppContext extends SipHandlerWrapper
         {
         	// TODO scope
         	ApplicationSession appSession = ((AppSessionIf) session).getAppSession();
-            return appSession.new Timer(delay, isPersistent, info);
+            return new ApplicationSession.Timer(appSession, delay, isPersistent, info);
         }
 
         public ServletTimer createTimer(SipApplicationSession session, long delay, long period, boolean fixedDelay, boolean isPersistent, Serializable info) 
         {
         	// TODO scope
         	ApplicationSession appSession = ((AppSessionIf) session).getAppSession();
-            return appSession.new Timer(delay, period, fixedDelay, isPersistent, info);
+            return new ApplicationSession.Timer(appSession, delay, period, fixedDelay, isPersistent, info);
         }
     }
     

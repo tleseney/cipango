@@ -14,7 +14,9 @@ import static org.cipango.sip.SipHeader.*;
 public class SipGenerator 
 {
 	private Set<SipHeader> _fixedHeaders = EnumSet.of(VIA, FROM, TO, CALL_ID);
-	
+	private static byte[] CONTENT_LENGTH_0 = "Content-Length: 0\r\n".getBytes();
+	private static byte[] CONTENT_LENGTH_0_COMPACT = "l: 0\r\n".getBytes();
+
 	public void generateRequest(ByteBuffer buffer, String method, URI requestUri, SipFields sipFields, byte[] content, HeaderForm headerForm)
 	{
 		generateRequestLine(buffer, method, requestUri);
@@ -71,14 +73,27 @@ public class SipGenerator
 	
 	private void generateHeaders(ByteBuffer buffer, SipFields sipFields, HeaderForm headerForm)
 	{
+		boolean contentLengthSet = false;
+
 		if (sipFields != null)
 		{
 			for (SipFields.Field field : sipFields)
 			{
+				if (field.getHeader() == SipHeader.CONTENT_LENGTH)
+					contentLengthSet = true;
+
 				field.putTo(buffer, headerForm);
 			}
 		}
-		
+
+		if (!contentLengthSet)
+		{
+			if (headerForm == HeaderForm.COMPACT)
+				buffer.put(CONTENT_LENGTH_0_COMPACT);
+			else
+				buffer.put(CONTENT_LENGTH_0);
+		}
+
 		buffer.put(SipGrammar.CRLF);
 	}
 	

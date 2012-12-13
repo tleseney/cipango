@@ -57,7 +57,7 @@ public class SipGeneratorTest
 		_buffer.position(2);
 		_generator.generateRequest(_buffer, "METHOD", uri, null, null, null);
 
-		assertEquals("XXMETHOD sip:user@host:5061;param=value SIP/2.0\r\n\r\n",
+		assertEquals("XXMETHOD sip:user@host:5061;param=value SIP/2.0\r\nContent-Length: 0\r\n\r\n",
 				toString());
 	}
 	
@@ -88,6 +88,7 @@ public class SipGeneratorTest
 		headers.add("Header-2", "vale 2a");
 		headers.add("Header-2", "vale 2b");
 		headers.add("Header-3", "");
+		headers.add("Content-Length", "0");
 		headers.add("Header-4", "value 4a, value 4b, value 4c");
 
 		uri.setUser("bob");
@@ -133,7 +134,8 @@ public class SipGeneratorTest
 		String s = toString();
 		//System.out.println("**" + s + "**");
 		assertEquals("INVITE sip:cipango.org SIP/2.0\r\n"
-				+ "Allow: INVITE, ACK\r\n\r\n", s);
+				+ "Allow: INVITE, ACK\r\n"
+				+ "Content-Length: 0\r\n\r\n", s);
 		
 	}
 	
@@ -149,7 +151,8 @@ public class SipGeneratorTest
 		//System.out.println("**" + s + "**");
 		assertEquals("INVITE sip:cipango.org SIP/2.0\r\n"
 				+ "Route: <sip:cipango.org;lr>\r\n"
-				+ "Route: <sip:cipango.org:5062;lr>\r\n\r\n", s);
+				+ "Route: <sip:cipango.org:5062;lr>\r\n"
+				+ "Content-Length: 0\r\n\r\n", s);
 		
 	}
 	
@@ -165,7 +168,8 @@ public class SipGeneratorTest
 		//System.out.println("**" + s + "**");
 		assertEquals("INVITE sip:cipango.org SIP/2.0\r\n"
 				+ "i: fd556@cipango.org\r\n"
-				+ "Route: <sip:cipango.org;lr>\r\n\r\n", s);	
+				+ "Route: <sip:cipango.org;lr>\r\n"
+				+ "l: 0\r\n\r\n", s);	
 		
 		_buffer.clear();
 		_generator.generateRequest(_buffer, "INVITE", new SipURIImpl("sip:cipango.org"), fields, null, HeaderForm.LONG);
@@ -173,7 +177,8 @@ public class SipGeneratorTest
 		//System.out.println("**" + s + "**");
 		assertEquals("INVITE sip:cipango.org SIP/2.0\r\n"
 				+ "Call-ID: fd556@cipango.org\r\n"
-				+ "Route: <sip:cipango.org;lr>\r\n\r\n", s);	
+				+ "Route: <sip:cipango.org;lr>\r\n"
+				+ "Content-Length: 0\r\n\r\n", s);	
 	}
 
 	@Test
@@ -183,7 +188,8 @@ public class SipGeneratorTest
 		_buffer.position(2);
 		_generator.generateResponse(_buffer, 202, "All is OK", null, null, null);
 
-		assertEquals("XXSIP/2.0 202 All is OK\r\n\r\n", toString());
+		assertEquals("XXSIP/2.0 202 All is OK\r\n"
+				+ "Content-Length: 0\r\n\r\n", toString());
 	}
 	
 	@Test

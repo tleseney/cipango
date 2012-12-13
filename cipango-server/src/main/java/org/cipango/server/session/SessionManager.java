@@ -26,6 +26,7 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletContext;
 import javax.servlet.sip.SipApplicationSession;
@@ -141,42 +142,41 @@ public class SessionManager extends AbstractLifeCycle
 		return _sipAppContext.getServletContext();
 	}
 	
-	public ApplicationSession createApplicationSession()
+	public synchronized ApplicationSession createApplicationSession()
 	{
-		ApplicationSession appSession;
-		synchronized (this)
-		{
-			String id = null;
-			while (id == null || appIdInUse(id))
-			{
-				id = newApplicationSessionId();
-			}
-			appSession = new ApplicationSession(this, id);
-			_appSessions.put(id, appSession);
-		}
-		
-		_sessionsStats.increment();
-		appSession.setExpires(_sessionTimeout);
-		if (!_applicationSessionListeners.isEmpty())
-			getSipAppContext().fire(_applicationSessionListeners, __appSessionCreated,  new SipApplicationSessionEvent(appSession));
+		String id = null;
+		while (id == null || appIdInUse(id))
+			id = newApplicationSessionId();
 
+		ApplicationSession appSession = new ApplicationSession(this, id);
+		addApplicationSession(appSession);
 		return appSession;
 	}
 	
-	public ApplicationSession createApplicationSession(String id)
+	public synchronized ApplicationSession createApplicationSession(String id)
 	{
-		ApplicationSession appSession;
+		ApplicationSession appSession = new ApplicationSession(this, id);
+		addApplicationSession(appSession);
+		return appSession;
+	}
+	
+	protected ApplicationSession addApplicationSession(ApplicationSession appSession)
+	{
 		synchronized (this)
 		{
-			appSession = new ApplicationSession(this, id);
-			_appSessions.put(id, appSession);
+			ApplicationSession session = _appSessions.putIfAbsent(appSession.getId(), appSession);
+			if (session != null)
+			{
+				LOG.warn("A session with same ID already exist. {}, {}", session, appSession);
+				return session;
+			}
 		}
 		
 		_sessionsStats.increment();
 		appSession.setExpires(_sessionTimeout);
 		if (!_applicationSessionListeners.isEmpty())
-			getSipAppContext().fire(_applicationSessionListeners, __appSessionCreated,  new SipApplicationSessionEvent(appSession));
-
+			getSipAppContext().fire(appSession, _applicationSessionListeners, __appSessionCreated,  new SipApplicationSessionEvent(appSession));
+		
 		return appSession;
 	}
 	
@@ -207,6 +207,63 @@ public class SessionManager extends AbstractLifeCycle
 		if (r<0)
 			r = -r;
 		return StringUtil.toBase62String2(r);
+	}
+	
+	public ApplicationSessionScope openScope(String id)
+	{
+		ApplicationSession applicationSession = getApplicationSession(id);
+		if (applicationSession == null)
+			return null;
+		return openScope(applicationSession);
+	}
+	
+	public ApplicationSessionScope openScope(ApplicationSession applicationSession, int seconds)
+	{
+		boolean locked;
+		try
+		{
+			locked = applicationSession.getLock().tryLock(seconds, TimeUnit.SECONDS);
+		}
+		catch (InterruptedException e1)
+		{
+			locked = false;
+		}
+		if (!locked)
+			LOG.warn("Could not get lock for session {} in {} seconds: lock is {}", this, seconds, applicationSession.getLock());
+				
+		return new ApplicationSessionScope(applicationSession, locked);
+	}
+	
+	public ApplicationSessionScope openScope(ApplicationSession applicationSession)
+	{
+		return openScope(applicationSession, 5);
+	}
+	
+	public void close(ApplicationSession applicationSession)
+	{
+		try
+		{
+			int holds = applicationSession.getLock().getHoldCount();
+
+			if (holds == 1)
+			{
+
+				applicationSession.invalidateIfReady();
+
+				if (applicationSession.isValid())
+				{
+					saveSession(applicationSession);
+				}
+			}
+		}
+		finally
+		{
+			applicationSession.getLock().unlock();
+		}
+	}
+	
+	protected void saveSession(ApplicationSession applicationSession)
+	{	
 	}
 	
 	public String getApplicationSessionIdByKey(String key)
@@ -271,7 +328,7 @@ public class SessionManager extends AbstractLifeCycle
 		_sessionTimeStats.set(round((System.currentTimeMillis() - session.getCreationTime())/1000.0));
 		
 		if (!_applicationSessionListeners.isEmpty())
-			getSipAppContext().fire(_applicationSessionListeners, __appSessionDestroyed,  new SipApplicationSessionEvent(session));
+			getSipAppContext().fire(session, _applicationSessionListeners, __appSessionDestroyed,  new SipApplicationSessionEvent(session));
 	}
 	
 	protected void scavenge()
@@ -296,21 +353,32 @@ public class SessionManager extends AbstractLifeCycle
 	
 	protected void doSessionExpired(ApplicationSession applicationSession)
 	{	
-		// Do not change the class loader as it has been already done in the timer thread start.
-		for (SipApplicationSessionListener l : _applicationSessionListeners)
-		{
-			try
-			{
-				l.sessionExpired(new SipApplicationSessionEvent(applicationSession));
-			}
-			catch (Throwable e)
-			{
-				LOG.debug("Got exception while invoking session SipApplicationSessionListener " + l, e);
-			}
-		}
+		ApplicationSessionScope scope = openScope(applicationSession, 2);
+		if (!scope.isLocked())
+			return;
 		
-		if (applicationSession.getExpirationTime() < 0)
-			applicationSession.invalidate();
+		try
+		{
+			// Do not change the class loader as it has been already done in the timer thread start.
+			for (SipApplicationSessionListener l : _applicationSessionListeners)
+			{
+				try
+				{
+					l.sessionExpired(new SipApplicationSessionEvent(applicationSession));
+				}
+				catch (Throwable e)
+				{
+					LOG.debug("Got exception while invoking session SipApplicationSessionListener " + l, e);
+				}
+			}
+			
+			if (applicationSession.getExpirationTime() < 0)
+				applicationSession.invalidate();
+		}
+		finally
+		{
+			scope.close();
+		}
 	}
 	
 	public void doSessionAttributeListeners(Session session, String name, Object old, Object value)
@@ -562,6 +630,38 @@ public class SessionManager extends AbstractLifeCycle
 		}
 	}
 	
+	public static class ApplicationSessionScope
+	{
+		private final ApplicationSession _applicationSession;
+		private boolean _locked;
+		
+		public ApplicationSessionScope(ApplicationSession applicationSession, boolean locked)
+		{
+			_applicationSession = applicationSession;
+			_locked = locked;
+		}
+
+		public ApplicationSession getApplicationSession()
+		{
+			return _applicationSession;
+		}
+		
+		public boolean isLocked()
+		{
+			return _locked;
+		}
+		
+		public void close()
+		{
+			if (_locked)
+			{
+				_applicationSession.getSessionManager().close(_applicationSession);
+				_locked = false;
+			}
+		}
+		
+	}
+	
 	class Timer implements Runnable
 	{
 		public void run()
@@ -628,7 +728,7 @@ public class SessionManager extends AbstractLifeCycle
 		ApplicationSession getAppSession();
 	}
 	
-	public interface SipSessionIf extends SipSession
+	public static interface SipSessionIf extends SipSession
 	{
 		Session getSession();
 	}

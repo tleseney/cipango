@@ -28,6 +28,8 @@ import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
+import org.cipango.server.session.SessionManager.ApplicationSessionScope;
+import org.cipango.server.transaction.ClientTransaction;
 import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipFields;
@@ -123,12 +125,17 @@ public class SipResponse extends SipMessage implements SipServletResponse
 		if (isCommitted())
 			throw new IllegalStateException("response is committed");
 		
-		_session.sendResponse(this, reliable);
-		//((ServerTransaction) getTransaction()).send(this);
-		
-		setCommitted(true);
-		// TODO scope
-		
+		// Need a scope here as this method can be called outside of a managed thread
+		ApplicationSessionScope scope = appSession().getSessionManager().openScope(appSession());
+    	try
+    	{
+    		_session.sendResponse(this, reliable);
+    		setCommitted(true);
+    	}
+    	finally
+    	{
+    		scope.close();
+    	}		
 	}
 	
 	public boolean isSuccess()

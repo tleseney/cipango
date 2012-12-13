@@ -22,6 +22,8 @@ import javax.servlet.sip.SipSession;
 import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.session.ApplicationSession;
 import org.cipango.server.session.Session;
+import org.cipango.server.session.scoped.ScopedAppSession;
+import org.cipango.server.session.scoped.ScopedSession;
 import org.cipango.server.transaction.Transaction;
 import org.cipango.server.util.ContactAddress;
 import org.cipango.server.util.ListIteratorProxy;
@@ -420,8 +422,7 @@ public abstract class SipMessage implements SipServletMessage
 	{
 		if (_session == null)
 			return null; 
-		// FIXME return scope session
-		return _session.getApplicationSession();
+		return new ScopedAppSession(_session.appSession());
 	}
 
 	@Override
@@ -706,7 +707,7 @@ public abstract class SipMessage implements SipServletMessage
 	 */
 	public SipSession getSession() 
 	{
-		return _session;
+		return new ScopedSession(_session);
 	}
 
 	/**

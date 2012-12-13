@@ -64,7 +64,10 @@ import org.cipango.server.session.Session;
 import org.cipango.server.session.SessionHandler;
 import org.cipango.server.session.SessionManager;
 import org.cipango.server.session.SessionManager.AppSessionIf;
+import org.cipango.server.session.SessionManager.ApplicationSessionScope;
 import org.cipango.server.session.http.ConvergedSessionManager;
+import org.cipango.server.session.scoped.ScopedAppSession;
+import org.cipango.server.session.scoped.ScopedTimer;
 import org.cipango.server.util.ReadOnlySipURI;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.ParameterableImpl;
@@ -487,7 +490,7 @@ public class SipAppContext extends SipHandlerWrapper
     	return getWebAppContext().getClassLoader();
     }
     
-    public void fire(List<? extends EventListener> listeners, Method method, Object... args)
+    public void fire(ApplicationSession applicationSession, List<? extends EventListener> listeners, Method method, Object... args)
     {
 		ClassLoader oldClassLoader = null;
 		Thread currentThread = null;
@@ -498,21 +501,26 @@ public class SipAppContext extends SipHandlerWrapper
 			oldClassLoader = currentThread.getContextClassLoader();
 			currentThread.setContextClassLoader(getClassLoader());
 		}
-
-		for (EventListener l :listeners)
+		ApplicationSessionScope scope = applicationSession.getSessionManager().openScope(applicationSession);
+		try
 		{
-			try
+			for (EventListener l :listeners)
 			{
-				method.invoke(l, args);
-			}
-			catch (Throwable t)
-			{
-				LOG.debug("Failed to invoke listener " + l, t);
+				try
+				{
+					method.invoke(l, args);
+				}
+				catch (Throwable t)
+				{
+					LOG.warn("Failed to invoke listener " + l, t);
+				}
 			}
 		}
-		if (getClassLoader() != null)
+		finally
 		{
-			currentThread.setContextClassLoader(oldClassLoader);
+			scope.close();
+			if (getClassLoader() != null)
+				currentThread.setContextClassLoader(oldClassLoader);
 		}
     }
 		
@@ -724,8 +732,7 @@ public class SipAppContext extends SipHandlerWrapper
 		@Override
 		public SipApplicationSession getApplicationSessionById(String id)
 		{
-			// TODO scope
-			return _sessionHandler.getSessionManager().getApplicationSession(id);
+			return new ScopedAppSession(getSessionHandler().getSessionManager().getApplicationSession(id));
 		}
 
 		@Override
@@ -737,9 +744,11 @@ public class SipAppContext extends SipHandlerWrapper
 			SessionManager manager = _sessionHandler.getSessionManager();
 			String id = manager.getApplicationSessionIdByKey(key);
 			ApplicationSession appSession = manager.getApplicationSession(id);
-			if (appSession != null || !create)
-				return appSession;
-			return manager.createApplicationSession(id);
+			if (appSession == null && !create)
+				return null;
+			if (appSession == null)
+				appSession = manager.createApplicationSession(id);
+			return new ScopedAppSession(appSession);
 		}
 
 		@Override
@@ -786,7 +795,7 @@ public class SipAppContext extends SipHandlerWrapper
 		@Override
 		public SipApplicationSession createApplicationSession()
 		{
-			return _sessionHandler.getSessionManager().createApplicationSession();
+			return new ScopedAppSession(getSessionHandler().getSessionManager().createApplicationSession());
 		}
 
 		@Override
@@ -795,9 +804,9 @@ public class SipAppContext extends SipHandlerWrapper
 			SessionManager manager = _sessionHandler.getSessionManager();
 			String id = manager.getApplicationSessionIdByKey(key);
 			ApplicationSession appSession = manager.getApplicationSession(id);
-			if (appSession != null)
-				return appSession;
-			return manager.createApplicationSession(id);
+			if (appSession == null)
+				appSession = manager.createApplicationSession(id);
+			return new ScopedAppSession(appSession);
 		}
 
 		@Override
@@ -914,16 +923,14 @@ public class SipAppContext extends SipHandlerWrapper
     {
         public ServletTimer createTimer(SipApplicationSession session, long delay, boolean isPersistent, Serializable info) 
         {
-        	// TODO scope
         	ApplicationSession appSession = ((AppSessionIf) session).getAppSession();
-            return new ApplicationSession.Timer(appSession, delay, isPersistent, info);
+            return new ScopedTimer(appSession, delay, isPersistent, info);
         }
 
         public ServletTimer createTimer(SipApplicationSession session, long delay, long period, boolean fixedDelay, boolean isPersistent, Serializable info) 
         {
-        	// TODO scope
         	ApplicationSession appSession = ((AppSessionIf) session).getAppSession();
-            return new ApplicationSession.Timer(appSession, delay, period, fixedDelay, isPersistent, info);
+        	return new ScopedTimer(appSession, delay, period, fixedDelay, isPersistent, info);
         }
     }
     

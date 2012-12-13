@@ -20,6 +20,8 @@ import javax.servlet.sip.SipApplicationSession;
 
 import org.cipango.server.session.ApplicationSession;
 import org.cipango.server.session.SessionHandler;
+import org.cipango.server.session.SessionManager.ApplicationSessionScope;
+import org.cipango.server.session.scoped.ScopedAppSession;
 import org.cipango.server.sipapp.SipAppContext;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.session.AbstractSession;
@@ -149,8 +151,7 @@ public class ConvergedSessionManager extends HashSessionManager
 				if (isValid())
 					_appSession.addSession(this);
 			}
-			//TODO scope
-			return _appSession;
+			return new ScopedAppSession(_appSession);
 		}
 		
 		@Override
@@ -160,7 +161,15 @@ public class ConvergedSessionManager extends HashSessionManager
 			if (_appSession != null)
 			{
 				// TODO scope
-				_appSession.access(time);
+				ApplicationSessionScope scope = _appSession.getSessionManager().openScope(_appSession);
+				try
+				{
+					_appSession.access(time);
+				}
+				finally
+				{
+					scope.close();
+				}
 			}
 			return access;
 		}

@@ -49,6 +49,8 @@ import javax.servlet.sip.ar.SipApplicationRouterInfo;
 import javax.servlet.sip.ar.SipApplicationRoutingDirective;
 import javax.servlet.sip.ar.SipApplicationRoutingRegion;
 
+import org.cipango.server.session.SessionManager.ApplicationSessionScope;
+import org.cipango.server.session.scoped.ScopedServerTransactionListener;
 import org.cipango.server.transaction.ClientTransaction;
 import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.server.transaction.Transaction;
@@ -147,11 +149,19 @@ public class SipRequest extends SipMessage implements SipServletRequest
         	throw new IllegalStateException("Can send request only in UAC mode");
     	setCommitted(true);
 
-		// TODO scope
-    	if (isCancel())
-    		((ClientTransaction) getTransaction()).cancel(this);
-    	else
-    		_session.sendRequest(this);
+		// Need a scope here as send() can be done outside of a managed thread or from a new UAC session
+    	ApplicationSessionScope scope = appSession().getSessionManager().openScope(appSession());
+    	try
+    	{
+	    	if (isCancel())
+	    		((ClientTransaction) getTransaction()).cancel(this);
+	    	else
+	    		_session.sendRequest(this);
+    	}
+    	finally
+    	{
+    		scope.close();
+    	}
 	}
 	
 	public Address getTopRoute() throws ServletParseException
@@ -405,7 +415,7 @@ public class SipRequest extends SipMessage implements SipServletRequest
 		if (!_session.isUA() && getTransaction().isServer())
 		{
 			_session.setUAS();
-			((ServerTransaction) getTransaction()).setListener(_session.getUa());
+			((ServerTransaction) getTransaction()).setListener(new ScopedServerTransactionListener(session(), _session.getUa()));
 		}
 		return _b2bHelper;
 	}

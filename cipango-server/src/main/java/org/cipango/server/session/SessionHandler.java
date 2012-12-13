@@ -27,8 +27,10 @@ import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
 import org.cipango.server.handler.SipHandlerWrapper;
+import org.cipango.server.session.SessionManager.ApplicationSessionScope;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.ServerTransaction;
+import org.cipango.server.transaction.Transaction;
 import org.cipango.server.util.ExceptionUtil;
 import org.cipango.sip.SipException;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
@@ -65,20 +67,31 @@ public class SessionHandler extends SipHandlerWrapper
 			handleRequest((SipRequest) message);
 		else
 		{
-			_handler.handle(message);
-			message.appSession().invalidateIfReady();
+			ApplicationSessionScope scope = getSessionManager().openScope(message.appSession(), Transaction.__T4);
+			if (!scope.isLocked())
+				return;
+			try
+			{
+				_handler.handle(message);
+			}
+			finally
+			{
+				scope.close();
+			}
 		}
 	}
 	
 	public void handleRequest(SipRequest request) throws IOException, ServletException 
 	{
+		ApplicationSession appSession = null;
 		Session session = request.session();
+		boolean forwarded = session != null;
 		// The session can be not null in case of servletContext.getNamedDispatcher().forward()
-		if (session == null)
+		if (!forwarded)
 		{									
 			if (request.isInitial())
 			{
-				ApplicationSession appSession = null;
+				
 				if (_sipApplicationKeyMethod != null)
 				{
 					try
@@ -125,7 +138,7 @@ public class SessionHandler extends SipHandlerWrapper
 					return;
 				}
 				
-				ApplicationSession	appSession = _sessionManager.getApplicationSession(appId);
+				appSession = _sessionManager.getApplicationSession(appId);
 				
 				if (appSession == null)
 				{
@@ -140,22 +153,26 @@ public class SessionHandler extends SipHandlerWrapper
 			{
 				notFound(request, "No SIP Session");
 				return;
-			}
-			if (request.isInvite()) 
-	        { 
-				SipResponse response = (SipResponse) request.createResponse(SipServletResponse.SC_TRYING);
-				((ServerTransaction) request.getTransaction()).send(response);
-			}
-			session.access();
-			request.setSession(session);
-			
-			if (!request.isInitial() && session.isUA())
-				session.getUa().handleRequest(request);
-			
+			}			
 		}
+		
+		ApplicationSessionScope scope = _sessionManager.openScope(session.appSession());
 		
 		try
 		{
+			if (!forwarded)
+			{
+				if (request.isInvite()) 
+		        { 
+					SipResponse response = (SipResponse) request.createResponse(SipServletResponse.SC_TRYING);
+					((ServerTransaction) request.getTransaction()).send(response);
+				}
+				session.access();
+				request.setSession(session);
+				
+				if (!request.isInitial() && session.isUA())
+					session.getUa().handleRequest(request);
+			}
 
 			if (!request.isHandled())
 				_handler.handle(request);
@@ -195,8 +212,10 @@ public class SessionHandler extends SipHandlerWrapper
         		LOG.debug(e);
         	}
 		}
-		
-		request.appSession().invalidateIfReady();
+		finally
+		{
+			scope.close();
+		}
 	}
 	
 	protected void notFound(SipRequest request, String reason)

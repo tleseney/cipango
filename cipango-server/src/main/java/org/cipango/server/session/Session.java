@@ -41,6 +41,8 @@ import org.cipango.server.SipResponse;
 import org.cipango.server.SipServer;
 import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.session.SessionManager.SipSessionIf;
+import org.cipango.server.session.scoped.ScopedClientTransactionListener;
+import org.cipango.server.session.scoped.ScopedServerTransactionListener;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.ClientTransaction;
 import org.cipango.server.transaction.ClientTransactionListener;
@@ -303,7 +305,7 @@ public class Session implements SipSessionIf, Dumpable
 		
 		request.setCommitted(true);
 		
-		ClientTransaction tx = server.getTransactionManager().sendRequest(request, listener);
+		ClientTransaction tx = server.getTransactionManager().sendRequest(request, new ScopedClientTransactionListener(this, listener));
 		
 		if (!request.isAck())
 			addClientTransaction(tx);
@@ -654,6 +656,7 @@ public class Session implements SipSessionIf, Dumpable
 	public void invalidate() 
 	{
 		checkValid();
+		_applicationSession.assertLocked();
 		
 		if (LOG.isDebugEnabled())
 			LOG.debug("invalidating SipSession {}", this);
@@ -710,7 +713,7 @@ public class Session implements SipSessionIf, Dumpable
 			SipAppContext context = _applicationSession.getContext();
 			List<SipSessionListener> listeners = _applicationSession.getSessionManager().getSessionListeners();
 			if (!listeners.isEmpty())
-				context.fire(listeners, ApplicationSession.__sessionReadyToInvalidate, new SipSessionEvent(this));
+				context.fire(_applicationSession, listeners, ApplicationSession.__sessionReadyToInvalidate, new SipSessionEvent(this));
 
 			if (isValid() && getInvalidateWhenReady())
 				invalidate();
@@ -756,6 +759,7 @@ public class Session implements SipSessionIf, Dumpable
 			checkValid();
 			old = doPutOrRemove(name, value);
 		}
+		_applicationSession.assertLocked();
 		if (value == null || !value.equals(old))
 		{
 			if (old != null)
@@ -820,7 +824,6 @@ public class Session implements SipSessionIf, Dumpable
 			_serverTransactions.remove(transaction);
 		else
 			_clientTransactions.remove(transaction);
-		_applicationSession.invalidateIfReady();
 	}
 	
 	public List<ServerTransaction> getServerTransactions() 
@@ -858,6 +861,14 @@ public class Session implements SipSessionIf, Dumpable
 	{
 		return String.format("%s{l(%s)<->r(%s),%s,%s}", getId(), _localParty, _remoteParty, _state, _role);
 	}
+	
+    public boolean equals(Object o)
+    {
+    	if (o == null || !(o instanceof SipSessionIf))
+			return false;
+    	SipSessionIf session = ((SipSessionIf) o).getSession();
+    	return this == session;
+    }
 
 	@Override
 	public Session getSession()
@@ -1191,7 +1202,7 @@ public class Session implements SipSessionIf, Dumpable
 			
 			if (tx == null || tx.isCompleted())
 				throw new IllegalStateException("no valid transaction");
-			tx.setListener(_dialog);
+			tx.setListener(new ScopedServerTransactionListener(Session.this, this));
 			
 			
 			updateState(response, false);
@@ -1665,7 +1676,7 @@ public class Session implements SipSessionIf, Dumpable
 				{
 					List<SipErrorListener> listeners = _applicationSession.getContext().getSipErrorListeners();
 					if (!listeners.isEmpty())
-						 _applicationSession.getContext().fire(listeners, ApplicationSession.__noAck, 
+						 _applicationSession.getContext().fire(_applicationSession, listeners, ApplicationSession.__noAck, 
 								 new SipErrorEvent(getResponse().getRequest(), getResponse()));
 				}
 			}
@@ -1729,7 +1740,7 @@ public class Session implements SipSessionIf, Dumpable
 						{
 							List<SipErrorListener> listeners = _applicationSession.getContext().getSipErrorListeners();
 							if (!listeners.isEmpty())
-								 _applicationSession.getContext().fire(listeners, ApplicationSession.__noPrack, 
+								 _applicationSession.getContext().fire(_applicationSession, listeners, ApplicationSession.__noPrack, 
 										 new SipErrorEvent(getResponse().getRequest(), getResponse()));
 						}
 					}

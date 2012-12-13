@@ -37,6 +37,9 @@ import javax.servlet.sip.ar.SipApplicationRoutingDirective;
 import org.cipango.server.session.ApplicationSession;
 import org.cipango.server.session.Session;
 import org.cipango.server.session.SessionHandler;
+import org.cipango.server.session.SessionManager.ApplicationSessionScope;
+import org.cipango.server.session.scoped.ScopedServerTransactionListener;
+import org.cipango.server.session.scoped.ScopedRunable;
 import org.cipango.server.transaction.ClientTransaction;
 import org.cipango.server.transaction.ClientTransactionListener;
 import org.cipango.server.transaction.ServerTransaction;
@@ -85,7 +88,7 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 	public SipProxy(SipRequest request) throws TooManyHopsException
     {
 		_tx = (ServerTransaction) request.getTransaction();
-        _tx.setListener(this);
+        _tx.setListener(new ScopedServerTransactionListener(request.session(), this));
                         
         int maxForwards = request.getMaxForwards();
         if (maxForwards == 0) 
@@ -414,20 +417,28 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 		if (!_parallel && _actives > 0)
 			return;
 		
-		// TODO scope  ??
-		while (!_targets.isEmpty())
-		{
-			Branch branch = _targets.remove(0);
+		// Need a scope here as this method can be called outside of a managed thread
+		ApplicationSession session = _tx.getRequest().appSession();
+    	ApplicationSessionScope scope = session.getSessionManager().openScope(session);
+    	try
+    	{
+    		while (!_targets.isEmpty())
+    		{
+    			Branch branch = _targets.remove(0);
 
-			if (LOG.isDebugEnabled())
-				LOG.debug("Proxying to {} ", branch.getUri(), null);
+    			if (LOG.isDebugEnabled())
+    				LOG.debug("Proxying to {} ", branch.getUri(), null);
 
-			branch.start();
+    			branch.start();
 
-			if (!_parallel)
-				break;
-		}
-
+    			if (!_parallel)
+    				break;
+    		}
+    	}
+    	finally
+    	{
+    		scope.close();
+    	}
 	}
 	
 	// ----------------------------------------------------------------
@@ -561,15 +572,13 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
             	LOG.debug("new branch(es) created in callback {}", _branches, null);
             return;
         }
-		forward(_best);
+        
+        if (!_tx.isCompleted()) // The transaction could be completed if the servlet has sent a virtual response.
+        	forward(_best);
 		
 		// Update state for all derived sessions
 		if (_tx.getRequest().isInitial() && _tx.getRequest().isInvite())
 			updateStateOnProxyComplete(false);
-		
-		// FIXME is it the best place to call invalidateIfReady
-		// InvalidateIfReady must be call after best response forwarding as state can is updated on best response
-		_best.appSession().invalidateIfReady();
 	}
 	
     private void invokeServlet(SipResponse response)
@@ -601,7 +610,7 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 		}
 	}
 	
-	static class TimeoutC implements Runnable, Serializable, Cancelable
+	static class TimeoutC extends ScopedRunable implements Runnable, Serializable, Cancelable
 	{
 		private static final long serialVersionUID = 1L;
 		
@@ -609,10 +618,11 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 		
 		public TimeoutC(Branch branch)
 		{
+			super(branch._request.appSession());
 			_branch = branch;
 		}
 		
-		public void run()
+		public void doRun()
 		{
 			_branch.timeoutTimerC();
 		}
@@ -620,6 +630,7 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 		@Override
 		public void cancel()
 		{
+			_session = null;
 			_branch = null;
 		}
 	}

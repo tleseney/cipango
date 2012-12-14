@@ -53,10 +53,10 @@ public class TlsChannelConnectorTest extends AbstractConnectorTest
 	}
 
 	@Override
-	protected void createPeer() throws Exception
+	protected void createPeer(int port) throws Exception
 	{
 		SSLServerSocket socket = __sslCtxFactory.newSslServerSocket(
-				_connector.getHost(), _connector.getPort() + 1, 0);
+				_connector.getHost(), port, 0);
 		_peer = new SelectChannelConnectorTest.TestServerSocket(socket);
 		_peer.start();
 	}

@@ -145,6 +145,13 @@ public class TlsChannelConnection extends SslConnection implements SipConnection
 	@Override
 	public boolean isOpen()
 	{
-		return getEndPoint().isOpen();
+		return getEndPoint().isOpen() && !getSSLEngine().isInboundDone();
+	}
+
+	@Override
+	public void onClose()
+	{
+		_connector.removeConnection(this);
+		super.onClose();
 	}
 }

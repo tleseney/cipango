@@ -7,7 +7,6 @@ import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertArrayEquals;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -25,12 +24,16 @@ import org.cipango.server.SipServer;
 import org.cipango.server.handler.AbstractSipHandler;
 import org.cipango.sip.SipParser;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.log.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 public abstract class AbstractConnectorTest
 {
+
+	private static final Logger LOG = Log.getLogger(AbstractConnectorTest.class);
 	private static final String DEFAULT_HOST = "localhost";
 	private static final int DEFAULT_PORT = 5040;
 	private static final int DEFAULT_PEER_PORT = 4000;
@@ -42,7 +45,7 @@ public abstract class AbstractConnectorTest
 	protected Peer _peer;
 	protected SipServletMessage _message;
 
-	static int getNextPeerPort()
+	protected static int getNextPeerPort()
 	{
 		return __port++;
 	}
@@ -146,6 +149,39 @@ public abstract class AbstractConnectorTest
 		}
 	}
 	
+	/**
+	 * Sends a request to a Peer, restart this peer and send a new request.
+	 */
+	@Test
+	public void testReconnect() throws Exception
+	{
+		int port = getNextPeerPort();
+		createPeer(port);
+		
+		SipConnection connection = _connector.getConnection(_peer.getInetAddress(), port);
+		assertNotNull(connection);
+
+		SipMessage orig = getAsMessage(SERIALIZED_REGISTER);
+		connection.send(orig);
+		SipMessage message = _peer.getMessage();
+		assertEquals(orig.toString(), message.toString());
+		
+		_peer.tearDown();
+		Thread.sleep(50);
+		createPeer(port);
+		
+		SipConnection connection2 = _connector.getConnection(_peer.getInetAddress(), port);
+		assertNotNull(connection2);
+		assertTrue(connection2.isOpen());
+		assertEquals(connection2.getRemotePort(), connection.getRemotePort());
+		//assertFalse(connection == connection2);
+		
+		connection2.send(orig);
+		message = _peer.getMessage();
+		assertEquals(orig.toString(), message.toString());
+		
+	}
+	
 	@Test
 	public void testParam() throws Exception
 	{
@@ -244,9 +280,11 @@ public abstract class AbstractConnectorTest
 			return _active;
 		}
 
-		public void tearDown() throws InterruptedException
+		public void tearDown() throws InterruptedException, IOException
 		{
 			_active = false;
+
+			close();
 			if (_thread != null)
 				_thread.join();
 		}
@@ -297,7 +335,15 @@ public abstract class AbstractConnectorTest
 			catch (Exception e)
 			{
 				if (isActive())
-					e.printStackTrace();
+					LOG.warn(e);
+			}
+			try
+			{
+				close();
+			}
+			catch (IOException e)
+			{
+				LOG.warn(e);
 			}
 		}
 
@@ -308,9 +354,16 @@ public abstract class AbstractConnectorTest
 		public abstract void send(byte[] b) throws IOException;
 
 		public abstract int read(byte[] b) throws IOException;
+		
+		public abstract void close() throws IOException;
+	}
+	
+	protected void createPeer() throws Exception
+	{
+		createPeer(__port);
 	}
 
-	protected abstract void createPeer() throws Exception;
+	protected abstract void createPeer(int port) throws Exception;
 
 	protected abstract void send(String message) throws Exception;
 

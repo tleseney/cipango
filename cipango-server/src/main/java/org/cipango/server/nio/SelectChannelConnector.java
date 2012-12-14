@@ -252,12 +252,28 @@ public class SelectChannelConnector extends AbstractSipConnector
     public SipConnection getConnection(InetAddress address, int port) throws IOException
 	{
 		SipConnection connection = _connections.get(getKey(address, port));
-		if (connection == null)
+		
+		if (connection == null || !connection.isOpen())
 		{
 			connection = newConnection(address, port);
 		}
 		return connection;
 	}
+    
+    protected void removeConnection(SipConnection connection)
+    {
+    	if (connection.getConnector() == this)
+    	{
+	    	String key = getKey(connection.getRemoteAddress(), connection.getRemotePort());
+	    	SipConnection c = _connections.remove(key);
+	    	if (c == null) // Happens in TLS as there are 2 connection objects
+	    		LOG.debug("Could not remove unknown connection {}", connection);
+	    	else if (c != connection)
+	    		LOG.warn("Try to remove connection {} but remove {}", connection, c);
+	    	else
+	    		LOG.debug("Removed connection {} on {}", connection, this);
+    	}
+    }
 	
     protected SipConnection newConnection(InetAddress address, int port) throws IOException
     {

@@ -15,11 +15,15 @@ import java.util.Iterator;
 
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipMessage;
+import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.log.Logger;
 import org.junit.Before;
 import org.junit.Test;
 
 public class SelectChannelConnectorTest extends AbstractConnectorTest
 {
+	private static final Logger LOG = Log.getLogger(SelectChannelConnectorTest.class);
+	
 	@Before
 	public void setUp() throws Exception
 	{
@@ -56,12 +60,12 @@ public class SelectChannelConnectorTest extends AbstractConnectorTest
 	}
 
 	@Override
-	protected void createPeer() throws IOException
+	protected void createPeer(int port) throws IOException
 	{
 		final ServerSocket socket = new ServerSocket();
 		
 		socket.bind(new InetSocketAddress(InetAddress.getByName(_connector.getHost()),
-				getNextPeerPort()));
+				port));
 		_peer = new TestServerSocket(socket);
 		_peer.start();
 	}
@@ -110,19 +114,11 @@ public class SelectChannelConnectorTest extends AbstractConnectorTest
 			{
 				try
 				{
-					_socket.close();
+					close();
 				}
 				catch (IOException e)
 				{
-					e.printStackTrace();
-				}
-				try
-				{
-					_serverSocket.close();
-				}
-				catch (IOException e)
-				{
-					e.printStackTrace();
+					LOG.warn(e);
 				}
 			}
 		}
@@ -156,6 +152,14 @@ public class SelectChannelConnectorTest extends AbstractConnectorTest
 			{
 				return -1;
 			}
+		}
+
+		@Override
+		public void close() throws IOException
+		{
+			if (_socket != null)
+				_socket.close();
+			_serverSocket.close();
 		}
 	}
 }

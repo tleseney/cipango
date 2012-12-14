@@ -65,6 +65,14 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
         fillInterested();
     }
     
+
+	@Override
+	public void onClose()
+	{
+		super.onClose();
+		_connector.removeConnection(this);
+	}
+    
 	@Override
 	public void onFillable()
 	{
@@ -280,5 +288,6 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
 			((AbstractConnection)_connection).close();
 		}
 	}
+
 
 }

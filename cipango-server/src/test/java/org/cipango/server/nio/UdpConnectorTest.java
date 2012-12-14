@@ -85,11 +85,10 @@ public class UdpConnectorTest extends AbstractConnectorTest
 	}
 
 	@Override
-	protected void createPeer() throws IOException
+	protected void createPeer(int port) throws IOException
 	{
 		final DatagramSocket socket = new DatagramSocket(
-				new InetSocketAddress(InetAddress.getByName(_connector.getHost()),
-						getNextPeerPort()));
+				new InetSocketAddress(InetAddress.getByName(_connector.getHost()), port));
 		_peer = new TestServerSocket(socket);
 		_peer.start();
 	}
@@ -107,7 +106,7 @@ public class UdpConnectorTest extends AbstractConnectorTest
 		ds.close();
 	}
 	
-	protected class TestServerSocket extends Peer
+	protected static class TestServerSocket extends Peer
 	{
 		private DatagramSocket _socket;
 		private SocketAddress _peerAddress;
@@ -163,6 +162,12 @@ public class UdpConnectorTest extends AbstractConnectorTest
 			}
 			_peerAddress = packet.getSocketAddress();
 			return packet.getLength();
+		}
+
+		@Override
+		public void close() throws IOException
+		{
+			_socket.close();
 		}
 	}
 }

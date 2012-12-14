@@ -25,10 +25,14 @@ import junit.framework.Assert;
 import org.cipango.client.Dialog;
 import org.cipango.client.MessageHandler;
 import org.cipango.client.SipMethods;
+import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.log.Logger;
 
 
 public abstract class UaRunnable extends Thread
 {
+	private Logger LOG = Log.getLogger(UaRunnable.class);
+	
 	protected TestAgent _ua;
 	protected Dialog _dialog;
 	private Throwable _e;
@@ -51,7 +55,7 @@ public abstract class UaRunnable extends Thread
 		}
 		catch (Throwable e)
 		{
-			e.printStackTrace();
+			LOG.warn("Got throwable for agent " + _ua, e);
 			_e = e;
 		}
 		finally

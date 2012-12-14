@@ -47,6 +47,7 @@ import org.cipango.server.transaction.ServerTransactionListener;
 import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.ParameterableImpl;
+import org.cipango.sip.SipGrammar;
 import org.cipango.sip.SipHeader;
 import org.cipango.util.TimerTask;
 import org.cipango.util.TimerTask.Cancelable;
@@ -1091,19 +1092,18 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 
 		public void customizeRequest(SipRequest request, SipConnection connection)
 		{
-// TODO ddr
-//			SipConnector connector = _tx.getRequest().getConnection().getConnector();
-//			if (getRecordRoute() && connection.getConnector() != connector)
-//			{
-//				SipURI rrUri = newProxyURI(connection.getConnector(), true);
-//				rrUri.setParameter(SipParams.DRR, "2");
-//				_branchRRUri.setParameter(SipParams.DRR, "");
-//				if (connector.getTransport() == Transport.TCP)
-//					_branchRRUri.setTransportParam("tcp");
-//				if (connection.getConnector().getTransport() == Transport.TCP)
-//					rrUri.setTransportParam("tcp");
-//				request.addRecordRoute(new AddressImpl(rrUri));
-//			}
+			SipConnector connector = _tx.getRequest().getConnection().getConnector();
+			if (getRecordRoute() && connection.getConnector() != connector)
+			{
+				SipURI rrUri = newProxyURI(connection.getConnector(), true);
+				rrUri.setParameter(SipGrammar.DRR, "2");
+				_branchRRUri.setParameter(SipGrammar.DRR, "");
+				if (connector.getTransport() == Transport.TCP)
+					_branchRRUri.setTransportParam("tcp");
+				if (connection.getConnector().getTransport() == Transport.TCP)
+					rrUri.setTransportParam("tcp");
+				request.addRecordRoute(new AddressImpl(rrUri));
+			}
 		}
 	
     }

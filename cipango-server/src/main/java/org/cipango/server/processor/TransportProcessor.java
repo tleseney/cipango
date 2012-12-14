@@ -18,6 +18,8 @@ import org.cipango.server.SipProcessor;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
 import org.cipango.server.Transport;
+import org.cipango.server.session.SessionHandler;
+import org.cipango.sip.SipGrammar;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.Via;
 import org.eclipse.jetty.util.log.Log;
@@ -42,7 +44,23 @@ public class TransportProcessor extends SipProcessorWrapper
 		if (route != null && getServer().isLocalURI(route.getURI()))
 		{
 			request.removeTopRoute();
-			// TODO DDR
+			
+			if (route.getURI().getParameter(SipGrammar.DRR) != null)
+			{
+				// Case double record route, see RFC 5658
+				Address route2 = request.getTopRoute();
+				String appId = route.getURI().getParameter(SessionHandler.APP_ID);
+				if (route2 != null 
+						&& appId != null 
+						&& appId.equals(route2.getURI().getParameter(SessionHandler.APP_ID))
+						&& getServer().isLocalURI(route2.getURI()))
+				{
+					LOG.debug("Remove second top route {} due to RFC 5658", route2);
+					request.removeTopRoute();
+					if ("2".equals(route.getParameter(SipGrammar.DRR)))
+						route = route2;
+				}
+			}
 		}
 		
 		return route;

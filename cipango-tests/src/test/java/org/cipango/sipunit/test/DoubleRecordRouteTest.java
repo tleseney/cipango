@@ -28,6 +28,8 @@ import org.cipango.client.Call;
 import org.cipango.client.SipClient;
 import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
+import org.cipango.server.SipRequest;
+import org.cipango.server.SipResponse;
 import org.cipango.sipunit.UaRunnable;
 import org.cipango.sipunit.UaTestCase;
 import org.junit.Test;
@@ -48,48 +50,44 @@ public class DoubleRecordRouteTest extends UaTestCase
 			public void doTest() throws Throwable
 			{
 				SipServletRequest request = waitForInitialRequest();
-				assertThat(request.getMethod(), is(equalTo(SipMethods.INVITE)));
+				assertThat(request.getMethod(), is(SipMethods.INVITE));
 				Iterator<Address> it = request.getAddressHeaders(SipHeaders.RECORD_ROUTE);
 				Address addr = it.next();
-				assertThat(((SipURI) addr.getURI()).getTransportParam(), is(equalTo("tcp")));
+				assertThat(((SipURI) addr.getURI()).getTransportParam(), is("tcp"));
 				assertThat(it.hasNext(), is(true));
 				addr = it.next();
 				assertThat(((SipURI) addr.getURI()).getTransportParam(), is(nullValue()));
 				assertThat(it.hasNext(), is(false));
-		        
-				_ua.createResponse(request, SipServletResponse.SC_OK).send();
-				assertThat(_dialog.waitForRequest().getMethod(), is(equalTo(SipMethods.ACK)));
+				SipServletResponse response = _ua.createResponse(request, SipServletResponse.SC_OK);
+				response.send();
+				
+				assertThat(_dialog.waitForRequest().getMethod(), is(SipMethods.ACK));
 				request = _dialog.waitForRequest();
-				assertThat(request.getMethod(), is(equalTo(SipMethods.BYE)));
+				assertThat(request.getMethod(), is(SipMethods.BYE));
 				_ua.createResponse(request, SipServletResponse.SC_OK).send();
 			}
 		};
 
-		try
-		{
-			callB.start();
-			
-			SipServletRequest request = _ua.createRequest(SipMethods.INVITE, bob.getUri());
-			request.setRequestURI(bob.getContact().getURI());
-			Call callA = _ua.createCall(request);
 
-			SipServletResponse response = callA.waitForResponse();
-	        assertThat(response, isSuccess());
-	        Iterator<String> it = response.getHeaders("mode");
-	        assertThat(it.hasNext(), is(true));
-	        it.next();
-	        assertThat(it.hasNext(), is(false));
-	
-	        callA.createAck().send();
-	        Thread.sleep(200);
-	        callA.createBye().send();
-	        assertThat(callA.waitForResponse(), isSuccess());
-			callB.assertDone();
-		}
-		catch (Throwable t)
-		{
-			throw new Exception(t);
-		}
+		callB.start();
+		
+		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, bob.getUri());
+		request.setRequestURI(bob.getContact().getURI());
+		Call callA = _ua.createCall(request);
+
+		SipServletResponse response = callA.waitForResponse();
+        assertThat(response, isSuccess());
+        Iterator<String> it = response.getHeaders("mode");
+        assertThat(it.hasNext(), is(true));
+        it.next();
+        assertThat(it.hasNext(), is(false));
+
+        callA.createAck().send();
+        Thread.sleep(200);
+        callA.createBye().send();
+        assertThat(callA.waitForResponse(), isSuccess());
+		callB.assertDone();
+
 	}
 	
 	/**
@@ -119,24 +117,17 @@ public class DoubleRecordRouteTest extends UaTestCase
 			}
 		};
 		
-		try
-		{
-			callB.start();
-			
-			SipServletRequest request = _ua.createRequest(SipMethods.INVITE, bob.getUri());
-			request.setRequestURI(bob.getContact().getURI());
-			Call callA = _ua.createCall(request);
+		callB.start();
+		
+		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, bob.getUri());
+		request.setRequestURI(bob.getContact().getURI());
+		Call callA = _ua.createCall(request);
 
-	        assertThat(callA.waitForResponse(), isSuccess());
-	        callA.createAck().send();
-	        Thread.sleep(200);
-	        callA.createBye().send();
-	        assertThat(callA.waitForResponse(), isSuccess());
-			callB.assertDone();
-		}
-		catch (Throwable t)
-		{
-			throw new Exception(t);
-		}
+        assertThat(callA.waitForResponse(), isSuccess());
+        callA.createAck().send();
+        Thread.sleep(200);
+        callA.createBye().send();
+        assertThat(callA.waitForResponse(), isSuccess());
+		callB.assertDone();
 	}
 }

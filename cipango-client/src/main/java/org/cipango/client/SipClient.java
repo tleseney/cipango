@@ -132,7 +132,8 @@ public class SipClient extends AbstractLifeCycle
 		{
 		case TCP:
 			connector = new SelectChannelConnector(_server);
-			//connector.setTransportParam(true);
+			if (_server.getConnectors() == null || _server.getConnectors().length == 0)
+				connector.setTransportParamForced(true);
 			break;
 		case UDP:
 			connector = new UdpConnector(_server);

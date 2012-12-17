@@ -343,7 +343,7 @@ public class SipAppContext extends SipHandlerWrapper
 
 		_sContext = new SContext(_context.getServletContext());
 
-		if (context.getConfigurationClasses() == context.getDefaultConfigurationClasses())
+		if (context.getConfigurations() == null  && context.getConfigurationClasses() == context.getDefaultConfigurationClasses())
 		{
 			String[] classes = ArrayUtil.addToArray(context.getDefaultConfigurationClasses(), 
 					"org.cipango.server.sipapp.SipXmlConfiguration",

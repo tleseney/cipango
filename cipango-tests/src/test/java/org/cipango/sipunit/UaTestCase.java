@@ -77,6 +77,11 @@ public abstract class UaTestCase extends TestCase
 		return _properties.getProperty("sipunit.test.domain");	
 	}
 	
+	public String getLocalHost()
+	{
+		return _properties.getProperty("client.host");
+	}
+	
 	public int getLocalPort()
 	{
 		return getInt("sipunit.test.port");
@@ -127,7 +132,7 @@ public abstract class UaTestCase extends TestCase
 	{
 		Properties properties = new Properties();
 		properties.putAll(_properties);
-		_sipClient = new SipClient(getLocalPort());
+		_sipClient = new SipClient(getLocalHost(), getLocalPort());
 		_sipClient.start();
 
 		_ua = new TestAgent(_sipClient.getFactory().createAddress(getFrom()));

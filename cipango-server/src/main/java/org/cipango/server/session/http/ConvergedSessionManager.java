@@ -160,7 +160,6 @@ public class ConvergedSessionManager extends HashSessionManager
 			boolean access = super.access(time);
 			if (_appSession != null)
 			{
-				// TODO scope
 				ApplicationSessionScope scope = _appSession.getSessionManager().openScope(_appSession);
 				try
 				{

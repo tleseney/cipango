@@ -1,0 +1,15 @@
+ .../src/main/java/org/eclipse/jetty/maven/plugin/JettyRunMojo.java       | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/jetty-maven-plugin/src/main/java/org/eclipse/jetty/maven/plugin/JettyRunMojo.java b/jetty-maven-plugin/src/main/java/org/eclipse/jetty/maven/plugin/JettyRunMojo.java
+index 1f97f7e..02f93e7 100644
+--- org/eclipse/jetty/maven/plugin/JettyRunMojo.java
++++ org/eclipse/jetty/maven/plugin/JettyRunMojo.java
+@@ -60,7 +60,6 @@ import org.eclipse.jetty.webapp.WebAppContext;
+  *  </p>
+  * 
+  * 
+- * @goal run
+  * @requiresDependencyResolution test
+  * @execute phase="test-compile"
+  * @description Runs jetty directly from a maven project

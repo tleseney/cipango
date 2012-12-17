@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2011 NEXCOM Systems
+// Copyright 2011-2012 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,9 +13,11 @@
 // ========================================================================
 package org.cipango.sipunit.test;
 
+import static org.cipango.test.matcher.SipMatchers.isSuccess;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.cipango.test.matcher.SipMatchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 import java.util.Iterator;
 
@@ -28,8 +30,6 @@ import org.cipango.client.Call;
 import org.cipango.client.SipClient;
 import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
-import org.cipango.server.SipRequest;
-import org.cipango.server.SipResponse;
 import org.cipango.sipunit.UaRunnable;
 import org.cipango.sipunit.UaTestCase;
 import org.junit.Test;

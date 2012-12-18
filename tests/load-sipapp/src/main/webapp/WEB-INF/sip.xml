@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<sip-app xmlns="http://www.jcp.org/xml/ns/sipservlet" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.jcp.org/xml/ns/sipservlet http://www.jcp.org/xml/ns/sipservlet/sip-app_1_1.xsd"
+    version="1.1">
+
+  <app-name>org.cipango.test.load</app-name>
+
+  <servlet>
+    <servlet-name>B2bServlet</servlet-name>
+    <servlet-class>org.cipango.test.B2bServlet</servlet-class>
+    <load-on-startup/>
+  </servlet>
+
+  <servlet>
+    <servlet-name>uas</servlet-name>
+    <servlet-class>org.cipango.test.UasServlet</servlet-class>
+    <load-on-startup/>
+  </servlet>
+  
+  <servlet>
+    <servlet-name>proxy</servlet-name>
+    <servlet-class>org.cipango.test.ProxyServlet</servlet-class>
+    <load-on-startup/>
+  </servlet>
+  
+
+  <servlet-mapping>
+    <servlet-name>proxy</servlet-name>
+    <pattern>
+      <equal>
+        <var>request.to.uri.user</var>
+        <value>proxy</value>
+      </equal>
+    </pattern>
+  </servlet-mapping>
+    
+  <servlet-mapping>
+    <servlet-name>B2bServlet</servlet-name>
+    <pattern>
+      <equal>
+        <var>request.to.uri.user</var>
+        <value>b2b</value>
+      </equal>
+    </pattern>
+  </servlet-mapping>
+  
+  <servlet-mapping>
+    <servlet-name>uas</servlet-name>
+    <pattern>
+      <equal>
+        <var>request.to.uri.user</var>
+        <value>uas</value>
+      </equal>
+    </pattern>
+  </servlet-mapping>
+  
+  <session-config>
+    <session-timeout>4</session-timeout>
+  </session-config>
+</sip-app>

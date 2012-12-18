@@ -12,7 +12,7 @@
 	
 	<properties>
 		<bundle-symbolic-name>${project.groupId}.test</bundle-symbolic-name>
-		<jmock.version>2.5.1</jmock.version>
+		<logback.version>1.0.7</logback.version>
 	</properties>
 
 	<build>
@@ -34,24 +34,24 @@
 				<configuration>
 					<systemProperties>
 						<systemProperty>
-						<name>sip.host</name>
-						<value>localhost</value>
+							<name>sip.host</name>
+							<value>localhost</value>
 						</systemProperty>
 						<systemProperty>
-						<name>sip.port</name>
-						<value>5050</value>
+							<name>sip.port</name>
+							<value>5050</value>
 						</systemProperty>
 						<systemProperty>
-						<name>jetty.port</name>
-						<value>8077</value>
+							<name>jetty.port</name>
+							<value>8077</value>
 						</systemProperty>
 						<systemProperty>
-						<name>org.cipango.dar.routeOutgoingRequests</name>
-						<value>false</value>
+							<name>org.cipango.dar.routeOutgoingRequests</name>
+							<value>false</value>
 						</systemProperty>
 						<systemProperty>
-						<name>logback.configurationFile</name>
-						<value>${project.baseUri}/resources/logback.xml</value>
+							<name>logback.configurationFile</name>
+							<value>${project.baseUri}/resources/logback.xml</value>
 						</systemProperty>
 					</systemProperties>
 					<webAppConfig>
@@ -66,12 +66,12 @@
 					<dependency>
 						<groupId>ch.qos.logback</groupId>
 						<artifactId>logback-core</artifactId>
-						<version>1.0.0</version>
+						<version>${logback.version}</version>
 					</dependency>
 					<dependency>
 						<groupId>ch.qos.logback</groupId>
 						<artifactId>logback-classic</artifactId>
-						<version>1.0.0</version>
+						<version>${logback.version}</version>
 					</dependency>
 				</dependencies>
 			</plugin>
@@ -115,13 +115,13 @@
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-core</artifactId>
-			<version>1.0.0</version>
+			<version>${logback.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
-			<version>1.0.0</version>
+			<version>${logback.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

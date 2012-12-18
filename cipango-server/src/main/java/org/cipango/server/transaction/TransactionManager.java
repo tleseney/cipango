@@ -13,7 +13,6 @@ import org.cipango.server.SipResponse;
 import org.cipango.server.processor.SipProcessorWrapper;
 import org.cipango.server.processor.TransportProcessor;
 import org.cipango.sip.SipGrammar;
-import org.cipango.server.session.SessionManager;
 import org.cipango.util.TimerQueue;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;

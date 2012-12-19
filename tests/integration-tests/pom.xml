@@ -1,17 +1,17 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<parent>
-		<groupId>org.cipango</groupId>
-		<artifactId>cipango-project</artifactId>
+		<groupId>org.cipango.tests</groupId>
+    <artifactId>tests-parent</artifactId>
 		<version>3.0.0-SNAPSHOT</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
-	<artifactId>cipango-tests</artifactId>
-	<name>Cipango :: Tests</name>
-	<description>Cipango Functional Tests</description>
+	<artifactId>integration-tests</artifactId>
+	<name>Cipango :: Tests :: Integration tests</name>
+	<description>Cipango Integration Tests</description>
 	<packaging>war</packaging>
 	
 	<properties>
-		<bundle-symbolic-name>${project.groupId}.test</bundle-symbolic-name>
+		<bundle-symbolic-name>${project.groupId}</bundle-symbolic-name>
 		<logback.version>1.0.7</logback.version>
 	</properties>
 

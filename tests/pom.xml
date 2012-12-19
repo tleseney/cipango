@@ -13,5 +13,6 @@
 
   <modules>
     <module>load-sipapp</module>
+    <module>integration-tests</module>
   </modules>
 </project>

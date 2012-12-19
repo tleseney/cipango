@@ -167,7 +167,6 @@
     <module>cipango-client</module>
     <module>cipango-distribution</module>
     <module>cipango-maven-plugin</module>
-    <module>cipango-tests</module>
     <module>tests</module>
 <!--
     <module>cipango-diameter</module>

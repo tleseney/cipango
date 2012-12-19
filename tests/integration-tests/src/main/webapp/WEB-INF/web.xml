@@ -7,7 +7,7 @@
    
   <servlet>
     <servlet-name>SipAppHttpServlet</servlet-name>
-    <servlet-class>org.cipango.test.SipAppHttpServlet</servlet-class>
+    <servlet-class>org.cipango.tests.integration.SipAppHttpServlet</servlet-class>
   </servlet>
   
   

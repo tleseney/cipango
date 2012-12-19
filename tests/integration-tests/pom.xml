@@ -11,7 +11,7 @@
 	<packaging>war</packaging>
 	
 	<properties>
-		<bundle-symbolic-name>${project.groupId}</bundle-symbolic-name>
+		<bundle-symbolic-name>${project.groupId}.integration</bundle-symbolic-name>
 		<logback.version>1.0.7</logback.version>
 	</properties>
 

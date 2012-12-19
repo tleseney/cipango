@@ -193,26 +193,36 @@ public class TransactionManager extends SipProcessorWrapper implements Dumpable
 		return _transportProcessor;
 	}
 	
-	protected void addClientTransaction(ClientTransaction tx)
+	protected ClientTransaction addClientTransaction(ClientTransaction tx)
 	{
-		_clientTransactions.put(getId(tx), tx);
-		_clientTxStats.increment();
+		ClientTransaction oldTx = _clientTransactions.putIfAbsent(getId(tx), tx);
+		if (oldTx != null)
+			LOG.warn("Try to add client transaction {} when there is already the transaction {}", tx, oldTx);
+		else
+			_clientTxStats.increment();
+		return oldTx;
 	}
-	
-	public ClientTransaction sendRequest(SipRequest request, ClientTransactionListener listener) 
-    {
-		ClientTransaction ctx = new ClientTransaction(request, listener);
-		ctx.setTransactionManager(this);
-		
-		if (!request.isAck())
-			addClientTransaction(ctx);
-		
-		try 
-        {
+
+	public ClientTransaction sendRequest(SipRequest request, ClientTransactionListener listener)
+	{
+		ClientTransaction oldTx = null;
+		ClientTransaction ctx;
+		do
+		{
+			ctx = new ClientTransaction(request, listener);
+			ctx.setTransactionManager(this);
+
+			if (!request.isAck())
+				oldTx = addClientTransaction(ctx);
+		}
+		while (oldTx != null);
+
+		try
+		{
 			ctx.start();
-		} 
-        catch (IOException e)
-        {
+		}
+		catch (IOException e)
+		{
 			LOG.warn(e);
 		}
 		return ctx;

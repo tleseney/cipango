@@ -314,7 +314,7 @@ public class SessionManager extends AbstractLifeCycle
 	
 	public String newBranch()
 	{
-		long r = _random.nextInt();
+		long r = _random.nextLong();
 		if (r<0)
 			r = -r;
 		return SipGrammar.MAGIC_COOKIE + StringUtil.toBase62String2(r);

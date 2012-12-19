@@ -189,7 +189,7 @@ public class CipangoRunMojo extends JettyRunMojo
 			sipApp = new SipAppContext();
 		if (webApp == null)
 			webApp = new JettyWebAppContext();
-		sipApp.setWebAppContext(webApp);
+		sipApp.setWebAppContext(webApp, true);
 		sipApp.setServer(sipServer);
 		
 		if (!isSipConfigSet())

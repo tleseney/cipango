@@ -13,10 +13,6 @@
 // ========================================================================
 package org.cipango.tests;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-
 import javax.servlet.sip.Address;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
@@ -31,12 +27,10 @@ public class TestAgent extends UserAgent
 {
 	public static final String SERVLET_HEADER = "P-Servlet";
 	public static final String METHOD_HEADER = "P-method";
-
-	private static final List<String> TEST_HEADERS = Arrays.asList(
-			SERVLET_HEADER, METHOD_HEADER);
 	
 	private String _testServlet;
 	private String _testMethod;
+	private String _alias;
 	
 	public TestAgent(Address aor)
 	{
@@ -67,17 +61,9 @@ public class TestAgent extends UserAgent
 	{
 		if (request == null)
 			return null;
-		
-		Iterator<String> it = request.getHeaderNames();
-		while (it.hasNext())
-		{
-			String header = (String) it.next();
-			if (TEST_HEADERS.contains(header))
-				request.removeHeader(header);
-		}
-		
-		request.addHeader(SERVLET_HEADER, _testServlet);
-		request.addHeader(METHOD_HEADER, _testMethod);
+				
+		request.setHeader(SERVLET_HEADER, _testServlet);
+		request.setHeader(METHOD_HEADER, _testMethod);
 		return request;
 	}
 	
@@ -86,16 +72,8 @@ public class TestAgent extends UserAgent
 		if (response == null)
 			return null;
 
-		Iterator<String> it = response.getHeaderNames();
-		while (it.hasNext())
-		{
-			String header = (String) it.next();
-			if (TEST_HEADERS.contains(header))
-				response.removeHeader(header);
-		}
-
-		response.addHeader(SERVLET_HEADER, _testServlet);
-		response.addHeader(METHOD_HEADER, _testMethod);
+		response.setHeader(SERVLET_HEADER, _testServlet);
+		response.setHeader(METHOD_HEADER, _testMethod);
 		return response;
 	}
 
@@ -132,5 +110,20 @@ public class TestAgent extends UserAgent
 	public SipServletResponse createResponse(SipServletRequest request, int status)
 	{
 		return decorate(request.createResponse(status));
+	}
+	
+	public SipServletResponse createResponse(SipServletRequest request, int status, String reason)
+	{
+		return decorate(request.createResponse(status, reason));
+	}
+
+	public String getAlias()
+	{
+		return _alias;
+	}
+
+	public void setAlias(String alias)
+	{
+		_alias = alias;
 	}
 }

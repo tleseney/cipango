@@ -28,6 +28,7 @@ import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
+import org.cipango.server.session.Session;
 import org.cipango.server.session.SessionManager.ApplicationSessionScope;
 import org.cipango.server.transaction.ClientTransaction;
 import org.cipango.server.transaction.Transaction;
@@ -60,11 +61,16 @@ public class SipResponse extends SipMessage implements SipServletResponse
 	
 	public SipResponse(SipRequest request, int status, String reason)
 	{
+		this(request, status, reason, request.session());
+	}
+	
+	public SipResponse(SipRequest request, int status, String reason, Session session)
+	{
 		_request = request;
 		if (status >= 200)
 			_request.setCommitted(true);
 		
-		_session = request._session;
+		_session = session;
 		setStatus(status, reason);
 		
 		SipFields requestFields = request.getFields();
@@ -79,7 +85,7 @@ public class SipResponse extends SipMessage implements SipServletResponse
 		
 		if (_session != null)
 		{
-			if (_request.isInitial())
+			if (_request.isInitial() || _request.isCancel())
 			{
 				AddressImpl to = (AddressImpl) _fields.get(SipHeader.TO);
 				if (status > 100 && !_session.isProxy() && to.getTag() == null) // FIXME better handling proxy case (Virtual branch)

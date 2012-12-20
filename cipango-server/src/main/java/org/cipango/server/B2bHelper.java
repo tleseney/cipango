@@ -40,6 +40,7 @@ import org.cipango.server.session.Session;
 import org.cipango.server.session.SessionManager;
 import org.cipango.server.transaction.ClientTransaction;
 import org.cipango.server.transaction.ServerTransaction;
+import org.cipango.server.transaction.Transaction.State;
 import org.cipango.server.util.ContactAddress;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.SipFields.Field;
@@ -59,13 +60,26 @@ public class B2bHelper implements B2buaHelper
 	{
 		if (sipSession == null)
 			throw new NullPointerException("SipSession is null");
-
+		
 		Session session = ((SessionManager.SipSessionIf) sipSession).getSession();
 		for (ClientTransaction tx : session.getClientTransactions())
 		{
 			if (tx.getRequest().isInitial())
 				return tx.getRequest().createCancel();
 		}
+		
+		// Case fork
+		Iterator<Session> it = findCloneSessions(session, true).iterator();
+		while (it.hasNext())
+		{
+			Session session2 = (Session) it.next();
+			for (ClientTransaction tx : session2.getClientTransactions())
+			{
+				if (tx.getRequest().isInitial())
+					return tx.getRequest().createCancel();
+			}
+		}
+		
 		return null;
 	}
 
@@ -158,7 +172,7 @@ public class B2bHelper implements B2buaHelper
 			throw new IllegalArgumentException("SipSession " + sipSession + " is not valid");
 		
 		Session session = ((SessionManager.SipSessionIf) sipSession).getSession();
-		Iterator<Session> it = findCloneSessions(session).iterator();
+		Iterator<Session> it = findCloneSessions(session, false).iterator();
 		while (it.hasNext())
 		{
 			Session session2 = (Session) it.next();
@@ -168,14 +182,13 @@ public class B2bHelper implements B2buaHelper
 				SipRequest request = tx.getRequest();
 				if (request.isInitial())
 				{
-					if (!session2.equals(session))
+					if (!session2.equals(session)
+							|| (tx.getState() == State.ACCEPTED && session.getState() != SipSession.State.CONFIRMED))
 					{
 						if (status >= 300)
 							throw new IllegalStateException("Cannot send response with status" + status 
 									+ " since final response has already been sent");
-						SipResponse response = new SipResponse(request, status, reason);
-						response.setSession(session);
-						return response;
+						return new SipResponse(request, status, reason, session);
 					}
 					else
 					{
@@ -394,15 +407,20 @@ public class B2bHelper implements B2buaHelper
 			throw new IllegalArgumentException("SipSession " + session + " is terminated");
 	}
 	
-	private static List<Session> findCloneSessions(Session session)
+	private static List<Session> findCloneSessions(Session session, boolean uac)
 	{
 		Iterator<?> it = session.appSession().getSessions("sip");
 		List<Session> l = new ArrayList<Session>();
 		while (it.hasNext())
 		{
 			Session sipSession = (Session) it.next();
-			if (sipSession.getRemoteParty().equals(session.getRemoteParty())
-					&& sipSession.getCallId().equals(session.getCallId()))
+			boolean sameTag;
+			if (uac)
+				sameTag = sipSession.getLocalParty().equals(session.getLocalParty());
+			else
+				sameTag = sipSession.getRemoteParty().equals(session.getRemoteParty());
+			
+			if (sameTag && sipSession.getCallId().equals(session.getCallId()))
 				l.add(sipSession);
 			
 		}

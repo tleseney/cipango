@@ -16,15 +16,17 @@ package org.cipango.tests;
 import java.io.IOException;
 
 import javax.servlet.ServletException;
+import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
-import javax.servlet.sip.SipURI;
 
 import junit.framework.Assert;
 
 import org.cipango.client.Dialog;
 import org.cipango.client.MessageHandler;
-import org.cipango.client.SipMethods;
+import org.cipango.server.session.ApplicationSession;
+import org.cipango.server.session.SessionManager;
+import org.cipango.server.session.SessionManager.ApplicationSessionScope;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
@@ -70,16 +72,6 @@ public abstract class UaRunnable extends Thread
 	
 	public abstract void doTest() throws Throwable;
 	
-
-	protected void handlePotentialCancel() throws IOException
-	{
-		SipServletRequest request = _dialog.getSessionHandler().getLastRequest();
-		if (request.getMethod().equals(SipMethods.CANCEL))
-		{
-			request.createResponse(SipServletResponse.SC_CALL_LEG_DONE).send();
-		}
-	}
-
 	public Throwable getException()
 	{
 		return _e;
@@ -92,8 +84,7 @@ public abstract class UaRunnable extends Thread
 
 	public String getUserName()
 	{
-		SipURI uri = (SipURI) _ua.getAor().getURI();
-		return uri.getUser();
+		return _ua.getAlias();
 	}
 	
 	public void assertDone() throws Throwable
@@ -117,6 +108,17 @@ public abstract class UaRunnable extends Thread
 			throw _e;
 		if (!_isDone)
 			Assert.fail(getUserName() + " not done");
+	}
+	
+	/**
+	 * Open a scope on <code>session</code>. This ensure while scope is not close that any other 
+	 * thread could access to the <code>session</code>.
+	 * It could be useful to manage test with fork multiple success responses.
+	 */
+	public ApplicationSessionScope openScope(SipApplicationSession session)
+	{
+		ApplicationSession appSession = ((SessionManager.AppSessionIf) session).getAppSession();
+		return appSession.getSessionManager().openScope(appSession);
 	}
 
 	public SipServletRequest waitForInitialRequest()

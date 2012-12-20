@@ -259,11 +259,10 @@ public class B2bHelperForkServlet extends AbstractServlet
 	
 	private String getRemote(SipServletResponse response) throws ServletParseException
 	{
-		if (response.getAddressHeader("Contact") != null)
-		{
-			SipURI uri = (SipURI) response.getAddressHeader("Contact").getURI();
-			return uri.getUser();
-		}
-		return response.getReasonPhrase().substring(response.getReasonPhrase().lastIndexOf(' '));
+		String reason = response.getReasonPhrase();
+		int index = reason.lastIndexOf(' ');
+		if (index != -1)
+			return reason.substring(index);
+		return "Unknown";
 	}
 }

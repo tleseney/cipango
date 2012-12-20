@@ -14,6 +14,7 @@
 
 package org.cipango.server;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -528,6 +529,9 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
     public void handleCancel(ServerTransaction tx, SipRequest cancel)
     {
         cancel.setSession(_tx.getRequest().session());
+		SipResponse response = new SipResponse(cancel ,SipServletResponse.SC_OK, null);
+		((ServerTransaction) cancel.getTransaction()).send(response);
+
         cancel();
         try 
         {

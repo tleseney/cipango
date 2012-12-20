@@ -72,7 +72,6 @@ public class TransactionManager extends SipProcessorWrapper implements Dumpable
 			}
 		}
 
-		// FIXME handle CANCEL
 		if (request.isCancel()) 
 			branch = CANCEL_PREFIX + branch;
 		
@@ -115,8 +114,6 @@ public class TransactionManager extends SipProcessorWrapper implements Dumpable
 				}
 				else
 				{
-					SipResponse ok = (SipResponse) request.createResponse(SipServletResponse.SC_OK);
-					newTransaction.send(ok);
 					stx.cancel(request);
 				}
 			}

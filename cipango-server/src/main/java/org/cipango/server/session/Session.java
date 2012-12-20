@@ -131,7 +131,7 @@ public class Session implements SipSessionIf, Dumpable
 		_role = other._role;
 		
 		if (_role == Role.UAS)
-			_localParty.removeParameter(AddressImpl.TAG);
+			_localParty.setParameter(AddressImpl.TAG,  _applicationSession.newUASTag());
 		else
 			_remoteParty.removeParameter(AddressImpl.TAG);
 		
@@ -891,14 +891,14 @@ public class Session implements SipSessionIf, Dumpable
 		printAttr(out, "accessed", new Date(getLastAccessedTime()), indent);
 		printAttr(out, "role", _role, indent);
 		printAttr(out, "state", _state, indent);
-		printAttr(out, "invalidateWhenReady", getInvalidateWhenReady(), indent);
+		printAttr(out, "invalidateWhenReady", _invalidateWhenReady, indent);
 		printAttr(out, "attributes", _attributes, indent);
 		printAttr(out, "localParty", _localParty, indent);
 		printAttr(out, "remoteParty", _remoteParty, indent);
-		printAttr(out, "region", getRegion(), indent);
+		printAttr(out, "region", _region, indent);
 		printAttr(out, "Call-ID", _callId, indent);
 		printAttr(out, "linkedSessionId", _linkedSessionId, indent);
-		printAttr(out, "subscriberURI", getSubscriberURI(), indent);
+		printAttr(out, "subscriberURI", _subscriberURI, indent);
 		printAttr(out, "handler", getHandler(), indent);
 		if (_dialog != null)
 			_dialog.dump(out, indent + "  ");
@@ -1175,15 +1175,18 @@ public class Session implements SipSessionIf, Dumpable
 		public void handleCancel(ServerTransaction tx, SipRequest cancel)
 				throws IOException
 		{
-			cancel.setSession(Session.this);
+			cancel.setSession(tx.getRequest().session());
 			if (tx.isCompleted())
 			{
 				LOG.debug("ignoring late cancel {}", tx);
+				cancel.createResponse(SipServletResponse.SC_CALL_LEG_DONE).send();
 			}
 			else
 			{
+				
 				try
 				{
+					cancel.createResponse(SipServletResponse.SC_OK).send();
 					tx.getRequest().createResponse(SipServletResponse.SC_REQUEST_TERMINATED).send();
 					setState(State.TERMINATED);
 				}
@@ -1191,8 +1194,8 @@ public class Session implements SipSessionIf, Dumpable
 				{
 					LOG.debug("failed to cancel request", e);
 				}
+				invokeServlet(cancel);
 			}
-			invokeServlet(cancel);
 		}
 
 		public void sendResponse(SipResponse response, boolean reliable) throws IOException
@@ -1200,11 +1203,13 @@ public class Session implements SipSessionIf, Dumpable
 			ServerTransaction tx = (ServerTransaction) response.getTransaction();
 			SipRequest request = (SipRequest) response.getRequest();
 			
-			if (tx == null || tx.isCompleted())
+			boolean forked2xx = response.is2xx() && tx.getState() == Transaction.State.ACCEPTED;// TODO improve check
+			
+			if (tx.isCompleted() && !forked2xx)
 				throw new IllegalStateException("no valid transaction");
+			
 			tx.setListener(new ScopedServerTransactionListener(Session.this, this));
-			
-			
+						
 			updateState(response, false);
 			
 			if (isTargetRefresh(request))
@@ -1238,7 +1243,12 @@ public class Session implements SipSessionIf, Dumpable
 				}
 			}
 			
-			tx.send(response);
+			if (!forked2xx)
+				tx.send(response);
+			else
+			{
+				getServer().sendResponse(response, tx.getConnection());
+			}
 		}
 		
 		private boolean isTargetRefresh(SipMessage message)

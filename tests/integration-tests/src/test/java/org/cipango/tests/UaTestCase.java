@@ -13,8 +13,8 @@
 // ========================================================================
 package org.cipango.tests;
 
+import static org.cipango.tests.matcher.SipMatchers.isSuccess;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.cipango.tests.matcher.SipMatchers.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -37,7 +37,6 @@ import org.cipango.client.SipClient;
 import org.cipango.client.SipClient.Protocol;
 import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
-import org.cipango.client.UserAgent;
 
 public abstract class UaTestCase extends TestCase
 {
@@ -115,7 +114,17 @@ public abstract class UaTestCase extends TestCase
 
 	public Endpoint createEndpoint(String user)
 	{
+		return createEndpoint(user, null);
+	}
+	
+	/**
+	 * As Cipango-client filter initial requests on To URI, in forked tests, the user should be set same value.
+	 * To be able to differentiate them an alias can be set.
+	 */
+	public Endpoint createEndpoint(String user, String alias)
+	{
 		Endpoint e = new Endpoint(user, getDomain(), _nextPort++);
+		e.setAlias(alias);
 		_endpoints.add(e);
 		return e;
 	}
@@ -231,6 +240,7 @@ public abstract class UaTestCase extends TestCase
 		private String _user;
 		private String _uri;
 		private int _port;
+		private String _alias;
 		
 		public Endpoint(String user, String domain, int port)
 		{
@@ -274,14 +284,15 @@ public abstract class UaTestCase extends TestCase
 			try
 			{
 				Address addr = client.getFactory().createAddress(_uri);
-				UserAgent ua = client.getUserAgent(addr.getURI()); 
+				TestAgent ua = (TestAgent) client.getUserAgent(addr.getURI()); 
 				if (ua == null)
 				{
 					ua = decorate(new TestAgent(addr));
 					ua.setTimeout(getTimeout());
+					ua.setAlias(getAlias());
 					client.addUserAgent(ua);
 				}
-				return (TestAgent) ua;
+				return ua;
 
 			} catch (ServletParseException e) {
 				throw new RuntimeException(e);
@@ -307,6 +318,18 @@ public abstract class UaTestCase extends TestCase
 	    		}
 			}
 			return _client;
+		}
+
+		public String getAlias()
+		{
+			if (_alias == null)
+				return _user;
+			return _alias;
+		}
+
+		public void setAlias(String alias)
+		{
+			_alias = alias;
 		}
 	}
 }

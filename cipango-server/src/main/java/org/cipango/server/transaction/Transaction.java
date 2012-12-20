@@ -165,6 +165,11 @@ public abstract class Transaction
 		_timerTasks.remove(timer);
 	}
 	
+	protected boolean isCanceled(Timer timer)
+	{
+		return _timerTasks.get(timer) == null;
+	}
+	
 	
 	public SipRequest getRequest()
 	{

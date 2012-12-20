@@ -204,8 +204,14 @@ public class ServerTransaction extends Transaction
 		getServer().sendResponse(response, getConnection());
 	}
 	
-	protected void timeout(Timer timer)
+	protected synchronized void timeout(Timer timer)
 	{
+		if (isCanceled(timer))
+		{
+			LOG.debug("Do not run timer {} on transaction {} as it is canceled ", timer, this);
+			return;
+		}
+		
 		switch(timer)
 		{
 			case G:

@@ -96,7 +96,7 @@ public class SipApplicationSessionTest extends UaTestCase
         HttpClient client = new HttpClient();
 		client.start();
 		 
-		ContentResponse httpResponse = client.GET(encodedUrl).get(3, TimeUnit.SECONDS);
+		ContentResponse httpResponse = client.GET(encodedUrl);
 		assertThat(httpResponse.getStatus(), is(HttpStatus.OK_200));
 		
 		request = call.waitForRequest();
@@ -106,7 +106,7 @@ public class SipApplicationSessionTest extends UaTestCase
 		String cookie = getCookie(httpResponse);
 		Request httpRequest = client.newRequest(urlToEncode);
 		httpRequest.getHeaders().add(HttpHeader.COOKIE, cookie);
-		httpResponse = httpRequest.send().get(3, TimeUnit.SECONDS);
+		httpResponse = httpRequest.send();
 		assertThat(httpResponse.getStatus(), is(HttpStatus.OK_200));
 		
 		request = call.waitForRequest();
@@ -179,13 +179,13 @@ public class SipApplicationSessionTest extends UaTestCase
         HttpClient client = new HttpClient();
 		client.start();
 		 
-		ContentResponse httpResponse = client.GET(urlToEncode).get(3, TimeUnit.SECONDS);
+		ContentResponse httpResponse = client.GET(urlToEncode);
 		assertThat(httpResponse.getStatus(), is(HttpStatus.OK_200));
 		
 		String cookie = getCookie(httpResponse);
 		Request httpRequest = client.newRequest(encodedUrl);
 		httpRequest.getHeaders().add(HttpHeader.COOKIE, cookie);
-		httpResponse = httpRequest.send().get(3, TimeUnit.SECONDS);
+		httpResponse = httpRequest.send();
 		assertThat(httpResponse.getStatus(), is(HttpStatus.OK_200));
 		
 		request = call.waitForRequest();

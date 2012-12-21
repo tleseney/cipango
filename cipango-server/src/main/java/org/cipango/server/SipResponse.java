@@ -17,7 +17,10 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
 import java.util.Locale;
 
 import javax.servlet.ServletOutputStream;
@@ -33,6 +36,7 @@ import org.cipango.server.session.SessionManager.ApplicationSessionScope;
 import org.cipango.server.transaction.ClientTransaction;
 import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.AddressImpl;
+import org.cipango.sip.Authenticate;
 import org.cipango.sip.SipFields;
 import org.cipango.sip.SipFields.Field;
 import org.cipango.sip.SipGenerator;
@@ -268,8 +272,20 @@ public class SipResponse extends SipMessage implements SipServletResponse
 
 	@Override
 	public Iterator<String> getChallengeRealms() {
-		// TODO Auto-generated method stub
-		return null;
+		List<String> list = new ArrayList<String>();
+		ListIterator<String > it = _fields.getValues(SipHeader.WWW_AUTHENTICATE.asString());
+		while (it.hasNext())
+		{
+			Authenticate authenticate = new Authenticate(it.next());
+			list.add(authenticate.getParameter(Authenticate.Param.REALM.toString()));
+		}
+		it = _fields.getValues(SipHeader.PROXY_AUTHENTICATE.asString());
+		while (it.hasNext())
+		{
+			Authenticate authenticate = new Authenticate(it.next());
+			list.add(authenticate.getParameter(Authenticate.Param.REALM.toString()));
+		}
+		return list.iterator();
 	}
 
 	@Override

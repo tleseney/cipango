@@ -58,6 +58,7 @@ import org.cipango.server.SipConnector;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipServer;
 import org.cipango.server.handler.SipHandlerWrapper;
+import org.cipango.server.security.AuthInfoImpl;
 import org.cipango.server.servlet.SipDispatcher;
 import org.cipango.server.servlet.SipServletHandler;
 import org.cipango.server.servlet.SipServletHolder;
@@ -815,8 +816,7 @@ public class SipAppContext extends SipHandlerWrapper
 		@Override
 		public AuthInfo createAuthInfo()
 		{
-			// TODO Auto-generated method stub
-			return null;
+			return new AuthInfoImpl();
 		}
 
 		@Override

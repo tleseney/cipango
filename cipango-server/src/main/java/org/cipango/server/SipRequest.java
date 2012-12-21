@@ -24,6 +24,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
 
@@ -49,12 +50,16 @@ import javax.servlet.sip.ar.SipApplicationRouterInfo;
 import javax.servlet.sip.ar.SipApplicationRoutingDirective;
 import javax.servlet.sip.ar.SipApplicationRoutingRegion;
 
+import org.cipango.server.security.AuthInfoImpl;
+import org.cipango.server.security.AuthInfoImpl.AuthElement;
 import org.cipango.server.session.SessionManager.ApplicationSessionScope;
 import org.cipango.server.session.scoped.ScopedServerTransactionListener;
 import org.cipango.server.transaction.ClientTransaction;
 import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.AddressImpl;
+import org.cipango.sip.Authenticate;
+import org.cipango.sip.Authorization;
 import org.cipango.sip.SipFields.Field;
 import org.cipango.sip.RAck;
 import org.cipango.sip.SipGenerator;
@@ -391,15 +396,45 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	@Override
 	public void addAuthHeader(SipServletResponse response, AuthInfo authInfo)
 	{
-		// TODO Auto-generated method stub
-
+		ListIterator<String> authenticates = response.getHeaders(SipHeader.WWW_AUTHENTICATE.toString());
+		while (authenticates.hasNext())
+		{
+			Authenticate authenticate = new Authenticate(authenticates.next());
+			AuthElement element = ((AuthInfoImpl) authInfo).getAuthElement(response.getStatus(), authenticate.getRealm());
+			Authorization authorization = 
+				new Authorization(authenticate, element.getUsername(), element.getPassword(), _requestUri.toString(), getMethod());
+			addHeader(SipHeader.AUTHORIZATION.toString(), authorization.toString());
+		}
+		authenticates = response.getHeaders(SipHeader.PROXY_AUTHENTICATE.toString());
+		while (authenticates.hasNext())
+		{
+			Authenticate authenticate = new Authenticate(authenticates.next());
+			AuthElement element = ((AuthInfoImpl) authInfo).getAuthElement(response.getStatus(), authenticate.getRealm());
+			Authorization authorization = 
+				new Authorization(authenticate, element.getUsername(), element.getPassword(), _requestUri.toString(), getMethod());
+			addHeader(SipHeader.PROXY_AUTHORIZATION.toString(), authorization.toString());
+		}
 	}
 
 	@Override
 	public void addAuthHeader(SipServletResponse response, String username, String password)
 	{
-		// TODO Auto-generated method stub
-
+		ListIterator<String> authenticates = response.getHeaders(SipHeader.WWW_AUTHENTICATE.toString());
+		while (authenticates.hasNext())
+		{
+			Authenticate authenticate = new Authenticate(authenticates.next());
+			Authorization authorization = 
+				new Authorization(authenticate, username, password, _requestUri.toString(), getMethod());
+			addHeader(SipHeader.AUTHORIZATION.toString(), authorization.toString());
+		}
+		authenticates = response.getHeaders(SipHeader.PROXY_AUTHENTICATE.toString());
+		while (authenticates.hasNext())
+		{
+			Authenticate authenticate = new Authenticate(authenticates.next());
+			Authorization authorization = 
+				new Authorization(authenticate, username, password, _requestUri.toString(), getMethod());
+			addHeader(SipHeader.PROXY_AUTHORIZATION.toString(), authorization.toString());
+		}
 	}
 
 	@Override

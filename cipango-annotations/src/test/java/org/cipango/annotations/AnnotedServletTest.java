@@ -108,8 +108,14 @@ public class AnnotedServletTest
 		}
         
         EventListener[] listeners = _context.getEventListeners();
-        assertEquals(1, listeners.length);
-        assertEquals(AnnotedServlet.class, listeners[0].getClass());
+        boolean found = false; // There could be 2 listeners as SipAppContext had a listener
+
+        for (EventListener l : listeners)
+        {
+        	if (l instanceof AnnotedServlet)
+        		found = true;
+        }
+        assertTrue("No listener found", found);
 	}
 
 }

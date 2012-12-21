@@ -99,7 +99,8 @@ public class SipServletHolder extends AbstractLifeCycle implements Comparable<Si
 			try
 			{
 				_servlet.destroy();
-				_servletHandler.destroyServlet(_servlet);
+				if (_servletHandler != null)
+					_servletHandler.destroyServlet(_servlet);
 			}
 			catch (Exception e)
 			{

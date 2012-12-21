@@ -113,15 +113,10 @@
                   <artifactId>cipango-diameter</artifactId>
                   <classifier>config</classifier>
                 </artifactItem>
-                <artifactItem>
-                  <groupId>org.cipango</groupId>
-                  <artifactId>cipango-jmx</artifactId>
-                  <classifier>config</classifier>
-                </artifactItem>
 -->
                 <artifactItem>
                   <groupId>org.cipango</groupId>
-                  <artifactId>cipango-plus</artifactId>
+                  <artifactId>cipango-annotations</artifactId>
                   <classifier>config</classifier>
                 </artifactItem>
                 <artifactItem>
@@ -176,10 +171,6 @@
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-diameter</artifactId>
                   <outputDirectory>${assembly-directory}/lib/diameter</outputDirectory>
-                </artifactItem>
-                <artifactItem>
-                  <groupId>org.cipango</groupId>
-                  <artifactId>cipango-jmx</artifactId>
                 </artifactItem>
 -->
                 <artifactItem>
@@ -273,11 +264,6 @@
     <dependency>
       <groupId>org.cipango</groupId>
       <artifactId>cipango-diameter</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.cipango</groupId>
-      <artifactId>cipango-jmx</artifactId>
       <version>${project.version}</version>
     </dependency>
 -->

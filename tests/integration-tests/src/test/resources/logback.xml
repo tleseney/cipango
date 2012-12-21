@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- nexpressoflash logback configuration file -->
-
 <configuration>
 
   <!-- documentation about logback appenders configuration can be found here:
        http://logback.qos.ch/manual/appenders.html -->
 
   <appender name="file" class="ch.qos.logback.core.FileAppender">
-    <File>target/logs/sipunit.log</File>   
+    <File>target/logs/cipango-client.log</File>   
     <encoder>
       <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{35} - %msg%n</pattern>
     </encoder>

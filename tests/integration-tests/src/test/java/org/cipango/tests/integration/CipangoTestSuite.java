@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // ========================================================================
-package org.cipango.tests;
+package org.cipango.tests.integration;
 
 import java.util.Enumeration;
 
@@ -39,6 +39,7 @@ public class CipangoTestSuite
 		suite.addTestSuite(org.cipango.tests.integration.SipApplicationSessionTest.class);
 		suite.addTestSuite(org.cipango.tests.integration.TcpTest.class);
 		suite.addTestSuite(org.cipango.tests.integration.UacTest.class);
+		suite.addTestSuite(org.cipango.tests.integration.UasTest.class);
 		
 		//suite = filterOneTest(suite, "testCancel");
 		return suite;

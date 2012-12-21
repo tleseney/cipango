@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2011 NEXCOM Systems
+// Copyright 2011-2012 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ public class ServletContextListenerServlet extends AbstractServlet implements Se
 	public void init()
 	{
 		if (_init != 1)
-			_error = "Context initialized called not called before servlet init";
+			_error = "Context initialized not called before servlet init";
 	}
 	
 	public void testInit(SipServletRequest request) throws Exception

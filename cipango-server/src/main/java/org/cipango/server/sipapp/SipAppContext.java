@@ -26,6 +26,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletContext;
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
 import javax.servlet.ServletException;
 import javax.servlet.sip.Address;
 import javax.servlet.sip.AuthInfo;
@@ -132,6 +134,7 @@ public class SipAppContext extends SipHandlerWrapper
     private final List<TimerListener> _timerListeners = new CopyOnWriteArrayList<TimerListener>();
     private final List<SipErrorListener> _errorListeners = new CopyOnWriteArrayList<SipErrorListener>();
     private final List<SipServletListener> _servletListeners =  new CopyOnWriteArrayList<SipServletListener>();
+    private final List<ServletContextListener> _contextListeners = new CopyOnWriteArrayList<ServletContextListener>();
     
     private final SipFactory _sipFactory;
     private TimerService _timerService;
@@ -177,11 +180,19 @@ public class SipAppContext extends SipHandlerWrapper
 			// if (_sipSecurityHandler!=null)
 			// {
 			// _sipSecurityHandler.setHandler(_servletHandler);
-			// _sipSecurityHandler.start(); // FIXME when should it be started
 			// }
 			_metaData.resolve(SipAppContext.this);
 	
 			super.doStart();
+			
+			// As SipAppContext is started by a servletContextListener, if some servletContextListeners have been defined
+			// in sip, its will not be added too late on WebAppContext, so invoke them here
+	    	if (!_contextListeners.isEmpty())
+	    	{
+	    		ServletContextEvent sce = new ServletContextEvent(getServletContext());
+				for (ServletContextListener listener : _contextListeners)
+					listener.contextInitialized(sce);
+	    	}
 			
 			_servletHandler.initialize();
 	
@@ -329,26 +340,63 @@ public class SipAppContext extends SipHandlerWrapper
 	
 	public void setWebAppContext(WebAppContext context)
 	{
-		_context = context;
-		// As WebAppContextListener is added, this class already managed by WebAppContext.
-		context.addBean(this, false);
-		//context.manage(this);
-		
-		WebAppContextListener l = new WebAppContextListener();
-		context.addLifeCycleListener(l);
-		
-		// Ensure that lifeCycleStarting is call even if context is starting.
-		if (context.isStarting())
-			l.lifeCycleStarting(context);
-
-		_sContext = new SContext(_context.getServletContext());
-
-		if (context.getConfigurations() == null  && context.getConfigurationClasses() == context.getDefaultConfigurationClasses())
+		if (_context != context)
 		{
-			String[] classes = ArrayUtil.addToArray(context.getDefaultConfigurationClasses(), 
-					"org.cipango.server.sipapp.SipXmlConfiguration",
-					String.class);
-			context.setConfigurationClasses(classes);
+			_context = context;
+			// As ServletContextListener is added, this class already managed by WebAppContext.
+			context.addBean(this, false);
+			
+			_context.setAttribute(SipServlet.PRACK_SUPPORTED, Boolean.TRUE);
+		    _context.setAttribute(SipServlet.SIP_FACTORY, getSipFactory());
+		    _context.setAttribute(SipServlet.TIMER_SERVICE, getTimerService());
+		    _context.setAttribute(SipServlet.SIP_SESSIONS_UTIL, getSipSessionsUtil());
+		    _context.setAttribute(SipServlet.SUPPORTED, Collections.unmodifiableList(Arrays.asList(EXTENSIONS)));
+		    _context.setAttribute(SipServlet.SUPPORTED_RFCs, Collections.unmodifiableList(Arrays.asList(SUPPORTED_RFC)));
+			
+			
+			// In order to ensure that ServletContextListener is called before HTTP and SIP servlet initialization
+			// a ServletContextListener is added to WebAppContext in order for SipAppContext to be started
+			context.addEventListener(new ServletContextListener()
+			{
+				
+				@Override
+				public void contextInitialized(ServletContextEvent sce)
+				{
+					try
+					{
+						SipAppContext.this.start();
+					}
+					catch (Exception e)
+					{
+						LOG.warn("Failed to start SipAppContext " + getName(), e);
+						_context.setAvailable(false);
+					}
+					
+				}
+				
+				@Override
+				public void contextDestroyed(ServletContextEvent sce)
+				{
+					try
+					{
+						SipAppContext.this.stop();
+					}
+					catch (Exception e)
+					{
+						LOG.warn("Failed to stop SipAppContext " + getName(), e);
+					}
+				}
+			});
+				
+			_sContext = new SContext(_context.getServletContext());
+	
+			if (context.getConfigurations() == null  && context.getConfigurationClasses() == context.getDefaultConfigurationClasses())
+			{
+				String[] classes = ArrayUtil.addToArray(context.getDefaultConfigurationClasses(), 
+						"org.cipango.server.sipapp.SipXmlConfiguration",
+						String.class);
+				context.setConfigurationClasses(classes);
+			}
 		}
 	}
 	
@@ -434,6 +482,8 @@ public class SipAppContext extends SipHandlerWrapper
             _errorListeners.add((SipErrorListener) listener);
         if (listener instanceof SipServletListener)
         	_servletListeners.add((SipServletListener) listener);
+        if (listener instanceof ServletContextListener)
+        	_contextListeners.add((ServletContextListener) listener);
     	
         if ((listener instanceof SipApplicationSessionAttributeListener)
             || (listener instanceof SipSessionListener)
@@ -677,55 +727,7 @@ public class SipAppContext extends SipHandlerWrapper
 			//return super.getServerInfo();
 		}
 	}
-	
-	/**
-	 * Use the a LifeCycle.Listener as some stuff should be done before and other after WebApp start.
-	 */
-	private class WebAppContextListener extends AbstractLifeCycleListener
-	{
-
-		@SuppressWarnings("deprecation")
-		@Override
-		public void lifeCycleStarting(LifeCycle event)
-		{
-		    _context.setAttribute(SipServlet.PRACK_SUPPORTED, Boolean.TRUE);
-		    _context.setAttribute(SipServlet.SIP_FACTORY, getSipFactory());
-		    _context.setAttribute(SipServlet.TIMER_SERVICE, getTimerService());
-		    _context.setAttribute(SipServlet.SIP_SESSIONS_UTIL, getSipSessionsUtil());
-		    _context.setAttribute(SipServlet.SUPPORTED, Collections.unmodifiableList(Arrays.asList(EXTENSIONS)));
-		    _context.setAttribute(SipServlet.SUPPORTED_RFCs, Collections.unmodifiableList(Arrays.asList(SUPPORTED_RFC)));
-		}
-
-		@Override
-		public void lifeCycleStarted(LifeCycle event)
-		{
-			try
-			{
-				SipAppContext.this.start();
-			}
-			catch (Exception e) 
-			{
-				LOG.warn("Failed to start SipAppContext " + getName(), e);
-				_context.setAvailable(false);
-			}
-			
-		}
-
-		@Override
-		public void lifeCycleStopping(LifeCycle event)
-		{
-			try
-			{
-				SipAppContext.this.stop();
-			}
-			catch (Exception e) 
-			{
-				LOG.warn("Failed to stop SipAppContext " + getName(), e);
-			}
-		}
 		
-	}
-	
     private class SessionUtil implements SipSessionsUtil
     {
 

@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2010 NEXCOM Systems
+// Copyright 2010-2012 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ public class CipangoTestSuite
 		TestSuite suite = new TestSuite(CipangoTestSuite.class.getName());
 
 		suite.addTestSuite(org.cipango.tests.integration.AuthenticationTest.class);
-		//suite.addTestSuite(org.cipango.sipunit.test.B2bHelperForkTest.class);
+		suite.addTestSuite(org.cipango.tests.integration.B2bHelperForkTest.class);
 		suite.addTestSuite(org.cipango.tests.integration.B2bHelperTest.class);
 		suite.addTestSuite(org.cipango.tests.integration.DoubleRecordRouteTest.class);
 		suite.addTestSuite(org.cipango.tests.integration.InvalidateWhenReadyTest.class);

@@ -86,7 +86,7 @@ public class TcpTest extends UaTestCase
 			_sipClient.addConnector(SipClient.Protocol.TCP, null, getLocalPort());
 
 			call.start();
-			startScenario();
+			startUacScenario();
 			call.join(2000);
 			call.assertDone();
 		}

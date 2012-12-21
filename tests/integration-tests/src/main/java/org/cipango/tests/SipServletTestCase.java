@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2007-2008 NEXCOM Systems
+// Copyright 2007-2012 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import java.util.List;
 
 import javax.servlet.ServletException;
 import javax.servlet.sip.SipFactory;
+import javax.servlet.sip.SipServlet;
 import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
@@ -33,7 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("serial")
-public class SipServletTestCase extends Assert
+public class SipServletTestCase extends SipServlet
 {
 	private static final Logger __logger = LoggerFactory.getLogger(SipServletTestCase.class);
 	private SipFactory _sipFactory;	

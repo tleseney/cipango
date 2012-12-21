@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2007-2008 NEXCOM Systems
+// Copyright 2007-2012 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("serial")
 public class SipAppHttpServlet extends HttpServlet
 {
 	private static final Logger __logger = LoggerFactory.getLogger(SipAppHttpServlet.class);

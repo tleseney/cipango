@@ -338,6 +338,7 @@ public class SipAppContext extends SipHandlerWrapper
 	}
 
 	
+	@SuppressWarnings("deprecation")
 	public void setWebAppContext(WebAppContext context)
 	{
 		if (_context != context)

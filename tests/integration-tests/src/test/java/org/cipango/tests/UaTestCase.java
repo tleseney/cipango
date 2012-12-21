@@ -201,7 +201,7 @@ public abstract class UaTestCase extends TestCase
         assertThat(response, isSuccess());
 	}
 	
-	public void startScenario() throws IOException, ServletException
+	public void startUacScenario() throws IOException, ServletException
 	{
 		SipServletRequest request = _ua.createRequest(SipMethods.REGISTER, getTo());
 		request.addHeader(SipHeaders.CONTACT, _sipClient.getContact().toString());

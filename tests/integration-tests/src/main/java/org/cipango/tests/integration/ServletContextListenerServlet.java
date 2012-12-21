@@ -13,6 +13,7 @@
 // ========================================================================
 package org.cipango.tests.integration;
 
+import static org.junit.Assert.*;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import javax.servlet.sip.SipServletRequest;

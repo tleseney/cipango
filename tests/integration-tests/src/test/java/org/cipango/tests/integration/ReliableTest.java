@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2010 NEXCOM Systems
+// Copyright 2010-2012 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -218,7 +218,7 @@ public class ReliableTest extends UaTestCase
 		try
 		{
 			call.start();
-			startScenario();
+			startUacScenario();
 			call.join(2000);
 			call.assertDone();
 		}

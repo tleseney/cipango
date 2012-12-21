@@ -1,5 +1,4 @@
 // ========================================================================
-// Copyright 2010 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +12,7 @@
 // ========================================================================
 package org.cipango.tests.integration;
 
+import static org.junit.Assert.*;
 import java.io.IOException;
 
 import javax.servlet.ServletException;

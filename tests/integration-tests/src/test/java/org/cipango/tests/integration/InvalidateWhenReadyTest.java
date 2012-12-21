@@ -128,7 +128,7 @@ public class InvalidateWhenReadyTest extends UaTestCase
 		try
 		{
 			call.start();
-			startScenario();
+			startUacScenario();
 			call.join(2000);
 			call.assertDone();
 		}

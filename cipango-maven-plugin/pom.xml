@@ -31,7 +31,7 @@
                   <groupId>org.eclipse.jetty</groupId>
                   <artifactId>jetty-maven-plugin</artifactId>
                   <classifier>sources</classifier>
-                  <overWrite>false</overWrite>
+                  <overWrite>true</overWrite>
                 </artifactItem>
               </artifactItems>
               <outputDirectory>${project.build.directory}/jetty-maven-plugin</outputDirectory>
@@ -90,6 +90,7 @@
           <execution>
             <configuration>
               <patchDirectory>${basedir}/src/main/patches</patchDirectory>
+              <optimizations>false</optimizations>
               <patchTrackingFile>${project.build.directory}/patches/patches-applied.txt</patchTrackingFile>
               <targetDirectory>${project.build.directory}/jetty-maven-plugin</targetDirectory>
               <naturalOrderProcessing>true</naturalOrderProcessing>

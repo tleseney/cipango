@@ -948,7 +948,7 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
         	else 
         	{
         		SipResponse timeout = _ctx.create408();
-        		handleResponse(timeout);
+        		_ctx.handleResponse(timeout);
         	}
         }
 

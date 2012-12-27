@@ -34,7 +34,7 @@ import org.eclipse.jetty.util.log.Logger;
 public class ConvergedSessionManager extends HashSessionManager
 {
 	private static final Logger LOG = Log.getLogger(ConvergedSessionManager.class);
-	
+
 	public class Session extends HashedSession implements ConvergedHttpSession
 	{
 		private ApplicationSession _appSession;
@@ -42,49 +42,49 @@ public class ConvergedSessionManager extends HashSessionManager
 		private String _scheme;
 		private int _port;
 		private int _securePort;
-		
+
 		protected Session(HttpServletRequest httpServletRequest)
-        {
-           super(ConvergedSessionManager.this, httpServletRequest);
-           Request request = (Request) httpServletRequest;
-           _serverName = request.getServerName();
-           _scheme = request.getScheme();
-           _securePort = ((Request) request).getHttpChannel().getHttpConfiguration().getSecurePort();
-           _port = request.getServerPort();
-           updateSession(request);
-           
-        }
-		
+		{
+			super(ConvergedSessionManager.this, httpServletRequest);
+			Request request = (Request) httpServletRequest;
+			_serverName = request.getServerName();
+			_scheme = request.getScheme();
+			_securePort = ((Request) request).getHttpChannel().getHttpConfiguration().getSecurePort();
+			_port = request.getServerPort();
+			updateSession(request);
+
+		}
+
 		public void updateSession(HttpServletRequest request)
 		{
 			if (_appSession != null)
 				return;
-			
-			String uri = request.getRequestURI();
-            int semi = uri.lastIndexOf(';');
-            if (semi == -1)
-            	return;
-            
-			String appId = null;
-            String path_params=uri.substring(semi+1);
-            
-            if (path_params!=null && path_params.startsWith(SessionHandler.APP_ID))
-            {
-            	appId = path_params.substring(SessionHandler.APP_ID.length() + 1);
-                if(LOG.isDebugEnabled())
-                	LOG.debug("Got App ID " + appId + " from URL");
-            }
 
-			
-			if (appId != null && !appId.trim().equals("")) 
+			String uri = request.getRequestURI();
+			int semi = uri.lastIndexOf(';');
+			if (semi == -1)
+				return;
+
+			String appId = null;
+			String path_params = uri.substring(semi + 1);
+
+			if (path_params != null && path_params.startsWith(SessionHandler.APP_ID))
+			{
+				appId = path_params.substring(SessionHandler.APP_ID.length() + 1);
+				if (LOG.isDebugEnabled())
+					LOG.debug("Got App ID " + appId + " from URL");
+			}
+
+			if (appId != null && !appId.trim().equals(""))
 			{
 				appId = appId.replace("%3B", ";");
-				_appSession = getSipAppContext().getSessionHandler().getSessionManager().getApplicationSession(appId);
+				_appSession = getSipAppContext().getSessionHandler().getSessionManager()
+						.getApplicationSession(appId);
 				if (_appSession != null && isValid())
 					_appSession.addSession(this);
 			}
 		}
-		
+
 		private SipAppContext getSipAppContext()
 		{
 			return _context.getContextHandler().getBean(SipAppContext.class);
@@ -93,27 +93,26 @@ public class ConvergedSessionManager extends HashSessionManager
 		public String encodeURL(String url)
 		{
 			String sessionURLPrefix = getSessionIdPathParameterNamePrefix();
-			String id= getNodeId();
-			int prefix=url.indexOf(sessionURLPrefix);
-	        if (prefix!=-1)
-	        {
-	            int suffix=url.indexOf("?",prefix);
-	            if (suffix<0)
-	                suffix=url.indexOf("#",prefix);
+			String id = getNodeId();
+			int prefix = url.indexOf(sessionURLPrefix);
+			if (prefix != -1)
+			{
+				int suffix = url.indexOf("?", prefix);
+				if (suffix < 0)
+					suffix = url.indexOf("#", prefix);
 
-	            if (suffix<=prefix)
-	                return url.substring(0, prefix + sessionURLPrefix.length()) + id;
-	            return url.substring(0, prefix + sessionURLPrefix.length()) + id + url.substring(suffix);
-	        }
+				if (suffix <= prefix)
+					return url.substring(0, prefix + sessionURLPrefix.length()) + id;
+				return url.substring(0, prefix + sessionURLPrefix.length()) + id + url.substring(suffix);
+			}
 
-	        // edit the session
-	        int suffix=url.indexOf('?');
-	        if (suffix<0)
-	            suffix=url.indexOf('#');
-	        if (suffix<0)
-	            return url+sessionURLPrefix+id;
-	        return url.substring(0,suffix)+
-	            sessionURLPrefix+id+url.substring(suffix);
+			// edit the session
+			int suffix = url.indexOf('?');
+			if (suffix < 0)
+				suffix = url.indexOf('#');
+			if (suffix < 0)
+				return url + sessionURLPrefix + id;
+			return url.substring(0, suffix) + sessionURLPrefix + id + url.substring(suffix);
 		}
 
 		public String encodeURL(String relativePath, String scheme)
@@ -123,19 +122,20 @@ public class ConvergedSessionManager extends HashSessionManager
 			sb.append(_serverName);
 			if (_scheme.equalsIgnoreCase(scheme))
 			{
-				if (_port>0 && 
-		                ((scheme.equalsIgnoreCase(URIUtil.HTTP) && _port != 80) || 
-		                 (scheme.equalsIgnoreCase(URIUtil.HTTPS) && _port != 443)))
-	                sb.append(':').append(_port);
-			} 
+				if (_port > 0
+						&& ((scheme.equalsIgnoreCase(URIUtil.HTTP) && _port != 80) || (scheme
+								.equalsIgnoreCase(URIUtil.HTTPS) && _port != 443)))
+					sb.append(':').append(_port);
+			}
 			else if (URIUtil.HTTPS.equalsIgnoreCase(scheme) && _securePort != 0)
 			{
 				if (_securePort != 443)
-	                sb.append(':').append(_securePort);
+					sb.append(':').append(_securePort);
 			}
 			else
 			{
-				throw new IllegalArgumentException("Scheme " + scheme + " is not the scheme used for this session "
+				throw new IllegalArgumentException("Scheme " + scheme
+						+ " is not the scheme used for this session "
 						+ " and unable to detect the port for this scheme");
 			}
 			sb.append(_context.getContextPath());
@@ -147,15 +147,16 @@ public class ConvergedSessionManager extends HashSessionManager
 		{
 			if (_appSession == null)
 			{
-				_appSession = getSipAppContext().getSessionHandler().getSessionManager().createApplicationSession();
+				_appSession = getSipAppContext().getSessionHandler().getSessionManager()
+						.createApplicationSession();
 				if (isValid())
 					_appSession.addSession(this);
 			}
 			return new ScopedAppSession(_appSession);
 		}
-		
+
 		@Override
-		protected boolean access(long time) 
+		protected boolean access(long time)
 		{
 			boolean access = super.access(time);
 			if (_appSession != null)
@@ -172,16 +173,26 @@ public class ConvergedSessionManager extends HashSessionManager
 			}
 			return access;
 		}
-		
+
 		@Override
-		 protected void doInvalidate() throws IllegalStateException
+		protected void doInvalidate() throws IllegalStateException
 		{
-			 super.doInvalidate();
-			 if (_appSession != null)
-				 _appSession.removeSession(this);
+			super.doInvalidate();
+			if (_appSession != null)
+			{
+				ApplicationSessionScope scope = _appSession.getSessionManager().openScope(_appSession);
+				try
+				{
+					_appSession.removeSession(this);
+				}
+				finally
+				{
+					scope.close();
+				}
+			}
 		}
 	}
-	
+
 	@Override
 	protected AbstractSession newSession(HttpServletRequest request)
 	{

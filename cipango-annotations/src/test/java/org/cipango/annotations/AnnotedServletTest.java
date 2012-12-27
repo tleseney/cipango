@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2010 NEXCOM Systems
+// Copyright 2010-2012 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -91,7 +91,7 @@ public class AnnotedServletTest
         
         InjectionCollection injectionCollection = (InjectionCollection) _webAppContext.getAttribute(InjectionCollection.INJECTION_COLLECTION);
         List<Injection> injections = injectionCollection.getInjections(AnnotedServlet.class.getName());
-		// Value is set to 9 due to jetty issue at https://bugs.eclipse.org/bugs/show_bug.cgi?id=332796 assertEquals(3, injections.size());
+		assertEquals(3, injections.size());
 		Iterator<Injection> it  = injections.iterator();
 		while (it.hasNext())
 		{

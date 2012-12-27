@@ -39,3 +39,4 @@ target/
 #maven
 *.versionsBackup
 mvn install.bat
+/tests/integration-tests/mvn run.bat

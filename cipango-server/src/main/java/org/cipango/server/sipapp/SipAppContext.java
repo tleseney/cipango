@@ -59,6 +59,8 @@ import org.cipango.server.SipRequest;
 import org.cipango.server.SipServer;
 import org.cipango.server.handler.SipHandlerWrapper;
 import org.cipango.server.security.AuthInfoImpl;
+import org.cipango.server.security.ConstraintSecurityHandler;
+import org.cipango.server.security.SipSecurityHandler;
 import org.cipango.server.servlet.SipDispatcher;
 import org.cipango.server.servlet.SipServletHandler;
 import org.cipango.server.servlet.SipServletHolder;
@@ -78,6 +80,7 @@ import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipURIImpl;
 import org.cipango.sip.URIFactory;
 import org.cipango.util.StringUtil;
+import org.eclipse.jetty.security.SecurityHandler;
 import org.eclipse.jetty.server.handler.HandlerWrapper;
 import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
@@ -126,6 +129,7 @@ public class SipAppContext extends SipHandlerWrapper
 
 	private final SessionHandler _sessionHandler;
 	private SipServletHandler _servletHandler;
+	private SipSecurityHandler<?> _securityHandler;
 	private int _specVersion;
 	
 	private WebAppContext _context;
@@ -155,6 +159,7 @@ public class SipAppContext extends SipHandlerWrapper
 	{
 		_sessionHandler = new SessionHandler();
 		_servletHandler = new SipServletHandler();
+		_securityHandler = new ConstraintSecurityHandler();
 		_metaData = new MetaData();
 		_sipFactory = new Factory();
 		_timerService = new TimerServiceImpl();
@@ -178,10 +183,6 @@ public class SipAppContext extends SipHandlerWrapper
 			
 			relinkHandlers();
 	
-			// if (_sipSecurityHandler!=null)
-			// {
-			// _sipSecurityHandler.setHandler(_servletHandler);
-			// }
 			_metaData.resolve(SipAppContext.this);
 	
 			super.doStart();
@@ -232,11 +233,6 @@ public class SipAppContext extends SipHandlerWrapper
 	{
 		super.doStop();	
 				
-//			if (_sipSecurityHandler != null)
-//				_sipSecurityHandler.stop();
-			
-		_servletHandler.stop();
-		
 		if (getServer() != null && _serverListener != null)
 			getServer().removeLifeCycleListener(_serverListener);
 		_serverListener = null;
@@ -259,6 +255,12 @@ public class SipAppContext extends SipHandlerWrapper
 		{
 			handler.setHandler(_sessionHandler);
 			handler = _sessionHandler;
+		}
+		
+		if (getSecurityHandler() != null)
+		{
+			handler.setHandler(_securityHandler);
+			handler = _securityHandler;
 		}
 
 		if (getServletHandler() != null)
@@ -675,6 +677,13 @@ public class SipAppContext extends SipHandlerWrapper
 	{
 		return _sessionHandler;
 	}
+	
+	
+	@ManagedAttribute(value="context security handler", readonly=true)
+	public SipSecurityHandler<?> getSecurityHandler()
+	{
+		return _securityHandler;
+	}
 
 	public List<TimerListener> getTimerListeners()
 	{
@@ -744,7 +753,7 @@ public class SipAppContext extends SipHandlerWrapper
 		{
 			if (key == null)
 				throw new NullPointerException("Null key");
-			// TODO scope
+
 			SessionManager manager = _sessionHandler.getSessionManager();
 			String id = manager.getApplicationSessionIdByKey(key);
 			ApplicationSession appSession = manager.getApplicationSession(id);
@@ -950,5 +959,6 @@ public class SipAppContext extends SipHandlerWrapper
 	{
 		void decorateServletHolder(SipServletHolder servlet) throws ServletException;
 	}
+
 
 }

@@ -71,7 +71,7 @@ public class DigestAuthenticator
 		return H(secret + ":" + data);
 	}
 
-	private String H(String s)
+	private synchronized String H(String s)
 	{
 		md.reset();
 		try

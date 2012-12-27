@@ -175,10 +175,7 @@ public class SipServletHandler extends AbstractSipHandler
 		if (message.isRequest())
 		{
 			SipRequest request = (SipRequest) message;
-			
-			if (holder == null)
-				holder = getHolder(request);
-			
+				
 			if (holder != null)
 				holder.handle(request);
 			else
@@ -186,9 +183,6 @@ public class SipServletHandler extends AbstractSipHandler
 		}
 		else
 		{
-			if (holder == null)
-				holder = message.session().getHandler();
-						
 			if (holder != null)
 				holder.handle(message);
 			else
@@ -201,7 +195,7 @@ public class SipServletHandler extends AbstractSipHandler
 		return _nameMap == null ? null : _nameMap.get(name);
 	}
 	
-	protected SipServletHolder getHolder(SipRequest request)
+	public SipServletHolder getHolder(SipRequest request)
 	{
 		if (request.isInitial())
 		{

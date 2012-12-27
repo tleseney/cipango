@@ -16,6 +16,10 @@ import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.server.SipMessage;
+import org.eclipse.jetty.security.IdentityService;
+import org.eclipse.jetty.security.RunAsToken;
+import org.eclipse.jetty.server.UserIdentity;
+import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.Loader;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
@@ -24,7 +28,7 @@ import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
 @ManagedObject("SIP servlet holder")
-public class SipServletHolder extends AbstractLifeCycle implements Comparable<SipServletHolder>
+public class SipServletHolder extends AbstractLifeCycle implements UserIdentity.Scope, Comparable<SipServletHolder>
 {
 	private static final Logger LOG = Log.getLogger(SipServletHolder.class);
 	
@@ -48,6 +52,10 @@ public class SipServletHolder extends AbstractLifeCycle implements Comparable<Si
 	private final Map<String, String> _initParams = new HashMap<String, String>();
 	
 	private transient UnavailableException _unavailableEx;
+	
+
+    private Map<String, String> _roleMap;
+    private String _runAsRole;
 	
 	protected void doStart() throws Exception
 	{
@@ -378,5 +386,67 @@ public class SipServletHolder extends AbstractLifeCycle implements Comparable<Si
     public String toString()
     {
         return String.format("%s@%x==%s,%d,%b",_name,hashCode(),_className,_initOrder,_servlet!=null);
+    }
+    
+    /** Link a user role.
+     * Translate the role name used by a servlet, to the link name
+     * used by the container.
+     * @param name The role name as used by the servlet
+     * @param link The role name as used by the container.
+     */
+    public synchronized void setUserRoleLink(String name,String link)
+    {
+        if (_roleMap==null)
+            _roleMap=new HashMap<String, String>();
+        _roleMap.put(name,link);
+    }
+
+    /* ------------------------------------------------------------ */
+    /** get a user role link.
+     * @param name The name of the role
+     * @return The name as translated by the link. If no link exists,
+     * the name is returned.
+     */
+    public String getUserRoleLink(String name)
+    {
+        if (_roleMap==null)
+            return name;
+        String link= _roleMap.get(name);
+        return (link==null)?name:link;
+    }
+
+    /* ------------------------------------------------------------ */
+    public Map<String, String> getRoleMap()
+    {
+        return _roleMap == null? ServletHolder.NO_MAPPED_ROLES : _roleMap;
+    }
+    
+    @Override
+    public String getContextPath()
+    {
+        return _config.getServletContext().getContextPath();
+    }
+
+    /* ------------------------------------------------------------ */
+    /**
+     * @see org.eclipse.jetty.server.UserIdentity.Scope#getRoleRefMap()
+     */
+    @Override
+    public Map<String, String> getRoleRefMap()
+    {
+        return _roleMap;
+    }
+
+    /* ------------------------------------------------------------ */
+    @ManagedAttribute(value="role to run servlet as", readonly=true)
+    public String getRunAsRole()
+    {
+        return _runAsRole;
+    }
+
+    /* ------------------------------------------------------------ */
+    public void setRunAsRole(String role)
+    {
+        _runAsRole = role;
     }
 }

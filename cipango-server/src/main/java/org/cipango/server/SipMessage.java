@@ -2,7 +2,6 @@ package org.cipango.server;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.InetAddress;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,6 +38,7 @@ import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipVersion;
 import org.cipango.sip.Via;
 import org.eclipse.jetty.http.HttpFields;
+import org.eclipse.jetty.server.UserIdentity;
 import org.eclipse.jetty.util.Attributes;
 import org.eclipse.jetty.util.AttributesMap;
 import org.eclipse.jetty.util.LazyList;
@@ -76,6 +76,8 @@ public abstract class SipMessage implements SipServletMessage
 	private String _initialRemoteAddr;
 	private int _initialRemotePort;
 	private String _initialTransport;
+
+	private UserIdentity _userIdentity;
 	
 	public SipMessage()
 	{
@@ -697,8 +699,10 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public String getRemoteUser() {
-		// TODO Auto-generated method stub
+	public String getRemoteUser() 
+	{
+		if (_userIdentity != null)
+			return _userIdentity.getUserPrincipal().getName(); // TODO check that this returns every time the right value
 		return null;
 	}
 
@@ -735,8 +739,10 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public Principal getUserPrincipal() {
-		// TODO Auto-generated method stub
+	public Principal getUserPrincipal() 
+	{
+		if (_userIdentity != null)
+			return _userIdentity.getUserPrincipal();
 		return null;
 	}
 
@@ -760,8 +766,10 @@ public abstract class SipMessage implements SipServletMessage
 	}
 
 	@Override
-	public boolean isUserInRole(String arg0) {
-		// TODO Auto-generated method stub
+	public boolean isUserInRole(String role) 
+	{
+		if (_userIdentity != null)
+			return _userIdentity.isUserInRole(role, getHandler());
 		return false;
 	}
 
@@ -993,7 +1001,14 @@ public abstract class SipMessage implements SipServletMessage
 
 	public SipServletHolder getHandler()
 	{
-		return _handler;
+		if (_handler != null)
+			return _handler;
+		SipServletHolder holder = session().getHandler();
+		if (holder == null && isRequest())
+		{
+			holder = appSession().getContext().getServletHandler().getHolder((SipRequest) this);
+		}
+		return holder;
 	}
 
 	public void setHandler(SipServletHolder handler)
@@ -1014,6 +1029,16 @@ public abstract class SipMessage implements SipServletMessage
 	public void setInitialTransport(String initialTransport)
 	{
 		_initialTransport = initialTransport;
+	}
+	
+	public UserIdentity getUserIdentity()
+	{
+		return _userIdentity;
+	}
+
+	public void setUserIdentity(UserIdentity userIdentity)
+	{
+		_userIdentity = userIdentity;
 	}
 
 }

@@ -157,6 +157,7 @@ public class AuthenticationTest extends UaTestCase
 	public void testInvalidNonce() throws Exception
 	{
 		SipServletRequest request = _ua.createRequest(SipMethods.MESSAGE, getTo());
+		request.getSession().setInvalidateWhenReady(false);
 		SipServletResponse response = _ua.sendSynchronous(request);
 		assertThat(response, hasStatus(SipServletResponse.SC_UNAUTHORIZED));
         

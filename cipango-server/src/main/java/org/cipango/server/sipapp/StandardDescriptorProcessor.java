@@ -1,20 +1,27 @@
 // ========================================================================
-// Copyright (c) 2006-2010 Mort Bay Consulting Pty. Ltd.
+// Copyright 2010-2012 NEXCOM Systems
 // ------------------------------------------------------------------------
-// All rights reserved. This program and the accompanying materials
-// are made available under the terms of the Eclipse Public License v1.0
-// and Apache License v2.0 which accompanies this distribution.
-// The Eclipse Public License is available at 
-// http://www.eclipse.org/legal/epl-v10.html
-// The Apache License v2.0 is available at
-// http://www.opensource.org/licenses/apache2.0.php
-// You may elect to redistribute this code under either of these licenses. 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at 
+// http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 // ========================================================================
-
 package org.cipango.server.sipapp;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
+import org.cipango.server.security.Constraint;
+import org.cipango.server.security.ConstraintMapping;
+import org.cipango.server.security.ConstraintSecurityHandler;
+import org.cipango.server.security.SipSecurityHandler;
+import org.cipango.server.security.SipSecurityHandler.IdentityAssertionScheme;
 import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.sipapp.rules.AndRule;
 import org.cipango.server.sipapp.rules.ContainsRule;
@@ -24,6 +31,7 @@ import org.cipango.server.sipapp.rules.MatchingRule;
 import org.cipango.server.sipapp.rules.NotRule;
 import org.cipango.server.sipapp.rules.OrRule;
 import org.cipango.server.sipapp.rules.SubdomainRule;
+import org.eclipse.jetty.security.UserDataConstraint;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.webapp.Descriptor;
@@ -54,9 +62,9 @@ public class StandardDescriptorProcessor extends IterativeDescriptorProcessor
             registerVisitor("servlet", this.getClass().getDeclaredMethod("visitServlet",  __signature));
             registerVisitor("servlet-mapping", this.getClass().getDeclaredMethod("visitServletMapping",  __signature));
             registerVisitor("session-config", this.getClass().getDeclaredMethod("visitSessionConfig",  __signature));
-// FIXME           registerVisitor("security-constraint", this.getClass().getDeclaredMethod("visitSecurityConstraint",  __signature));
-//            registerVisitor("login-config", this.getClass().getDeclaredMethod("visitLoginConfig",  __signature));
-//            registerVisitor("security-role", this.getClass().getDeclaredMethod("visitSecurityRole",  __signature));
+            registerVisitor("security-constraint", this.getClass().getDeclaredMethod("visitSecurityConstraint",  __signature));
+            registerVisitor("login-config", this.getClass().getDeclaredMethod("visitLoginConfig",  __signature));
+            registerVisitor("security-role", this.getClass().getDeclaredMethod("visitSecurityRole",  __signature));
             registerVisitor("listener", this.getClass().getDeclaredMethod("visitListener",  __signature));
             registerVisitor("distributable", this.getClass().getDeclaredMethod("visitDistributable",  __signature));
         }
@@ -177,10 +185,10 @@ public class StandardDescriptorProcessor extends IterativeDescriptorProcessor
             XmlParser.Node securityRef = (XmlParser.Node) sRefsIter.next();
             String roleName = securityRef.getString("role-name", false, true);
             String roleLink = securityRef.getString("role-link", false, true);
-//            if (roleName != null && roleName.length() > 0 && roleLink != null && roleLink.length() > 0)
-//FIXME            	holder.setUserRoleLink(roleName, roleLink);             
-//            else
-//                LOG.warn("Ignored invalid security-role-ref element: " + "servlet-name=" + holder.getName() + ", " + securityRef);
+            if (roleName != null && roleName.length() > 0 && roleLink != null && roleLink.length() > 0)
+            	holder.setUserRoleLink(roleName, roleLink);             
+            else
+                LOG.warn("Ignored invalid security-role-ref element: " + "servlet-name=" + holder.getName() + ", " + securityRef);
         }
         
         XmlParser.Node run_as = node.get("run-as");
@@ -188,8 +196,8 @@ public class StandardDescriptorProcessor extends IterativeDescriptorProcessor
         { 
             String roleName = run_as.getString("role-name", false, true);
 
-//            if (roleName != null)
-//FIXME                holder.setRunAsRole(roleName);
+            if (roleName != null)
+                holder.setRunAsRole(roleName);
         }
     }
     
@@ -398,125 +406,125 @@ public class StandardDescriptorProcessor extends IterativeDescriptorProcessor
         ((SipDescriptor)descriptor).setDistributable(true);
     }
 	
-//	   /**
-//     * @param context
-//     * @param descriptor
-//     * @param node
-//     */
-//    public void visitSecurityConstraint(WebAppContext context, Descriptor descriptor, XmlParser.Node node)
-//    {
-//        Constraint scBase = new Constraint();
-//       ConstraintSecurityHandler securityHandler = getContext(context).getSecurityHandler();
-//
-//        //ServletSpec 3.0, p74 security-constraints, as minOccurs > 1, are additive 
-//        //across fragments
-//        try
-//        {
-//            XmlParser.Node auths = node.get("auth-constraint");
-//
-//            if (auths != null)
-//            {
-//                scBase.setAuthenticate(true);
-//                // auth-constraint
-//                Iterator<XmlParser.Node> iter = auths.iterator("role-name");
-//                List<String> roles = new ArrayList<String>();
-//                while (iter.hasNext())
-//                {
-//                    String role = iter.next().toString(false, true);
-//                    roles.add(role);
-//                }
-//                scBase.setRoles(roles.toArray(new String[roles.size()]));
-//            }
-//            
-//            scBase.setProxyMode(node.get("proxy-authentication") != null);
-//
-//            XmlParser.Node data = node.get("user-data-constraint");
-//            if (data != null)
-//            {
-//                data = data.get("transport-guarantee");
-//                String guarantee = data.toString(false, true).toUpperCase();
-//                if (guarantee == null || guarantee.length() == 0 || "NONE".equals(guarantee))
-//                    scBase.setUserDataConstraint(UserDataConstraint.None);
-//                else if ("INTEGRAL".equals(guarantee))
-//                	scBase.setUserDataConstraint(UserDataConstraint.Integral);
-//                else if ("CONFIDENTIAL".equals(guarantee))
-//                	 scBase.setUserDataConstraint(UserDataConstraint.Confidential);
-//                else
-//                {
-//                    LOG.warn("Unknown user-data-constraint:" + guarantee);
-//                    scBase.setUserDataConstraint(UserDataConstraint.Confidential);
-//                }
-//            }
-//            Iterator<XmlParser.Node> iter = node.iterator("resource-collection");
-//            while (iter.hasNext())
-//            {
-//                XmlParser.Node collection =  iter.next();
-//                String name = collection.getString("resource-name", false, true);
-//                Constraint sc = (Constraint) scBase.clone();
-//                sc.setName(name);
-//
-//                Iterator<XmlParser.Node> iter3 = collection.iterator("sip-method");
-//                List<String> methods = null;
-//                if (iter3.hasNext())
-//                {
-//                    methods = new ArrayList<String>();
-//                    while (iter3.hasNext())
-//                        methods.add(((XmlParser.Node) iter3.next()).toString(false, true));
-//                }
-//                
-//                iter3 = collection.iterator("servlet-name");
-//                List<String> servletNames = null;
-//                if (iter3.hasNext())
-//                {
-//                	servletNames = new ArrayList<String>();
-//                    while (iter3.hasNext())
-//                    	servletNames.add(((XmlParser.Node) iter3.next()).toString(false, true));
-//                }
-//                
-//                ConstraintMapping mapping = new ConstraintMapping();
-//                mapping.setServletNames(servletNames);
-//                mapping.setMethods(methods);
-//                mapping.setConstraint(sc);
-//                
-//                securityHandler.addConstraintMapping(mapping);
-//            }
-//        }
-//        catch (CloneNotSupportedException e)
-//        {
-//            LOG.warn(e);
-//        }
-//    }
-//    
-//    public void visitLoginConfig(WebAppContext context, Descriptor descriptor, XmlParser.Node node) throws Exception
-//    {
-//    	ConstraintSecurityHandler securityHandler = getContext(context).getSecurityHandler();
-//        XmlParser.Node method = node.get("auth-method");
-//        if (method != null)
-//        	securityHandler.setAuthMethod(method.toString(false, true));
-//            
-//            
-//        //handle realm-name merge
-//        XmlParser.Node name = node.get("realm-name");
-//        String nameStr = (name == null ? "default" : name.toString(false, true));
-//        securityHandler.setRealmName(nameStr);
-//            
-// 
-//        XmlParser.Node identityAssertion = node.get("identity-assertion");
-//        if (identityAssertion != null)
-//        {
-//        	String scheme = identityAssertion.getString("identity-assertion-scheme", false, true);
-//        	securityHandler.setIdentityAssertionScheme(IdentityAssertionScheme.getByName(scheme));
-//        	String supported = identityAssertion.getString("identity-assertion-support", false, true);
-//        	securityHandler.setIdentityAssertionRequired("REQUIRED".equalsIgnoreCase(supported));
-//        }
-//    }
-//    
-//    public void visitSecurityRole(WebAppContext context, Descriptor descriptor, XmlParser.Node node)
-//    {
-//        XmlParser.Node roleNode = node.get("role-name");
-//        String role = roleNode.toString(false, true);
-//        ConstraintSecurityHandler securityHandler = getContext(context).getSecurityHandler();
-//        securityHandler.addRole(role);
-//    }
+	   /**
+     * @param context
+     * @param descriptor
+     * @param node
+     */
+    public void visitSecurityConstraint(WebAppContext context, Descriptor descriptor, XmlParser.Node node)
+    {
+       Constraint scBase = new Constraint();
+       ConstraintSecurityHandler securityHandler = (ConstraintSecurityHandler) getContext(context).getSecurityHandler();
+
+        //ServletSpec 3.0, p74 security-constraints, as minOccurs > 1, are additive 
+        //across fragments
+        try
+        {
+            XmlParser.Node auths = node.get("auth-constraint");
+
+            if (auths != null)
+            {
+                scBase.setAuthenticate(true);
+                // auth-constraint
+                Iterator<XmlParser.Node> iter = auths.iterator("role-name");
+                List<String> roles = new ArrayList<String>();
+                while (iter.hasNext())
+                {
+                    String role = iter.next().toString(false, true);
+                    roles.add(role);
+                }
+                scBase.setRoles(roles.toArray(new String[roles.size()]));
+            }
+            
+            scBase.setProxyMode(node.get("proxy-authentication") != null);
+
+            XmlParser.Node data = node.get("user-data-constraint");
+            if (data != null)
+            {
+                data = data.get("transport-guarantee");
+                String guarantee = data.toString(false, true).toUpperCase();
+                if (guarantee == null || guarantee.length() == 0 || "NONE".equals(guarantee))
+                    scBase.setUserDataConstraint(UserDataConstraint.None);
+                else if ("INTEGRAL".equals(guarantee))
+                	scBase.setUserDataConstraint(UserDataConstraint.Integral);
+                else if ("CONFIDENTIAL".equals(guarantee))
+                	 scBase.setUserDataConstraint(UserDataConstraint.Confidential);
+                else
+                {
+                    LOG.warn("Unknown user-data-constraint:" + guarantee);
+                    scBase.setUserDataConstraint(UserDataConstraint.Confidential);
+                }
+            }
+            Iterator<XmlParser.Node> iter = node.iterator("resource-collection");
+            while (iter.hasNext())
+            {
+                XmlParser.Node collection =  iter.next();
+                String name = collection.getString("resource-name", false, true);
+                Constraint sc = (Constraint) scBase.clone();
+                sc.setName(name);
+
+                Iterator<XmlParser.Node> iter3 = collection.iterator("sip-method");
+                List<String> methods = null;
+                if (iter3.hasNext())
+                {
+                    methods = new ArrayList<String>();
+                    while (iter3.hasNext())
+                        methods.add(((XmlParser.Node) iter3.next()).toString(false, true));
+                }
+                
+                iter3 = collection.iterator("servlet-name");
+                List<String> servletNames = null;
+                if (iter3.hasNext())
+                {
+                	servletNames = new ArrayList<String>();
+                    while (iter3.hasNext())
+                    	servletNames.add(((XmlParser.Node) iter3.next()).toString(false, true));
+                }
+                
+                ConstraintMapping mapping = new ConstraintMapping();
+                mapping.setServletNames(servletNames);
+                mapping.setMethods(methods);
+                mapping.setConstraint(sc);
+                
+                securityHandler.addConstraintMapping(mapping);
+            }
+        }
+        catch (CloneNotSupportedException e)
+        {
+            LOG.warn(e);
+        }
+    }
+    
+    public void visitLoginConfig(WebAppContext context, Descriptor descriptor, XmlParser.Node node) throws Exception
+    {
+    	SipSecurityHandler<?> securityHandler = getContext(context).getSecurityHandler();
+        XmlParser.Node method = node.get("auth-method");
+        if (method != null)
+        	securityHandler.setAuthMethod(method.toString(false, true));
+            
+            
+        //handle realm-name merge
+        XmlParser.Node name = node.get("realm-name");
+        String nameStr = (name == null ? "default" : name.toString(false, true));
+        securityHandler.setRealmName(nameStr);
+            
+ 
+        XmlParser.Node identityAssertion = node.get("identity-assertion");
+        if (identityAssertion != null)
+        {
+        	String scheme = identityAssertion.getString("identity-assertion-scheme", false, true);
+        	securityHandler.setIdentityAssertionScheme(IdentityAssertionScheme.getByName(scheme));
+        	String supported = identityAssertion.getString("identity-assertion-support", false, true);
+        	securityHandler.setIdentityAssertionRequired("REQUIRED".equalsIgnoreCase(supported));
+        }
+    }
+    
+    public void visitSecurityRole(WebAppContext context, Descriptor descriptor, XmlParser.Node node)
+    {
+        XmlParser.Node roleNode = node.get("role-name");
+        String role = roleNode.toString(false, true);
+        ConstraintSecurityHandler securityHandler = (ConstraintSecurityHandler) getContext(context).getSecurityHandler();
+        securityHandler.addRole(role);
+    }
 
 }

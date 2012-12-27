@@ -78,20 +78,20 @@ public class ProxyTest extends UaTestCase
 
 		callB.start();
 		callC.start();
-		
+
 		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, bob.getUri());
 		request.setRequestURI(bob.getContact().getURI());
 		request.addHeader("proxy", bob2.getContact().toString());
 		Call callA = _ua.createCall(request);
 
-		try 
-		{			
-	        assertThat(callA.waitForResponse(), isSuccess());
-	        callA.createAck().send();	        
-	        Thread.sleep(200);
-	        callA.createBye().send();
-	        assertThat(callA.waitForResponse(), isSuccess());
-	        callB.assertDone();
+		try
+		{
+			assertThat(callA.waitForResponse(), isSuccess());
+			callA.createAck().send();
+			Thread.sleep(200);
+			callA.createBye().send();
+			assertThat(callA.waitForResponse(), isSuccess());
+			callB.assertDone();
 			callC.assertDone();
 		}
 		finally
@@ -99,7 +99,7 @@ public class ProxyTest extends UaTestCase
 			checkForFailure();
 		}
 	}
-	
+
 	/**
 	 * <pre>
 	 *  Alice        Proxy         Bob
@@ -130,26 +130,20 @@ public class ProxyTest extends UaTestCase
 	{
 		Endpoint bob = createEndpoint("bob");
 		UaRunnable callB = new UasScript.RingingCanceled(bob.getUserAgent());
-		
+
 		callB.start();
-		
+
 		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, bob.getUri());
 		request.setRequestURI(bob.getContact().getURI());
 		Call callA = _ua.createCall(request);
 
-		try 
-		{
-	        assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_REQUEST_TIMEOUT));
-		}
-		finally
-		{
-			checkForFailure();
-		}
+		assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_REQUEST_TIMEOUT));
+		checkForFailure();
 	}
-	
+
 	/**
 	 * Ensure that the servlet is not invoked if session is invalidated.
-	 * <p> 
+	 * <p>
 	 * See http://jira.cipango.org/browse/CIPANGO-121
 	 * 
 	 * <pre>
@@ -183,19 +177,19 @@ public class ProxyTest extends UaTestCase
 		UaRunnable callB = new UasScript.OkBye(bob.getUserAgent());
 
 		callB.start();
-		
+
 		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, bob.getUri());
 		request.setRequestURI(bob.getContact().getURI());
 		Call callA = _ua.createCall(request);
-        assertThat(callA.waitForResponse(), isSuccess());
+		assertThat(callA.waitForResponse(), isSuccess());
 		callA.createAck().send();
-        callA.createBye().send();
-        
-        SipServletResponse response = callA.waitForResponse();
-        assertThat(response, isSuccess());
-        assertThat(response.getHeader("error"), is(nullValue()));
+		callA.createBye().send();
+
+		SipServletResponse response = callA.waitForResponse();
+		assertThat(response, isSuccess());
+		assertThat(response.getHeader("error"), is(nullValue()));
 	}
-	
+
 	/**
 	 * <pre>
 	 *  Alice         Proxy             Proxy       Bob
@@ -223,21 +217,19 @@ public class ProxyTest extends UaTestCase
 	public void testTelUri() throws Exception
 	{
 		final Endpoint bob = createEndpoint("bob");
-		bob.getUserAgent().setDefaultHandler(new MessageHandler() {
-			public void handleRequest(SipServletRequest request)
-					throws IOException, ServletException
+		bob.getUserAgent().setDefaultHandler(new MessageHandler()
+		{
+			public void handleRequest(SipServletRequest request) throws IOException, ServletException
 			{
 				assertThat(request.getHeader("req-uri"), containsString("tel:1234"));
-				bob.getUserAgent().createResponse(request,
-						SipServletResponse.SC_DECLINE).send();
+				bob.getUserAgent().createResponse(request, SipServletResponse.SC_DECLINE).send();
 			}
 
-			public void handleResponse(SipServletResponse response)
-					throws IOException, ServletException
+			public void handleResponse(SipServletResponse response) throws IOException, ServletException
 			{
 			}
 		});
-		
+
 		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, bob.getUri());
 		request.setRequestURI(bob.getContact().getURI());
 		Call call = _ua.createCall(request);

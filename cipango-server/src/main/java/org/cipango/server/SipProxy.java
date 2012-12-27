@@ -578,8 +578,7 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
             return;
         }
         
-        if (!_tx.isCompleted()) // The transaction could be completed if the servlet has sent a virtual response.
-        	forward(_best);
+        forward(_best);
 		
 		// Update state for all derived sessions
 		if (_tx.getRequest().isInitial() && _tx.getRequest().isInvite())
@@ -596,7 +595,9 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
     {	
 		if (response.getStatus() >= 300)
 			response.session().updateState(response, false);
-        _tx.send(response);
+		// The transaction could be completed if the servlet has sent a virtual response.
+		if (!_tx.isCompleted())
+			_tx.send(response);
 		response.setCommitted(true);
 	}    
 	

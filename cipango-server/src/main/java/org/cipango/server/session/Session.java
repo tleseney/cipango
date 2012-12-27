@@ -371,7 +371,11 @@ public class Session implements SipSessionIf, Dumpable
 	public void updateStateOnProxyComplete(boolean forceTerminated)
 	{
 		if (!isProxy())
-			throw new IllegalStateException("Not proxy");
+		{
+			// Could happens if a virtual response has been sent
+			LOG.debug("Could not update state as role is no more proxy");
+			return;
+		}
 		
 		access();
 		

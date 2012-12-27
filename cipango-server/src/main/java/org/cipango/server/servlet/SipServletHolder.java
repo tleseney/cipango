@@ -1,7 +1,6 @@
 package org.cipango.server.servlet;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,29 +15,22 @@ import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.server.SipMessage;
-import org.eclipse.jetty.security.IdentityService;
-import org.eclipse.jetty.security.RunAsToken;
 import org.eclipse.jetty.server.UserIdentity;
+import org.eclipse.jetty.servlet.Holder;
 import org.eclipse.jetty.servlet.ServletHolder;
-import org.eclipse.jetty.util.Loader;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
-import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
 @ManagedObject("SIP servlet holder")
-public class SipServletHolder extends AbstractLifeCycle implements UserIdentity.Scope, Comparable<SipServletHolder>
+public class SipServletHolder extends Holder<SipServlet> implements UserIdentity.Scope, Comparable<SipServletHolder>
 {
+	
 	private static final Logger LOG = Log.getLogger(SipServletHolder.class);
-	
-	private String _name;
-	
-	protected String _className;
-	protected Class<? extends SipServlet> _class;
-	
-	private SipServlet _servlet;
-	private Config _config;
+		
+	private transient SipServlet _servlet;
+	private transient Config _config;
 	
 	private long _unavailable;
 	
@@ -46,61 +38,56 @@ public class SipServletHolder extends AbstractLifeCycle implements UserIdentity.
 	private boolean _initOnStartup = false;
 	
 	private SipServletHandler _servletHandler;
-	
-	private String _displayName;
-	
-	private final Map<String, String> _initParams = new HashMap<String, String>();
-	
+		
 	private transient UnavailableException _unavailableEx;
 	
 
     private Map<String, String> _roleMap;
     private String _runAsRole;
+    
+    public SipServletHolder()
+	{
+		super(Source.EMBEDDED);
+	}
+    
+    public SipServletHolder(Source source)
+	{
+		super(source);
+	}
 	
-	protected void doStart() throws Exception
+	public void doStart() throws Exception
 	{
 		_unavailable = 0;
 		try
-		{
-			if (_class == null && (_className == null || _className.equals("")))
-				throw new UnavailableException("No class for servlet " + _name, -1);
-			
-			if (_class == null)
-			{
-				try
-				{
-					_class = Loader.loadClass(SipServletHolder.class, _className);
-				}
-				catch (Exception e)
-				{
-					throw new UnavailableException(e.getMessage(), -1);
-				}
-			}
-		}
-		finally
-		{
-			
-		}
+        {
+            super.doStart();
+            if (_class==null || !SipServlet.class.isAssignableFrom(_class))
+            {
+                throw new UnavailableException("Servlet "+_class+" is not a javax.servlet.sip.SipServlet");
+            }
+        }
+        catch (UnavailableException ue)
+        {
+            makeUnavailable(ue);
+            throw ue;
+        }
 		
 		_config = new Config();
-		
-		 // TODO singlethread
-		
-		if (_initOnStartup)
-		{
-			try
-			{
-				initServlet();
-			}
-			catch (Exception e)
-			{
-				// TODO check start
-				throw e;
-			}
-		}
+				
+		if (_extInstance || _initOnStartup)
+        {
+            try
+            {
+                initServlet();
+            }
+            catch(Exception e)
+            {
+               throw e;
+            }
+        }
 	}
 	
-    protected void doStop() throws Exception
+    public void doStop() throws Exception
 	{
 		if (_servlet != null)
 		{
@@ -121,27 +108,13 @@ public class SipServletHolder extends AbstractLifeCycle implements UserIdentity.
 		_config = null;
 	}
 	
-	public void setClassName(String className)
-	{
-		_className = className;
-		_class = null;
-	}
-	
-	public String getClassName()
+    /**
+     * @return The unavailable exception or null if not unavailable
+     */
+    public UnavailableException getUnavailableException()
     {
-        return _className;
+        return _unavailableEx;
     }
-	
-	@ManagedAttribute(value="Servlet name", readonly=true)
-	public String getName()
-	{
-		return _name;
-	}
-	
-	public void setName(String name)
-	{
-		_name = name;
-	}
 	
 	public synchronized void setServlet(SipServlet servlet)
 	{
@@ -151,17 +124,6 @@ public class SipServletHolder extends AbstractLifeCycle implements UserIdentity.
 		_servlet = servlet;
 		setHeldClass(servlet.getClass());
 	}
-	
-	public void setHeldClass(Class<? extends SipServlet> held)
-    {
-        _class=held;
-        if (held!=null)
-        {
-            _className=held.getName();
-            if (_name==null)
-                _name=held.getName()+"-"+this.hashCode();
-        }
-    }
 	
 	public void handle(SipMessage message) throws ServletException, IOException
 	{
@@ -267,7 +229,8 @@ public class SipServletHolder extends AbstractLifeCycle implements UserIdentity.
         }
 	}
 	
-    private void makeUnavailable(final Throwable e)
+    @SuppressWarnings("serial")
+	private void makeUnavailable(final Throwable e)
     {
         if (e instanceof UnavailableException)
             makeUnavailable((UnavailableException)e);
@@ -287,31 +250,7 @@ public class SipServletHolder extends AbstractLifeCycle implements UserIdentity.
             _unavailable=-1;
         }
     }
-	
-	public String getInitParameter(String name)
-	{
-		return _initParams.get(name);
-	}
-	
-	public Enumeration<String> getInitParameterNames()
-	{
-		return Collections.enumeration(_initParams.keySet());
-	}
-	
-    
-    /* ------------------------------------------------------------ */
-    public void setInitParameter(String param,String value)
-    {
-        _initParams.put(param,value);
-    }
-    
-    /* ---------------------------------------------------------------- */
-    public void setInitParameters(Map<String,String> map)
-    {
-        _initParams.clear();
-        _initParams.putAll(map);
-    }
-    
+	 
     public void setServletHandler(SipServletHandler servletHandler)
     {
         _servletHandler = servletHandler;
@@ -335,6 +274,7 @@ public class SipServletHolder extends AbstractLifeCycle implements UserIdentity.
 			return SipServletHolder.this.getInitParameter(name);
 		}
 		
+		@SuppressWarnings("unchecked")
 		public Enumeration<String> getInitParameterNames() 
 		{
 			return SipServletHolder.this.getInitParameterNames();
@@ -351,17 +291,6 @@ public class SipServletHolder extends AbstractLifeCycle implements UserIdentity.
 	{
 		_initOnStartup = true;
 		_initOrder = initOrder;
-	}
-
-	@ManagedAttribute(value="Display name", readonly=true)
-	public String getDisplayName()
-	{
-		return _displayName;
-	}
-
-	public void setDisplayName(String displayName)
-	{
-		_displayName = displayName;
 	}
 
 	@Override

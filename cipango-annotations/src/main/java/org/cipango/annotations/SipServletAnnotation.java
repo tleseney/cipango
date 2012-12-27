@@ -17,6 +17,7 @@ import javax.servlet.sip.annotation.SipServlet;
 
 import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.sipapp.SipAppContext;
+import org.eclipse.jetty.servlet.Holder.Source;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.webapp.DiscoveredAnnotation;
@@ -67,7 +68,7 @@ public class SipServletAnnotation extends DiscoveredAnnotation
 		
 		if (holder == null)
         {
-            holder = new SipServletHolder();
+            holder = new SipServletHolder(Source.ANNOTATION);
             holder.setName(servletName);
 
             // FIXME use same instance for listener and servlet

@@ -32,6 +32,7 @@ import org.cipango.server.sipapp.rules.NotRule;
 import org.cipango.server.sipapp.rules.OrRule;
 import org.cipango.server.sipapp.rules.SubdomainRule;
 import org.eclipse.jetty.security.UserDataConstraint;
+import org.eclipse.jetty.servlet.Holder.Source;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.webapp.Descriptor;
@@ -139,7 +140,7 @@ public class StandardDescriptorProcessor extends IterativeDescriptorProcessor
 		
 		if (holder == null)
         {
-            holder = new SipServletHolder();
+            holder = new SipServletHolder(Source.DESCRIPTOR);
             holder.setName(servletName);
 
             // FIXME use same instance for listener and servlet

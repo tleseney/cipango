@@ -475,7 +475,7 @@ public class Session implements SipSessionIf, Dumpable
 			String responseTag = response.to().getTag();
 			if (responseTag != null && !remoteTag.equalsIgnoreCase(responseTag))
 			{
-				LOG.warn("session: not same dialog tags are {} {}", remoteTag, responseTag);
+				LOG.debug("session: not same dialog tags are {} {}", remoteTag, responseTag);
 				return false;
 			}
 		}

@@ -576,6 +576,11 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		session.createRequest("NOTIFY").send();
 	}
 
+	public void testSubscribe(SipServletResponse response) throws Throwable
+	{
+	}
+
+	
 	public void sessionCreated(SipSessionEvent e)
 	{
 	}

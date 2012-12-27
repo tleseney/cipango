@@ -34,6 +34,10 @@
 				<configuration>
 					<systemProperties>
 						<systemProperty>
+							<name>jetty.home</name>
+							<value>${project.baseUri}</value>
+						</systemProperty>
+						<systemProperty>
 							<name>sip.host</name>
 							<value>localhost</value>
 						</systemProperty>

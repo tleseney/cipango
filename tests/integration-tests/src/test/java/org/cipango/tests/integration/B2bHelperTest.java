@@ -54,12 +54,12 @@ public class B2bHelperTest extends UaTestCase
 	 *    |            |----------->|
 	 *    | 200/CANCEL |            |
 	 *    |<-----------|            |
+	 *    | 487/INVITE |            |
+	 *    |<-----------|            |
 	 *    |            | 200/CANCEL |
 	 *    |            |<-----------|
 	 *    |            | 487/INVITE |
 	 *    |            |<-----------|
-	 *    | 487/INVITE |            |
-	 *    |<-----------|            |
 	 *    |            | ACK        |
 	 *    |            |----------->|
 	 *    | ACK        |            |
@@ -77,47 +77,42 @@ public class B2bHelperTest extends UaTestCase
 			{
 				SipServletRequest request = waitForInitialRequest();
 				assertThat(request.getMethod(), is(equalTo(SipMethods.INVITE)));
-				
-				SipServletResponse response = _ua.createResponse(
-						request, SipServletResponse.SC_SESSION_PROGRESS);
+
+				SipServletResponse response = _ua.createResponse(request,
+						SipServletResponse.SC_SESSION_PROGRESS);
 				response.addHeader(SipHeaders.REQUIRE, "100rel");
 				response.sendReliably();
-				
+
 				request = _dialog.waitForRequest();
 				assertThat(request.getMethod(), is(equalTo(SipMethods.PRACK)));
 				_ua.createResponse(request, SipServletResponse.SC_OK).send();
-				
+
 				request = _dialog.waitForRequest();
 				assertThat(request.getMethod(), is(equalTo(SipMethods.CANCEL)));
 			}
 		};
-		
-		try
-		{			
-			callB.start();
-			
-			SipServletRequest request = _ua.createRequest(SipMethods.INVITE,  bob.getUri());
-			request.setRequestURI(bob.getContact().getURI());
-			request.addHeader(SipHeaders.SUPPORTED, "100rel");
-			Call callA = _ua.createCall(request);
 
-			SipServletResponse response = callA.waitForResponse();
-	        assertThat(response, hasStatus(SipServletResponse.SC_SESSION_PROGRESS));
-	        _ua.decorate(response.createPrack()).send();
-	        assertThat(callA.waitForResponse(), isSuccess());
-			Thread.sleep(50);
-			
-	        callA.createCancel().send();	        
-	        assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_REQUEST_TERMINATED));
-			callB.join(2000);
-			callB.assertDone();
-		}
-		finally
-		{
-			checkForFailure();
-		}
+		callB.start();
+
+		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, bob.getUri());
+		request.setRequestURI(bob.getContact().getURI());
+		request.addHeader(SipHeaders.SUPPORTED, "100rel");
+		Call callA = _ua.createCall(request);
+
+		SipServletResponse response = callA.waitForResponse();
+		assertThat(response, hasStatus(SipServletResponse.SC_SESSION_PROGRESS));
+		_ua.decorate(response.createPrack()).send();
+		assertThat(callA.waitForResponse(), isSuccess());
+		Thread.sleep(50);
+
+		callA.createCancel().send();
+		assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_REQUEST_TERMINATED));
+		callB.join(2000);
+		callB.assertDone();
+
+		checkForFailure();
 	}
-	
+
 	/**
 	 * <pre>
 	 *  Alice         B2b          Bob
@@ -135,12 +130,12 @@ public class B2bHelperTest extends UaTestCase
 	 *    |            |----------->|
 	 *    | 200/CANCEL |            |
 	 *    |<-----------|            |
+	 *    | 487/INVITE |            |
+	 *    |<-----------|            |
 	 *    |            | 200/CANCEL |
 	 *    |            |<-----------|
 	 *    |            | 487/INVITE |
 	 *    |            |<-----------|
-	 *    | 487/INVITE |            |
-	 *    |<-----------|            |
 	 *    |            | ACK        |
 	 *    |            |----------->|
 	 *    | ACK        |            |
@@ -162,23 +157,19 @@ public class B2bHelperTest extends UaTestCase
 				assertThat(request.getMethod(), is(equalTo(SipMethods.CANCEL)));
 			}
 		};
-		
-		try 
-		{
-			callB.start();
-			
-			SipServletRequest request = _ua.createRequest(SipMethods.INVITE, bob.getUri());
-			request.setRequestURI(bob.getContact().getURI());
-			Call callA = _ua.createCall(request);
 
-			Thread.sleep(50);
-			callA.createCancel().send();
-			callB.join(2000);
-	        callB.assertDone();
-		}
-		finally
-		{
-			checkForFailure();
-		}
+		callB.start();
+
+		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, bob.getUri());
+		request.setRequestURI(bob.getContact().getURI());
+		Call callA = _ua.createCall(request);
+
+		Thread.sleep(50);
+		callA.createCancel().send();
+		callB.join(2000);
+		callB.assertDone();
+
+		checkForFailure();
+
 	}
 }

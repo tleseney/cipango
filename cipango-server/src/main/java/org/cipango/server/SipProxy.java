@@ -14,7 +14,6 @@
 
 package org.cipango.server;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -39,8 +38,8 @@ import org.cipango.server.session.ApplicationSession;
 import org.cipango.server.session.Session;
 import org.cipango.server.session.SessionHandler;
 import org.cipango.server.session.SessionManager.ApplicationSessionScope;
-import org.cipango.server.session.scoped.ScopedServerTransactionListener;
 import org.cipango.server.session.scoped.ScopedRunable;
+import org.cipango.server.session.scoped.ScopedServerTransactionListener;
 import org.cipango.server.transaction.ClientTransaction;
 import org.cipango.server.transaction.ClientTransactionListener;
 import org.cipango.server.transaction.ServerTransaction;
@@ -596,7 +595,7 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 		if (response.getStatus() >= 300)
 			response.session().updateState(response, false);
 		// The transaction could be completed if the servlet has sent a virtual response.
-		if (!_tx.isCompleted())
+		if (!_tx.isCompleted() || response.is2xx())
 			_tx.send(response);
 		response.setCommitted(true);
 	}    

@@ -13,9 +13,11 @@
 // ========================================================================
 package org.cipango.tests.integration;
 
+import static org.cipango.tests.matcher.SipMatchers.isSuccess;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.cipango.tests.matcher.SipMatchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
@@ -58,7 +60,7 @@ public class UacTest extends UaTestCase
 	 * </pre>
 	 */
 	@Test
-	public void testReInvite() throws Exception
+	public void testReInvite() throws Throwable
 	{
 		UaRunnable call = new UaRunnable(_ua)
 		{
@@ -83,21 +85,12 @@ public class UacTest extends UaTestCase
 			}
 		};
 		
-		try
-		{
-			call.start();
-			startUacScenario();
-			call.join(2000);
-			call.assertDone();
-		}
-    	catch (Throwable t)
-    	{
-    		throw new Exception(t);
-    	}
-    	finally
-    	{
-    		checkForFailure();
-    	}
+		call.start();
+		startUacScenario();
+		call.join(2000);
+		call.assertDone();
+
+		checkForFailure();
 	}
 	
 	
@@ -126,7 +119,7 @@ public class UacTest extends UaTestCase
 	 * @see TcpTest#testBigRequest()
 	 */
 	@Test
-	public void testBigRequestFallback() throws Exception
+	public void testBigRequestFallback() throws Throwable
 	{
 		UaRunnable call = new UaRunnable(_ua)
 		{
@@ -149,20 +142,12 @@ public class UacTest extends UaTestCase
 			}
 		};
 		
-		try
-		{
-			call.start();
-			startUacScenario();
-			call.join(2000);
-			call.assertDone();
-		}
-    	catch (Throwable t)
-    	{
-    		throw new Exception(t);
-    	}
-    	finally
-    	{
-    		checkForFailure();
-    	}
+
+		call.start();
+		startUacScenario();
+		call.join(2000);
+		call.assertDone();
+		checkForFailure();
 	}
+	
 }

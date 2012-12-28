@@ -14,6 +14,7 @@
 package org.cipango.tests;
 import static org.junit.Assert.*;
 
+import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
@@ -27,12 +28,17 @@ import org.junit.Ignore;
 @Ignore
 public class TestDialog extends Dialog
 {
-	public TestDialog(Dialog dialog)
+	private String _testServlet;
+	private String _testMethod;
+	
+	public TestDialog(Dialog dialog, String testServlet, String testMethod)
 	{
 		setFactory(dialog.getFactory());
 		setCredentials(dialog.getCredentials()); 
 		setOutboundProxy(dialog.getOutboundProxy());
 		setTimeout(dialog.getTimeout());
+		_testMethod = testMethod;
+		_testServlet = testServlet;
 	}
 
 	@Override
@@ -62,9 +68,19 @@ public class TestDialog extends Dialog
 		return response;
 	}
 
-//	@Override
-//	public SipServletRequest createRequest(String method)
-//	{
-//		return TestAgent.decorate(super.createRequest(method));
-//	}
+	public <T extends SipServletMessage> T decorate(T message)
+	{
+		if (message == null)
+			return null;
+				
+		message.setHeader(TestAgent.SERVLET_HEADER, _testServlet);
+		message.setHeader(TestAgent.METHOD_HEADER, _testMethod);
+		return message;
+	}
+	
+	@Override
+	public SipServletRequest createRequest(String method)
+	{
+		return decorate(super.createRequest(method));
+	}
 }

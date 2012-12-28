@@ -81,7 +81,7 @@ public class RequestHandler extends AbstractChallengedMessageHandler
 			{
 				doWait(this, end - System.currentTimeMillis());
 				SipServletResponse response = getLastResponse();
-				if (response.getStatus() >= 200)
+				if (response != null && response.getStatus() >= 200)
 					return response;
 			}
 		}

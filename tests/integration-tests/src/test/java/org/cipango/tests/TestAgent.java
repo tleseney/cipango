@@ -14,6 +14,7 @@
 package org.cipango.tests;
 
 import javax.servlet.sip.Address;
+import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
@@ -57,24 +58,14 @@ public class TestAgent extends UserAgent
 		_testMethod = testMethod;
 	}
 
-	public SipServletRequest decorate(SipServletRequest request)
+	public <T extends SipServletMessage> T decorate(T message)
 	{
-		if (request == null)
+		if (message == null)
 			return null;
 				
-		request.setHeader(SERVLET_HEADER, _testServlet);
-		request.setHeader(METHOD_HEADER, _testMethod);
-		return request;
-	}
-	
-	public SipServletResponse decorate(SipServletResponse response)
-	{
-		if (response == null)
-			return null;
-
-		response.setHeader(SERVLET_HEADER, _testServlet);
-		response.setHeader(METHOD_HEADER, _testMethod);
-		return response;
+		message.setHeader(TestAgent.SERVLET_HEADER, _testServlet);
+		message.setHeader(TestAgent.METHOD_HEADER, _testMethod);
+		return message;
 	}
 
 	@Override
@@ -88,7 +79,7 @@ public class TestAgent extends UserAgent
 			dlg = call;
 		}
 		else
-			dlg = new TestDialog(dialog);
+			dlg = new TestDialog(dialog, _testServlet, _testMethod);
 		return super.customize(dlg); 
 	}
 	
@@ -116,7 +107,7 @@ public class TestAgent extends UserAgent
 	{
 		return decorate(request.createResponse(status, reason));
 	}
-
+	
 	public String getAlias()
 	{
 		return _alias;
@@ -126,4 +117,5 @@ public class TestAgent extends UserAgent
 	{
 		_alias = alias;
 	}
+
 }

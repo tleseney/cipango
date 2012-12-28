@@ -135,7 +135,8 @@ public abstract class UaTestCase extends TestCase
 	}
 
 	@Override
-	protected void runTest() throws Throwable {
+	protected void runTest() throws Throwable 
+	{
 		decorate(_ua);
 		
 		super.runTest();

@@ -21,6 +21,7 @@
           <Arg name="sipServer"><Ref id="SipServer" /></Arg>
           <Set name="port"><Property default="5060" name="sip.port"/></Set>
           <Set name="host"><Property name="sip.host"/></Set>
+          <Set name="mtu"><Property name="sip.mtu" default="65536"/></Set>
         </New>
       </Arg>
     </Call>

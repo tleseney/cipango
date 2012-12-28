@@ -381,6 +381,18 @@ public class SipServer extends ContainerLifeCycle
 					via.setTransport(connector.getTransport().getName());
 					via.setHost(connector.getURI().getHost());
 					via.setPort(connector.getURI().getPort());
+					if (connection instanceof UdpConnector.UdpConnection)
+					{
+						try
+						{
+							((UdpConnector.UdpConnection) connection).send(request, true);
+							messageSent(request, connection);
+						}
+						catch (MessageTooLongException e1)
+						{
+							throw new IOException(e);
+						}
+					}
 				}
 			}
 			else

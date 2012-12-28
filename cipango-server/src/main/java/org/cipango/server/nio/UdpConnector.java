@@ -127,7 +127,7 @@ public class UdpConnector extends AbstractSipConnector
 		return new UdpConnection(new InetSocketAddress(address, port));
 	}
 	
-	class UdpConnection implements SipConnection
+	public class UdpConnection implements SipConnection
 	{
 		private InetSocketAddress _address;
 		
@@ -168,14 +168,18 @@ public class UdpConnector extends AbstractSipConnector
 		
 		public void send(SipMessage message) throws MessageTooLongException
 		{
-			ByteBuffer buffer = _outBuffers.acquire(_mtu, false);
+			send(message, false);
+		}
+		
+		public void send(SipMessage message, boolean ignoreMtu) throws MessageTooLongException
+		{
+			ByteBuffer buffer = ignoreMtu ? BufferUtil.allocate(MAX_UDP_SIZE) : _outBuffers.acquire(_mtu, false);
 
 			buffer.clear();
 			
-			// TODO Should ensure that response could be sent even if it is greater than MTU
 			_sipGenerator.generateMessage(buffer, message);
 			
-			if (message.isRequest() && (buffer.position() + 200 > _mtu))
+			if (!ignoreMtu && message.isRequest() && (buffer.position() + 200 > _mtu))
 				throw new MessageTooLongException();
 			
 			buffer.flip();
@@ -189,7 +193,8 @@ public class UdpConnector extends AbstractSipConnector
 				LOG.warn(e);
 			}
 			
-			_outBuffers.release(buffer); 
+			if (!ignoreMtu)
+				_outBuffers.release(buffer); 
 		}
 		
 		public void write(ByteBuffer buffer) throws IOException

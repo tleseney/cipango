@@ -11,15 +11,10 @@
       <Set name="loginService">
         <New class="org.eclipse.jetty.security.HashLoginService">
           <Set name="name">Test</Set>
-          <Set name="config"><SystemProperty name="jetty.home" default="."/>/etc/realm.properties</Set>
+          <Set name="config"><Property name="jetty.home" default="."/>/etc/realm.properties</Set>
         </New>
       </Set>
     </Get>
-    <!-- Get name="server">
-      <Get name="transportProcessor">
-        <Set name="mtu"><Property default="1500" name="sip.mtu"/></Set>
-      </Get>
-    </Get -->
   </Call>
   
 </Configure>

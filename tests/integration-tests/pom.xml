@@ -1,7 +1,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<parent>
 		<groupId>org.cipango.tests</groupId>
-    <artifactId>tests-parent</artifactId>
+		<artifactId>tests-parent</artifactId>
 		<version>3.0.0-SNAPSHOT</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
@@ -38,14 +38,6 @@
 							<value>${project.baseUri}</value>
 						</systemProperty>
 						<systemProperty>
-							<name>sip.host</name>
-							<value>localhost</value>
-						</systemProperty>
-						<systemProperty>
-							<name>sip.port</name>
-							<value>5050</value>
-						</systemProperty>
-						<systemProperty>
 							<name>jetty.port</name>
 							<value>8077</value>
 						</systemProperty>
@@ -61,6 +53,17 @@
 					<webAppConfig>
 						<contextPath>/${project.artifactId}</contextPath>
 					</webAppConfig>
+					<sipConnectors>
+						<sipConnector implementation="org.cipango.plugin.MavenUdpConnector">
+							<port>5050</port>
+							<host>localhost</host>
+							<mtu>1500</mtu>
+						</sipConnector>
+						<sipConnector implementation="org.cipango.plugin.MavenTcpConnector">
+							<port>5050</port>
+							<host>localhost</host>
+						</sipConnector>
+					</sipConnectors>
 					<scanIntervalSeconds>0</scanIntervalSeconds>
 					<annotationsEnabled>true</annotationsEnabled>
 					<stopKey>foo</stopKey>

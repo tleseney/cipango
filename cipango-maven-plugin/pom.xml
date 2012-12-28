@@ -67,12 +67,13 @@
             <phase>generate-sources</phase>  
             <configuration>
               <target>
-                <echo message="Fixing the patch file for local conventions..." />
-                <fixcrlf srcdir="${basedir}/src/main/patches/" includes="**/*.patch" />
-                <fixcrlf srcdir="${project.build.directory}/jetty-maven-plugin" includes="**/*.java" />
                 <delete failonerror="false">
-                  <fileset dir="${project.build.directory}/jetty-maven-plugin" includes="org/eclipse/jetty/maven/plugin/HelpMojo.java" />
+                  <!-- HelpMojo is recreated by maven-plugin-plugin and JettyRunForkedMojo does not work with Cipango -->
+                  <fileset dir="${project.build.directory}/jetty-maven-plugin/org/eclipse/jetty/maven/plugin" includes="HelpMojo.java,JettyRunForkedMojo" />
                 </delete>
+                <replace token="extends AbstractJettyMojo" value="extends org.cipango.plugin.AbstractCipangoMojo">
+                  <fileset dir="${project.build.directory}/jetty-maven-plugin" includes="org/eclipse/jetty/maven/plugin/*.java" />
+                </replace>
               </target>
             </configuration>
             <goals>
@@ -82,27 +83,6 @@
         </executions>
       </plugin>
 
-	  <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-patch-plugin</artifactId>
-        <version>1.1.1</version>
-        <executions>
-          <execution>
-            <configuration>
-              <patchDirectory>${basedir}/src/main/patches</patchDirectory>
-              <optimizations>false</optimizations>
-              <patchTrackingFile>${project.build.directory}/patches/patches-applied.txt</patchTrackingFile>
-              <targetDirectory>${project.build.directory}/jetty-maven-plugin</targetDirectory>
-              <naturalOrderProcessing>true</naturalOrderProcessing>
-            </configuration>
-            <phase>process-sources</phase>
-            <goals>
-              <goal>apply</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      
       <plugin>
         <artifactId>maven-plugin-plugin</artifactId>
         <version>${pluginToolsVersion}</version>

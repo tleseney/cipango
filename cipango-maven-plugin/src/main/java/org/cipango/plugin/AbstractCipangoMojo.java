@@ -27,39 +27,13 @@ import org.cipango.server.nio.SelectChannelConnector;
 import org.cipango.server.nio.UdpConnector;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.sipapp.SipXmlConfiguration;
-import org.eclipse.jetty.maven.plugin.JettyRunMojo;
+import org.eclipse.jetty.maven.plugin.AbstractJettyMojo;
 import org.eclipse.jetty.maven.plugin.JettyWebAppContext;
 import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.webapp.Configuration;
 
-/**
- *  <p>
- *  This goal is used in-situ on a Maven project without first requiring that the project 
- *  is assembled into a war, saving time during the development cycle.
- *  The plugin forks a parallel lifecycle to ensure that the "compile" phase has been completed before invoking Jetty. This means
- *  that you do not need to explicity execute a "mvn compile" first. It also means that a "mvn clean jetty:run" will ensure that
- *  a full fresh compile is done before invoking Jetty.
- *  </p>
- *  <p>
- *  Once invoked, the plugin can be configured to run continuously, scanning for changes in the project and automatically performing a 
- *  hot redeploy when necessary. This allows the developer to concentrate on coding changes to the project using their IDE of choice and have those changes
- *  immediately and transparently reflected in the running web container, eliminating development time that is wasted on rebuilding, reassembling and redeploying.
- *  </p>
- *  <p>
- *  You may also specify the location of a jetty.xml file whose contents will be applied before any plugin configuration.
- *  This can be used, for example, to deploy a static webapp that is not part of your maven build. 
- *  </p>
- *  <p>
- *  There is a <a href="run-mojo.html">reference guide</a> to the configuration parameters for this plugin, and more detailed information
- *  with examples in the <a href="http://docs.codehaus.org/display/JETTY/Maven+Jetty+Plugin">Configuration Guide</a>.
- *  </p>
- * 
- * @goal run
- * @requiresDependencyResolution test
- * @execute phase="test-compile"
- * @description Runs Cipango directly from a maven project
- */
-public class CipangoRunMojo extends JettyRunMojo
+
+public abstract class AbstractCipangoMojo extends AbstractJettyMojo
 {
 	
 	public static final String SIP_PORT_PROPERTY = "sip.port";
@@ -70,8 +44,8 @@ public class CipangoRunMojo extends JettyRunMojo
      * then UDP and TCP connectors at port 5060 and on first public address. 
      * 
      * You can override this default port number  and host by using the system properties
-     *  {{sip.port}} and {{sip.host}} on the command line, eg:  
-     *  {{mvn -Dsip.port=9999 -Dsip.host=localhost cipango:run}}.
+     *  <code>sip.port</code> and <code>sip.host</code> on the command line, eg:  
+     *  <code>mvn -Dsip.port=9999 -Dsip.host=localhost cipango:run</code>.
      * 
      * @parameter 
      */

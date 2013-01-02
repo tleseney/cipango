@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2012 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -76,13 +76,15 @@ public class SessionManager extends AbstractLifeCycle
 	
 	protected ClassLoader _loader;
 	private SipAppContext _sipAppContext;
-	private final String _localhost;
 	private Queue<TimerTask> _timerQueue = new PriorityQueue<TimerTask>();
 
 	private int _sessionTimeout = -1;
 	
     private final CounterStatistic _sessionsStats = new CounterStatistic();
     private final SampleStatistic _sessionTimeStats = new SampleStatistic();
+    
+    private IdManager _callIdManager;
+    private IdManager _sessionIdManager;
     	
 	static
 	{
@@ -101,6 +103,18 @@ public class SessionManager extends AbstractLifeCycle
 	
 	public SessionManager()
 	{
+	}
+	
+	@Override
+	protected void doStart() throws Exception
+	{
+		if (_sessionIdManager == null)
+			setSessionIdManager(new HashIdManager());
+		_sessionIdManager.setPrefix(_sipAppContext.getContextId() + CONTEXT_ID_SEPARATOR);
+		_sessionIdManager.start();
+		
+		if (_callIdManager == null)
+			setCallIdManager(new HashIdManager());
 		String localhost;
 		try
 		{
@@ -110,12 +124,9 @@ public class SessionManager extends AbstractLifeCycle
 		{
 			localhost = "localhost";
 		}
-		_localhost = localhost;
-	}
-	
-	@Override
-	protected void doStart() throws Exception
-	{
+		_callIdManager.setPostfix("@" + localhost);
+		_callIdManager.start();
+		
 		super.doStart();
 
 		_loader = Thread.currentThread().getContextClassLoader();
@@ -135,6 +146,9 @@ public class SessionManager extends AbstractLifeCycle
 		{
 			_timerQueue.notify();
 		}
+		
+		_sessionIdManager.stop();
+		_callIdManager.stop();
 	}
 	
 	public ServletContext getContext()
@@ -142,21 +156,19 @@ public class SessionManager extends AbstractLifeCycle
 		return _sipAppContext.getServletContext();
 	}
 	
-	public synchronized ApplicationSession createApplicationSession()
+	public ApplicationSession createApplicationSession()
 	{
-		String id = null;
-		while (id == null || appIdInUse(id))
-			id = newApplicationSessionId();
+		String id = _sessionIdManager.newId();
 
 		ApplicationSession appSession = new ApplicationSession(this, id);
 		addApplicationSession(appSession);
 		return appSession;
 	}
 	
-	public synchronized ApplicationSession createApplicationSession(String id)
+	public ApplicationSession createApplicationSession(String id)
 	{
 		ApplicationSession appSession = new ApplicationSession(this, id);
-		addApplicationSession(appSession);
+		appSession = addApplicationSession(appSession);
 		return appSession;
 	}
 	
@@ -184,23 +196,7 @@ public class SessionManager extends AbstractLifeCycle
 	{
 		return _appSessions.get(id);
 	}
-	
-	protected String newApplicationSessionId()
-	{
-		long r = _random.nextInt();
-		if (r<0)
-			r = -r;
-		return _sipAppContext.getContextId() + CONTEXT_ID_SEPARATOR + StringUtil.toBase62String2(r);
-	}
-	
-	public boolean appIdInUse(String id)
-	{
-		synchronized (this)
-		{
-			return _appSessions.containsKey(id);
-		}
-	}
-	
+		
 	public String newSessionId()
 	{
 		long r = _random.nextInt();
@@ -298,10 +294,7 @@ public class SessionManager extends AbstractLifeCycle
 	
 	public String newCallId()
 	{
-		long r = _random.nextInt();
-		if (r<0)
-			r = -r;
-		return StringUtil.toBase62String2(r) + '@' + _localhost;
+		return _callIdManager.newId();
 	}
 	
 	public String newUASTag(ApplicationSession session)
@@ -323,12 +316,18 @@ public class SessionManager extends AbstractLifeCycle
 	public void removeApplicationSession(ApplicationSession session)
 	{
 		_appSessions.remove(session.getId());
+		_sessionIdManager.releaseId(session.getId());
 		
 		_sessionsStats.decrement();
 		_sessionTimeStats.set(round((System.currentTimeMillis() - session.getCreationTime())/1000.0));
 		
 		if (!_applicationSessionListeners.isEmpty())
 			getSipAppContext().fire(session, _applicationSessionListeners, __appSessionDestroyed,  new SipApplicationSessionEvent(session));
+	}
+	
+	public void removeSipSession(Session session)
+	{
+		_callIdManager.releaseId(session.getCallId());
 	}
 	
 	protected void scavenge()
@@ -630,6 +629,31 @@ public class SessionManager extends AbstractLifeCycle
 		}
 	}
 	
+
+	public IdManager getSessionIdManager()
+	{
+		return _sessionIdManager;
+	}
+
+	public void setSessionIdManager(IdManager sessionIdManager)
+	{
+		if (isStarted())
+			throw new IllegalStateException("Started");
+		_sessionIdManager = sessionIdManager;
+	}
+	
+	public IdManager getCallIdManager()
+	{
+		return _callIdManager;
+	}
+
+	public void setCallIdManager(IdManager callIdManager)
+	{
+		if (isStarted())
+			throw new IllegalStateException("Started");
+		_callIdManager = callIdManager;
+	}
+	
 	public static class ApplicationSessionScope
 	{
 		private final ApplicationSession _applicationSession;
@@ -732,4 +756,6 @@ public class SessionManager extends AbstractLifeCycle
 	{
 		Session getSession();
 	}
+
+
 }

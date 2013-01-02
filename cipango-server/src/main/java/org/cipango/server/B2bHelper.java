@@ -95,7 +95,7 @@ public class B2bHelper implements B2buaHelper
 		AddressImpl remote = (AddressImpl) srcRequest.to().clone();
 		remote.removeParameter(AddressImpl.TAG);
 
-		String callId = appSession.newCallId();
+		String callId = appSession.getSessionManager().newCallId();
 
 		Session session = appSession.createUacSession(callId, local, remote);
 		session.setHandler(appSession.getContext().getServletHandler()

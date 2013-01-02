@@ -178,12 +178,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 		}
 		
 	}
-	
-	public String newCallId()
-	{
-		return _sessionManager.newCallId();
-	}
-	
+		
 	protected String newSessionId()
 	{
 		return _sessionManager.newSessionId();
@@ -260,6 +255,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 				SipSessionEvent event = new SipSessionEvent((SipSession) session);
 				getContext().fire(this, listeners, __sessionDestroyed, event);
 			}
+			_sessionManager.removeSipSession((Session) session);
 		}
 		else if (_otherSessions != null)
 		{

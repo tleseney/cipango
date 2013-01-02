@@ -255,7 +255,14 @@ public class SelectChannelConnector extends AbstractSipConnector
 		
 		if (connection == null || !connection.isOpen())
 		{
-			connection = newConnection(address, port);
+			// Could not use the synchronized method _connections.putIfAbsent as a connection mean a
+			// new Socket, so use synchronized manually
+			synchronized (this)
+			{
+				connection = _connections.get(getKey(address, port));
+				if (connection == null || !connection.isOpen())
+					connection = newConnection(address, port);
+			}
 		}
 		return connection;
 	}

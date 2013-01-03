@@ -11,7 +11,7 @@
       <Set name="loginService">
         <New class="org.eclipse.jetty.security.HashLoginService">
           <Set name="name">Test</Set>
-          <Set name="config"><Property name="jetty.home" default="."/>/etc/realm.properties</Set>
+          <Set name="config"><SystemProperty name="jetty.home" default="."/>/etc/realm.properties</Set>
         </New>
       </Set>
     </Get>

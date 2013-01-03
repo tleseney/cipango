@@ -28,6 +28,27 @@
 			</plugin>
 
 			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>properties-maven-plugin</artifactId>
+				<version>1.0-alpha-2</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>set-system-properties</goal>
+						</goals>
+						<configuration>
+							<properties>
+								<property>
+									<name>logback.configurationFile</name>
+									<value>${project.baseUri}/resources/logback.xml</value>
+								</property>
+							</properties>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			
+			<plugin>
 				<groupId>org.cipango</groupId>
 				<artifactId>cipango-maven-plugin</artifactId>
 				<version>${project.version}</version>
@@ -44,10 +65,6 @@
 						<systemProperty>
 							<name>org.cipango.dar.routeOutgoingRequests</name>
 							<value>false</value>
-						</systemProperty>
-						<systemProperty>
-							<name>logback.configurationFile</name>
-							<value>${project.baseUri}/resources/logback.xml</value>
 						</systemProperty>
 					</systemProperties>
 					<webAppConfig>

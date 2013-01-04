@@ -87,7 +87,7 @@ public class UdpConnector extends AbstractSipConnector
 		super.doStart();
 	}
 	
-	public void open() throws IOException
+	public synchronized void open() throws IOException
 	{
 		_channel = DatagramChannel.open();
 		_channel.configureBlocking(true);
@@ -96,7 +96,7 @@ public class UdpConnector extends AbstractSipConnector
 		_localAddr = _channel.socket().getLocalAddress();
 	}
 
-	public void close() throws IOException
+	public synchronized void close() throws IOException
 	{
 		if (_channel != null)
 			_channel.close();
@@ -110,15 +110,23 @@ public class UdpConnector extends AbstractSipConnector
 
 	protected void accept(int id) throws IOException 
 	{
-		ByteBuffer buffer = _inBuffers[id];
-		BufferUtil.clearToFill(buffer);
+		DatagramChannel channel;
+		synchronized (this)
+		{
+			channel = _channel;
+		}
 		
-		InetSocketAddress address = (InetSocketAddress) _channel.receive(buffer);
-		
-		BufferUtil.flipToFlush(buffer, 0);
-	
-	
-		new UdpConnection(address).process(buffer);		
+		if (channel != null && channel.isOpen())
+		{
+			ByteBuffer buffer = _inBuffers[id];
+			BufferUtil.clearToFill(buffer);
+			
+			InetSocketAddress address = (InetSocketAddress) channel.receive(buffer);
+			
+			BufferUtil.flipToFlush(buffer, 0);
+
+			new UdpConnection(address).process(buffer);		
+		}	
 	}
 	
 	@Override

@@ -31,11 +31,9 @@
                 <copy todir="${assembly-directory}">
                   <fileset dir="target/jetty/jetty-distribution-${jetty-version}" />
                 </copy>
-								<!--
                 <copy file="../VERSION.txt" tofile="${assembly-directory}/VERSION-CIPANGO.txt" />
                 <copy file="../README.txt" tofile="${assembly-directory}/README-CIPANGO.txt" />
                 <copy file="../NOTICE.txt" tofile="${assembly-directory}/NOTICE-CIPANGO.txt" />
-								-->
                 <copy todir="${assembly-directory}">
                   <fileset dir="..">
                     <include name="LICENSE-*" />

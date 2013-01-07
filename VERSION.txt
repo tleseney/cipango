@@ -1,3 +1,3 @@
-cipango-3.0.0.M1 - 03 January 2013
+cipango-3.0.0.M0 - 07 January 2013
 
  + First release of the third version, hosted at github.

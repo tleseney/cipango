@@ -18,11 +18,11 @@
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
         <extensions>true</extensions>
-				<configuration>
-					<instructions>
-						<Import-Package>!sun.misc,org.eclipse.jetty.jmx.*;version="[9,10)";resolution:=optional,*</Import-Package>
-					</instructions>
-				</configuration>
+        <configuration>
+          <instructions>
+            <Import-Package>!sun.misc,org.eclipse.jetty.jmx.*;version="[9,10)";resolution:=optional,*</Import-Package>
+          </instructions>
+        </configuration>
         <executions>
           <execution>
             <goals>
@@ -52,7 +52,7 @@
               <goal>single</goal>
             </goals>
             <configuration>
-		<descriptorRefs>
+              <descriptorRefs>
                 <descriptorRef>config</descriptorRef>
               </descriptorRefs>
             </configuration>
@@ -95,6 +95,11 @@
     <dependency>
       <groupId>org.cipango</groupId>
       <artifactId>cipango-sip</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.cipango</groupId>
+      <artifactId>cipango-dns</artifactId>
       <version>${project.version}</version>
     </dependency>
   </dependencies>

@@ -166,6 +166,7 @@
     <module>cipango-console</module>
     <module>cipango-deploy</module>
     <module>cipango-dar</module>
+    <module>cipango-dns</module>
     <module>cipango-client</module>
     <module>cipango-distribution</module>
     <module>cipango-maven-plugin</module>

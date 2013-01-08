@@ -1,0 +1,9 @@
+127.0.0.1       localhost
+192.168.1.1    space.cipango.test    
+192.168.1.2		tab.cipango.test	
+192.168.1.3		multiple multiple.cipango.test
+192.168.1.4		comment comment.cipango.test	# End comment
+
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6.cipango.test

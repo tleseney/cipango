@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2010-2012 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,9 +13,14 @@
 // ========================================================================
 package org.cipango.tests.integration;
 
-import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Iterator;
 
 import javax.servlet.sip.Proxy;
 import javax.servlet.sip.ProxyBranch;
@@ -25,6 +30,9 @@ import javax.servlet.sip.TooManyHopsException;
 import javax.servlet.sip.URI;
 import javax.servlet.sip.annotation.SipServlet;
 
+import junit.framework.Assert;
+
+import org.cipango.sip.SipHeader;
 import org.cipango.tests.AbstractServlet;
 
 @SuppressWarnings("serial")
@@ -115,6 +123,21 @@ public class ProxyServlet extends AbstractServlet
 	
 	public void testTelUri(SipServletResponse response) throws Throwable
 	{
+	}
+	
+	public void testDns(SipServletRequest request) throws Throwable
+	{
+		Proxy proxy = request.getProxy();
+		proxy.proxyTo(request.getRequestURI());
+	}
+	
+	public void testDns(SipServletResponse response) throws Throwable
+	{
+		assertThat(response.getStatus(), is(SipServletResponse.SC_ACCEPTED));
+		Iterator<String> it = response.getHeaders(SipHeader.VIA.asString());
+		Assert.assertTrue(it.hasNext()); 
+		it.next();
+		Assert.assertFalse(it.hasNext()); 
 	}
 	
 		

@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2012 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,12 +16,14 @@ package org.cipango.server;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ListIterator;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.servlet.ServletException;
 import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
 
+import org.cipango.server.dns.Hop;
 import org.cipango.server.log.AccessLog;
 import org.cipango.server.nio.UdpConnector;
 import org.cipango.server.processor.TransportProcessor;
@@ -359,10 +361,12 @@ public class SipServer extends ContainerLifeCycle
 			if (!connection.getConnector().getTransport().isReliable())
 			{
 				LOG.debug("Message is too large.");
+				ListIterator<Hop> hops = request.getHops();
+				
 				try
 				{
-					SipConnection newConnection = _transactionManager.getTransportProcessor().getConnection(
-							request, Transport.TCP, connection.getRemoteAddress(), connection.getRemotePort());
+					request.setHops(null); // This ensure that hops will be resolved with TCP for transport
+					SipConnection newConnection = _transactionManager.getTransportProcessor().getConnection(request, Transport.TCP);
 					if (newConnection.getConnector().getTransport().isReliable())
 					{
 						LOG.debug("Switching to TCP.");
@@ -372,6 +376,7 @@ public class SipServer extends ContainerLifeCycle
 				catch (IOException io) 
 				{
 					LOG.warn("Failed to switch to TCP.");
+					request.setHops(hops);
 					// TODO force sending on initial transport
 					
 					// 	Update via to ensure that right value is used in logs

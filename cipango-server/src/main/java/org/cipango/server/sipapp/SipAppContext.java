@@ -104,9 +104,10 @@ public class SipAppContext extends SipHandlerWrapper
 		"2976", // The SIP INFO Method
 		"3261", // SIP: Session Initiation Protocol
 		"3262", // Reliability of Provisional Responses
+		"3263", // SIP Locating SIP Servers
 		"3265", // (SIP)-Specific Event Notification. 
-		"3311", // (SIP) UPDATE Method
-		"3327", // SIP) Extension Header Field for Registering Non-Adjacent Contacts (Path header)
+		"3311", // SIP UPDATE Method
+		"3327", // SIP Extension Header Field for Registering Non-Adjacent Contacts (Path header)
 		"3428", // SIP Extension for Instant Messaging  
 		"3515", // SIP Refer Method
 		"3903", // SIP Extension for Event State Publication

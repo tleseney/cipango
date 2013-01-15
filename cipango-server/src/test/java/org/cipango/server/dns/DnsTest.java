@@ -14,6 +14,7 @@
 package org.cipango.server.dns;
 
 import java.io.IOException;
+import java.util.Iterator;
 
 import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.SipApplicationSession;
@@ -27,6 +28,7 @@ import junit.framework.Assert;
 import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.SipConnector;
 import org.cipango.server.SipRequest;
+import org.cipango.server.SipResponse;
 import org.cipango.server.SipServer;
 import org.cipango.server.Transport;
 import org.cipango.server.dns.BlackListImpl.Criteria;
@@ -36,6 +38,7 @@ import org.cipango.server.servlet.DefaultServlet;
 import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.TransactionManagerTest.TestServlet;
+import org.cipango.sip.SipHeader;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.junit.After;
@@ -166,7 +169,12 @@ public class DnsTest
 		//System.out.println(request);
 		//System.out.println(testServlet.getRequests());
 		_testServlet.assertDone(1);
-		Assert.assertEquals(SipServletResponse.SC_OK, _testServlet.getResponses().peek().getStatus());
+		SipServletResponse response =  _testServlet.getResponses().peek();
+		Assert.assertEquals(SipServletResponse.SC_OK, response.getStatus());
+		Iterator<String> it = response.getHeaders(SipHeader.VIA.asString());
+		Assert.assertTrue(it.hasNext()); 
+		it.next();
+		Assert.assertFalse(it.hasNext()); 
 		Assert.assertEquals("Server 2 has not been invoked", 1, testServlet.getRequests().size()); 
 		//System.out.println(_testServlet.getResponses());
 		//System.out.println(request.session().dump());

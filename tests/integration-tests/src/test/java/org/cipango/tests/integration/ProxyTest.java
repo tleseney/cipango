@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2010-2012 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import org.cipango.client.SipMethods;
 import org.cipango.tests.UaRunnable;
 import org.cipango.tests.UaTestCase;
 import org.cipango.tests.UasScript;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class ProxyTest extends UaTestCase
@@ -234,5 +235,60 @@ public class ProxyTest extends UaTestCase
 		request.setRequestURI(bob.getContact().getURI());
 		Call call = _ua.createCall(request);
 		assertThat(call.waitForResponse(), hasStatus(SipServletResponse.SC_DECLINE));
+	}
+	
+	
+	/**
+	 * Ensures that
+	 *  - DNS resolution is done using NAPTR and SRV in proxy mode;
+	 *  - retry is done if a 503 is received.
+	 *  
+	 * 
+	 * To run this test, the DNS server for domain cipango.voip should be configured with
+	 * <pre>
+	 * bob         IN NAPTR 90  40  "s"  "SIP+D2U"      ""  _sip._udp.bob
+	 * _sip._udp.bob           SRV 0 0 5064 local
+	 * _sip._udp.bob           SRV 5 0 5063 local
+	 * </pre>
+	 * Note:This test is marked as ignored as it requires a specific DNS configuration.
+	 */
+	@Ignore
+	public void testDns() throws Exception
+	{
+		final Endpoint bob = createEndpoint("bob");
+		bob.getUserAgent().setDefaultHandler(new MessageHandler()
+		{
+			public void handleRequest(SipServletRequest request) throws IOException, ServletException
+			{
+				SipServletResponse response = bob.getUserAgent().createResponse(request, SipServletResponse.SC_ACCEPTED);
+				response.addHeader("X-Dns", "ok");
+				response.send();
+			}
+
+			public void handleResponse(SipServletResponse response) throws IOException, ServletException
+			{
+			}
+		});
+		
+		final Endpoint bob2 = createEndpoint("bob");
+		bob2.getUserAgent().setDefaultHandler(new MessageHandler()
+		{
+			public void handleRequest(SipServletRequest request) throws IOException, ServletException
+			{
+				SipServletResponse response = bob.getUserAgent().createResponse(request, SipServletResponse.SC_SERVICE_UNAVAILABLE);
+				response.send();
+			}
+
+			public void handleResponse(SipServletResponse response) throws IOException, ServletException
+			{
+			}
+		});
+		
+		SipServletRequest request = _ua.createRequest(SipMethods.MESSAGE, bob.getUri());
+		request.setRequestURI(_sipClient.getFactory().createURI("sip:bob.cipango.voip"));
+		Call call = _ua.createCall(request);
+		assertThat(call.waitForResponse(), hasStatus(SipServletResponse.SC_ACCEPTED));
+		
+		checkForFailure();
 	}
 }

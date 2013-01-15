@@ -494,10 +494,4 @@ public class SipResponse extends SipMessage implements SipServletResponse
 		_proxyBranch = proxyBranch;
 	}
 	
-	public Via removeTopVia() 
-	{
-		Via via = (Via) _fields.removeFirst(SipHeader.VIA);
-		return via;
-	}
-
 }

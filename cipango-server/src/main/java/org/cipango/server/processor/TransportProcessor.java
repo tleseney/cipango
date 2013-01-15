@@ -285,10 +285,12 @@ public class TransportProcessor extends SipProcessorWrapper
 		while (it.hasNext())
 		{
 			Hop bestHop = it.next();
-			if (!_blackList.isBlacklisted(bestHop))
-				return getConnection(request, bestHop.getTransport(), bestHop.getAddress(), bestHop.getPort());
-			else
+			
+			if (_blackList.isBlacklisted(bestHop))
 				LOG.debug("Do no send request to hop {} as it is blacklisted", bestHop);
+			else
+				return getConnection(request, bestHop.getTransport(), bestHop.getAddress(), bestHop.getPort());
+				
 		}
 		
 		// If all black listed and request has not been sent yet, send it to first hop

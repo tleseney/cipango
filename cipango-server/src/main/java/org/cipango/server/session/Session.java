@@ -311,16 +311,19 @@ public class Session implements SipSessionIf, Dumpable
 		}
 	}
 		
-	public ClientTransaction sendRequest(SipRequest request, ClientTransactionListener listener) throws IOException
+	public ClientTransaction sendRequest(SipRequest request, ClientTransactionListener listener, boolean isRetry) throws IOException
 	{
-		access();
-		
 		SipServer server = getServer();
+		if (!isRetry)
+		{
+			access();
+					
+			if (server.getHandler() instanceof RequestCustomizer)
+				((RequestCustomizer) server.getHandler()).customizeRequest(request);
+			
+			request.setCommitted(true);
+		}
 		
-		if (server.getHandler() instanceof RequestCustomizer)
-			((RequestCustomizer) server.getHandler()).customizeRequest(request);
-		
-		request.setCommitted(true);
 		ClientTransaction tx = null;
 		while (tx == null)
 		{
@@ -374,7 +377,7 @@ public class Session implements SipSessionIf, Dumpable
 		if (!isUA())
 			throw new IllegalStateException("Session is not UA");
 		
-		return sendRequest(request, _dialog);
+		return sendRequest(request, _dialog, false);
 	}
 	
 	public Reason isRetryable(SipResponse response)
@@ -406,7 +409,9 @@ public class Session implements SipSessionIf, Dumpable
 		{
 			try
 			{
-				sendRequest(request, listener); // FIXME Should not call this method to prevent customize request to be called twice
+				LOG.debug("Retrying to send request on session {}", this);
+				request.removeTopVia();
+				sendRequest(request, listener, true);
 				return true;
 			}
 			catch (Exception e)
@@ -414,6 +419,7 @@ public class Session implements SipSessionIf, Dumpable
 				LOG.debug("Failed to send request to another hop", e);
 			}
 		}
+		LOG.debug("Could not retry to send request on session {} as there is no more hop", this);
 		return false;
 	}
 
@@ -1201,9 +1207,11 @@ public class Session implements SipSessionIf, Dumpable
 			if (response.getStatus() == 100)
 				return;
 			
-			if (isRetryable(response) != null)
+			Reason reason = isRetryable(response);
+	        if (reason != null)
 			{
-				if (retry(response, isRetryable(response), this))
+	        	LOG.debug("Response is retryable for reason {} on session {}", reason, this);
+				if (retry(response, reason, this))
 					return;
 			}
 			

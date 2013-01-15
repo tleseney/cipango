@@ -1,3 +1,16 @@
+// ========================================================================
+// Copyright 2006-2013 NEXCOM Systems
+// ------------------------------------------------------------------------
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at 
+// http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ========================================================================
 package org.cipango.server.session;
 
 import java.io.IOException;
@@ -39,13 +52,17 @@ import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
 import org.cipango.server.SipServer;
+import org.cipango.server.dns.BlackList.Reason;
+import org.cipango.server.dns.Hop;
 import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.session.SessionManager.SipSessionIf;
 import org.cipango.server.session.scoped.ScopedClientTransactionListener;
 import org.cipango.server.session.scoped.ScopedServerTransactionListener;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.ClientTransaction;
+import org.cipango.server.transaction.ClientTransaction.TimeoutConnection;
 import org.cipango.server.transaction.ClientTransactionListener;
+import org.cipango.server.transaction.ClientTxException;
 import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.server.transaction.ServerTransactionListener;
 import org.cipango.server.transaction.Transaction;
@@ -304,8 +321,48 @@ public class Session implements SipSessionIf, Dumpable
 			((RequestCustomizer) server.getHandler()).customizeRequest(request);
 		
 		request.setCommitted(true);
-		
-		ClientTransaction tx = server.getTransactionManager().sendRequest(request, new ScopedClientTransactionListener(this, listener));
+		ClientTransaction tx = null;
+		while (tx == null)
+		{
+			try
+			{
+				tx = server.getTransactionManager().sendRequest(request, new ScopedClientTransactionListener(this, listener));
+			}
+			catch (ClientTxException e)
+			{
+				ClientTransaction failedTx = e.getClientTransaction();
+				ListIterator<Hop> hops = failedTx.getRequest().getHops();
+				if (hops == null)
+				{
+					LOG.debug(e.getCause()); // Could happens in case of UnknownHostException
+					tx = failedTx;
+				}
+				else
+				{	
+					// Notify black list
+					if (hops.hasPrevious()) 
+					{
+						Hop failedHop = hops.previous();
+						getServer().getTransportProcessor().getBlackList().hopFailed(failedHop, Reason.CONNECT_FAILED);
+						hops.next(); // Set iterator to initial value
+						if (hops.hasNext())
+							LOG.warn("Could not send request using hop {} due to {}, try with next hop", failedHop, e.getCause());
+						else
+							LOG.warn("Could not send request using hop {} due to {} and there is no more hops", failedHop, e.getCause());
+					}				
+	
+					if (hops.hasNext())
+					{
+						failedTx.terminate();
+					}
+					else
+					{
+						LOG.debug(e.getCause());
+						tx = failedTx;
+					}
+				}
+			}
+		}
 		
 		if (!request.isAck())
 			addClientTransaction(tx);
@@ -319,6 +376,47 @@ public class Session implements SipSessionIf, Dumpable
 		
 		return sendRequest(request, _dialog);
 	}
+	
+	public Reason isRetryable(SipResponse response)
+	{
+		int status = response.getStatus();
+		if (((ClientTransaction) response.getTransaction()).isCanceled())
+			return null;
+		if (status == SipServletResponse.SC_SERVICE_UNAVAILABLE)
+			return Reason.RESPONSE_CODE_503;
+		else if (status == SipServletResponse.SC_REQUEST_TIMEOUT && response.getConnection() instanceof TimeoutConnection)
+			return Reason.TIMEOUT;	// TODO do not select in case of Timer C timeout
+		else
+			return null;
+	}
+	
+	public boolean retry(SipResponse response, Reason reason, ClientTransactionListener listener)
+	{
+		SipRequest request = (SipRequest) response.getRequest();
+		ListIterator<Hop> hops = request.getHops();
+		
+		if (hops.hasPrevious())
+		{
+			Hop failedHop = hops.previous();
+			getServer().getTransportProcessor().getBlackList().hopFailed(failedHop, isRetryable(response));
+			hops.next();
+		}
+		
+		if (hops.hasNext())
+		{
+			try
+			{
+				sendRequest(request, listener); // FIXME Should not call this method to prevent customize request to be called twice
+				return true;
+			}
+			catch (Exception e)
+			{
+				LOG.debug("Failed to send request to another hop", e);
+			}
+		}
+		return false;
+	}
+
 		
 	private void setState(State state)
 	{
@@ -1095,12 +1193,19 @@ public class Session implements SipSessionIf, Dumpable
 					throw new SipException(SipServletResponse.SC_CALL_LEG_DONE, "No matching 100 rel for RAck " + rack);
 			}
 		}
-
+		
+		
 		@Override
 		public void handleResponse(SipResponse response)
 		{
 			if (response.getStatus() == 100)
 				return;
+			
+			if (isRetryable(response) != null)
+			{
+				if (retry(response, isRetryable(response), this))
+					return;
+			}
 			
 			if (!isSameDialog(response))
 			{

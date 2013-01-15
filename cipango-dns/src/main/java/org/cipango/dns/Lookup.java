@@ -44,19 +44,22 @@ public class Lookup
 		catch (IOException e1) 
 		{
 			e = e1;
-			for (Name suffix : _dnsClient.getSearchList())
+			if (_dnsClient.getSearchList() != null)
 			{
-				Record record = _record.getType().newRecord();
-				Name newName = _record.getName().clone();
-				newName.append(suffix);
-				record.setName(newName);
-				record.setDnsClass(_record.getDnsClass());
-				try 
+				for (Name suffix : _dnsClient.getSearchList())
 				{
-					return resolve(record);
-				}
-				catch (IOException e2) 
-				{
+					Record record = _record.getType().newRecord();
+					Name newName = _record.getName().clone();
+					newName.append(suffix);
+					record.setName(newName);
+					record.setDnsClass(_record.getDnsClass());
+					try 
+					{
+						return resolve(record);
+					}
+					catch (IOException e2) 
+					{
+					}
 				}
 			}
 		}

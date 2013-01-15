@@ -34,16 +34,18 @@ import org.cipango.dns.record.PtrRecord;
 import org.cipango.dns.record.Record;
 import org.cipango.util.StringScanner;
 import org.eclipse.jetty.util.ArrayUtil;
+import org.eclipse.jetty.util.annotation.ManagedAttribute;
+import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.component.ContainerLifeCycle;
-import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
+@ManagedObject("DNS Service")
 public class DnsService extends ContainerLifeCycle implements DnsClient
 {
 	private static final Logger LOG = Log.getLogger(DnsService.class);
 	private Cache _cache;
-	private List<Name> _searchList = new ArrayList<Name>();
+	private Name[] _searchList;
 	private Resolver[] _resolvers;
 	private DnsConnector[] _connectors;
 	private boolean _preferIpv6 = false;
@@ -77,33 +79,22 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 		if (_connectors == null || _connectors.length == 0)
 			addConnector(new UdpConnector());
 
-		for (DnsConnector connector : _connectors)
-			if (connector instanceof LifeCycle)
-				((LifeCycle) connector).start();
-
-		if (_searchList.isEmpty())
+		if (_searchList == null)
 		{
 			sun.net.dns.ResolverConfiguration resolverConfiguration = sun.net.dns.ResolverConfiguration
 					.open();
+			List<Name> searchList = new ArrayList<Name>();
 			for (Object name : resolverConfiguration.searchlist())
-				_searchList.add(new Name((String) name));
+				searchList.add(new Name((String) name));
+			_searchList = searchList.toArray(new Name[searchList.size()]);
 		}
 
 		if (_cache == null)
-			_cache = new Cache();
+			setCache(new Cache());
 		
 		addEtcHosts();
-	}
-
-	@Override
-	protected void doStop() throws Exception
-	{
-		if (_connectors != null)
-		{
-			for (DnsConnector connector : _connectors)
-				if (connector instanceof LifeCycle)
-					((LifeCycle) connector).stop();
-		}
+		
+		super.doStart();
 	}
 	
 	public InetAddress[] lookupAllHostAddr(String host) throws UnknownHostException
@@ -159,6 +150,7 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 
 	}
 
+	@ManagedAttribute(value="Cache", readonly=true)
 	public Cache getCache()
 	{
 		return _cache;
@@ -166,15 +158,17 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 
 	public void setCache(Cache cache)
 	{
+		updateBean(_cache, cache);
 		_cache = cache;
 	}
 
-	public List<Name> getSearchList()
+	@ManagedAttribute(value="Search list")
+	public Name[] getSearchList()
 	{
 		return _searchList;
 	}
 
-	public void setSearchList(List<Name> searchList)
+	public void setSearchList(Name[] searchList)
 	{
 		_searchList = searchList;
 	}
@@ -216,11 +210,13 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 		return _connectors[0];
 	}
 
+	@ManagedAttribute(value="Resolvers", readonly=true)
 	public Resolver[] getResolvers()
 	{
 		return _resolvers;
 	}
 
+	@ManagedAttribute(value="Connectors", readonly=true)
 	public DnsConnector[] getConnectors()
 	{
 		return _connectors;
@@ -334,6 +330,7 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 		}
 	}
 
+	@ManagedAttribute("Prefer IPv6")
 	public boolean isPreferIpv6()
 	{
 		return _preferIpv6;

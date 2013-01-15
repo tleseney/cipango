@@ -206,9 +206,8 @@ public class DnsServiceTest
 	@Test
 	public void testSearchList() throws Exception
 	{
-		List<Name> searchList = _dnsService.getSearchList();
-		searchList.clear();
-		searchList.add(new Name("cipango.org"));
+		Name[] searchList = new Name[] {new Name("cipango.org")};
+		_dnsService.setSearchList(searchList);
 		InetAddress[] addr = _dnsService.lookupAllHostAddr("jira");
 		//System.out.println(addr);
 		assertNotNull(addr);

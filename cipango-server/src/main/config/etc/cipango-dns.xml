@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<!DOCTYPE Configure PUBLIC "-//Jetty//Configure//EN" "http://www.eclipse.org/jetty/configure.dtd">
+
+<Configure id="SipServer" class="org.cipango.server.SipServer">
+
+  <Get name="transportProcessor">
+    <Set name="dnsResolver">
+      <New class="org.cipango.server.dns.Rfc3263DnsResolver">
+        <Set name="dnsService">
+          <New class="org.cipango.dns.DnsService">
+            <Call name="addConnector">
+              <Arg>
+                <New class="org.cipango.dns.bio.UdpConnector">
+                  <!--
+                  <Set name="port"><Property default="10053" name="dns.port"/></Set>
+                  <Set name="host"><Property name="dns.host"/></Set>
+                  -->
+                </New>
+              </Arg>
+            </Call>
+          </New>
+        </Set>
+      </New>
+    </Set>
+    
+    <Set name="blackList">
+      <New class="org.cipango.server.dns.BlackListImpl">
+        <Set name="blackListDuration">300</Set>
+        <!-- Criteria could be IP_ADDRESS, IP_PORT or IP_PORT_TRANSPORT -->
+        <Set name="blackListCriteria">IP_PORT</Set>
+      </New>
+    </Set>
+  </Get>
+</Configure>

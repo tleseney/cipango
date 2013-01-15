@@ -58,6 +58,8 @@ public class TestDnsService extends DnsService
 				getCache().addNegativeRecord(query, answer);
 			else
 				getCache().addRecordSet(query, answer);
+			
+			//System.out.println(getCache().dump());
 		}
 		catch (Exception e)
 		{

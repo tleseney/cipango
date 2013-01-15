@@ -14,17 +14,43 @@
 package org.cipango.server.dns;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import org.cipango.server.Transport;
 
-public interface DnsResolver
+/**
+ * DNS resolved based on java system DNS resolver.
+ * Only A and AAAA requests are used for resolution.
+ */
+public class SystemDnsResolver implements DnsResolver
 {
 
-	public List<Hop> getHops(Hop hop) throws IOException;
-	
-	public void setEnableTransports(Collection<Transport> transports);
+	/**
+	 * Returns a list with one element resolved using A or AAAA request.
+	 */
+	@Override
+	public List<Hop> getHops(Hop hop) throws IOException
+	{
+		if (hop.getTransport() == null)
+			hop.setTransport(hop.isSecure() ? Transport.TLS : Transport.UDP);
+		if (!hop.isPortSet())
+			hop.setPort(hop.getTransport().getDefaultPort());
+		hop.setAddress(InetAddress.getByName(hop.getHost()));
+		return Collections.singletonList(hop);
+	}
 
-	public Collection<Transport> getEnableTransports();
+	@Override
+	public void setEnableTransports(Collection<Transport> transports)
+	{
+	}
+
+	@Override
+	public Collection<Transport> getEnableTransports()
+	{
+		return null;
+	}
+
 }

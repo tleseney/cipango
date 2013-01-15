@@ -18,6 +18,10 @@ import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 
+import org.eclipse.jetty.util.annotation.ManagedAttribute;
+import org.eclipse.jetty.util.annotation.ManagedObject;
+
+@ManagedObject("DNS resolver")
 public class Resolver
 {
 	public static final int DEFAULT_PORT = 53;
@@ -50,6 +54,7 @@ public class Resolver
 		
 	}
 
+	@ManagedAttribute(value="Host", readonly=true)
 	public InetAddress getHost()
 	{
 		return _host;
@@ -65,42 +70,33 @@ public class Resolver
 		_host = host;
 	}
 
-
-
+	@ManagedAttribute(value="Port", readonly=true)
 	public int getPort()
 	{
 		return _port;
 	}
-
-
 
 	public void setPort(int port)
 	{
 		_port = port;
 	}
 
-
-
+	@ManagedAttribute("Timeout")
 	public long getTimeout()
 	{
 		return _timeout;
 	}
-
-
 
 	public void setTimeout(long timeout)
 	{
 		_timeout = timeout;
 	}
 
-
-
+	@ManagedAttribute("Attemps")
 	public int getAttemps()
 	{
 		return _attemps;
 	}
-
-
 
 	public void setAttemps(int attemps)
 	{
@@ -115,6 +111,12 @@ public class Resolver
 	public void setDnsClient(DnsClient dnsClient)
 	{
 		_dnsClient = dnsClient;
+	}
+	
+	@Override
+	public String toString()
+	{
+		return getClass().getSimpleName() + "@" + _host.getHostAddress() + ":" + _port;
 	}
 
 

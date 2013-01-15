@@ -1,11 +1,14 @@
 package org.cipango.server.transaction;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import javax.servlet.ServletException;
 import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipFactory;
 import javax.servlet.sip.SipServlet;
+import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
 import junit.framework.Assert;
@@ -136,11 +139,14 @@ public class TransactionManagerTest
 	}
 	
 	
+	@SuppressWarnings("serial")
 	public static class TestServlet extends SipServlet
 	{
 		private Queue<SipServletResponse> _responses = new LinkedList<SipServletResponse>();
+		private Queue<SipServletRequest> _requests = new LinkedList<SipServletRequest>();
+		
 		@Override
-		public void doResponse(SipServletResponse response)
+		protected void doResponse(SipServletResponse response)
 		{
 			//System.out.println(response);
 			synchronized (_responses)
@@ -148,6 +154,18 @@ public class TransactionManagerTest
 				_responses.add(response);
 				_responses.notify();
 			}
+		}
+		
+		@Override
+		protected void doRequest(SipServletRequest request) throws ServletException, IOException
+		{
+			//System.out.println("TestServlet.doRequest:\n" + request);
+			synchronized (_requests)
+			{
+				_requests.add(request);
+				_requests.notify();
+			}
+			super.doRequest(request);
 		}
 		
 		public void assertDone(int msgExpected) throws Exception
@@ -170,6 +188,16 @@ public class TransactionManagerTest
 			
 			if (_responses.size() != msgExpected)
 				Assert.fail("Received " + _responses.size() + " messages when expected " + msgExpected);
+		}
+
+		public Queue<SipServletResponse> getResponses()
+		{
+			return _responses;
+		}
+		
+		public Queue<SipServletRequest> getRequests()
+		{
+			return _requests;
 		}
 		
 	}

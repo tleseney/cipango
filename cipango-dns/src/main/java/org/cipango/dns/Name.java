@@ -13,10 +13,14 @@
 // ========================================================================
 package org.cipango.dns;
 
+import java.io.Serializable;
 
 
-public class Name implements Cloneable
+
+public class Name implements Cloneable, Serializable
 {
+	private static final long serialVersionUID = 1L;
+	
 	public static final int MAX_LABEL_SIZE = 63;
 	public static final int MAX_NAME_SIZE = 255;
 	public static final Name EMPTY_NAME = new Name("");

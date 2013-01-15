@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2008-2009 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,13 +16,20 @@ package org.cipango.dns;
 
 import java.net.InetAddress;
 
+import org.eclipse.jetty.util.annotation.ManagedAttribute;
+import org.eclipse.jetty.util.annotation.ManagedObject;
 
+
+@ManagedObject("DNS connector")
 public interface DnsConnector
 {		
 	void setHost(String host);
+	@ManagedAttribute(value="Host", readonly=true)
 	String getHost();
 	
 	void setPort(int port);
+
+	@ManagedAttribute(value="Port", readonly=true)
 	int getPort();
 	
 	DnsConnection newConnection(InetAddress host, int port);

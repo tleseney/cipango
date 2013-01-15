@@ -156,6 +156,7 @@ public class ClientTransaction extends Transaction
 					_request, null);
 			_listener.customizeRequest(_request, _connection);
 			getServer().sendRequest(_request, _connection);
+			
 		}
 	}
 	
@@ -319,7 +320,7 @@ public class ClientTransaction extends Transaction
 		return false;
 	}
 	
-	protected void terminate() 
+	public void terminate() 
     {
 		super.terminate();
 		_transactionManager.transactionTerminated(this);
@@ -334,10 +335,12 @@ public class ClientTransaction extends Transaction
 		SipResponse responseB = new SipResponse(_request, SipServletResponse.SC_REQUEST_TIMEOUT, null);
 		if (responseB.to().getTag() == null)
 			responseB.to().setParameter(AddressImpl.TAG, responseB.appSession().newUASTag());
+		SipConnector c = getConnection() == null ? getServer().getConnectors()[0] : getConnection().getConnector();
+		responseB.setConnection(new TimeoutConnection(c));
 		
 		AccessLog accessLog = getServer().getAccessLog();
 		if (accessLog != null)
-			accessLog.messageReceived(responseB, new TimeoutConnection());
+			accessLog.messageReceived(responseB, responseB.getConnection());
 		
 		return responseB;
 	}
@@ -425,16 +428,13 @@ public class ClientTransaction extends Transaction
 		}
 	}
 	
-	class TimeoutConnection implements SipConnection
+	public static class TimeoutConnection implements SipConnection
 	{
 		private SipConnector _connector;
 		
-		public TimeoutConnection()
+		public TimeoutConnection(SipConnector connector)
 		{
-			if (getConnection() == null)
-				_connector = getServer().getConnectors()[0];
-			else
-				_connector = getConnection().getConnector();
+			_connector = connector;
 		}
 		
 		@Override

@@ -85,22 +85,21 @@ public class SipServer extends ContainerLifeCycle
 	{
         _threadPool = pool != null? pool: new QueuedThreadPool();
         addBean(_threadPool);
+        
+        _transactionManager = new TransactionManager();
+		_transportProcessor = new TransportProcessor(_transactionManager);
+		_transactionManager.setTransportProcessor(_transportProcessor);
+		addBean(_transactionManager);
+		addBean(_transportProcessor);
+		
+		_processor = _transportProcessor;
+		_processor.setServer(this);
 	}
 	
 	@Override
 	protected void doStart() throws Exception
 	{
 		LOG.info("cipango-" + __version);
-		
-		_transactionManager = new TransactionManager();
-		_transportProcessor = new TransportProcessor(_transactionManager);
-		_transactionManager.setTransportProcessor(_transportProcessor);
-		addBean(_transactionManager);
-		addBean(_processor);
-		
-		_processor = _transportProcessor;
-		_processor.setServer(this);
-		_processor.start();
 				
 		MultiException mex = new MultiException();
 

@@ -200,7 +200,7 @@ public class TransactionManager extends SipProcessorWrapper implements Dumpable
 		return oldTx;
 	}
 
-	public ClientTransaction sendRequest(SipRequest request, ClientTransactionListener listener)
+	public ClientTransaction sendRequest(SipRequest request, ClientTransactionListener listener) throws ClientTxException
 	{
 		ClientTransaction oldTx = null;
 		ClientTransaction ctx;
@@ -220,7 +220,7 @@ public class TransactionManager extends SipProcessorWrapper implements Dumpable
 		}
 		catch (IOException e)
 		{
-			LOG.warn(e);
+			throw new ClientTxException(e, ctx);
 		}
 		return ctx;
 	}
@@ -305,6 +305,35 @@ public class TransactionManager extends SipProcessorWrapper implements Dumpable
 	{
 		_serverTxStats.reset(_serverTransactions.size());
 		_clientTxStats.reset(_clientTransactions.size());
+	}	
+	
+	@Override
+	public String dump()
+	{
+		return ContainerLifeCycle.dump(this);
+	}
+
+	@Override
+	public void dump(Appendable out, String indent) throws IOException
+	{
+		out.append(indent).append(" +- TransactionManager\n");
+		indent = indent + "    ";
+		out.append(indent).append(" +- ClientTransactions\n");
+		Iterator<ClientTransaction> it = _clientTransactions.values().iterator();
+		int i = 50;
+		while (it.hasNext() && --i >0)
+			out.append(indent).append(it.next().toString()).append("\n");
+		if (it.hasNext())
+			out.append(indent).append("...\n");
+		
+		out.append(indent).append(" +- ServerTransactions\n");
+		Iterator<ServerTransaction> it2 = _serverTransactions.values().iterator();
+		i = 50;
+		while (it2.hasNext() && --i >0)
+			out.append(indent).append(it2.next().toString()).append("\n");
+		if (it.hasNext())
+			out.append(indent).append("...\n");
+
 	}
 	
 	class Timer implements Runnable
@@ -367,36 +396,5 @@ public class TransactionManager extends SipProcessorWrapper implements Dumpable
 			}
 		}
 	}
-
-	@Override
-	public String dump()
-	{
-		return ContainerLifeCycle.dump(this);
-	}
-
-
-	@Override
-	public void dump(Appendable out, String indent) throws IOException
-	{
-		out.append(indent).append(" +- TransactionManager\n");
-		indent = indent + "    ";
-		out.append(indent).append(" +- ClientTransactions\n");
-		Iterator<ClientTransaction> it = _clientTransactions.values().iterator();
-		int i = 50;
-		while (it.hasNext() && --i >0)
-			out.append(indent).append(it.next().toString()).append("\n");
-		if (it.hasNext())
-			out.append(indent).append("...\n");
-		
-		out.append(indent).append(" +- ServerTransactions\n");
-		Iterator<ServerTransaction> it2 = _serverTransactions.values().iterator();
-		i = 50;
-		while (it2.hasNext() && --i >0)
-			out.append(indent).append(it2.next().toString()).append("\n");
-		if (it.hasNext())
-			out.append(indent).append("...\n");
-
-	}
-
 	
 }

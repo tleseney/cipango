@@ -11,23 +11,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // ========================================================================
-package org.cipango.dns;
+package org.cipango.server.transaction;
 
 import java.io.IOException;
 
-public interface DnsClient
+public class ClientTxException extends IOException
 {
-
-	public Cache getCache();
-
-	public Name[] getSearchList();
-
-	public DnsConnector getDefaultConnector();
-
-	public Resolver[] getResolvers();
-
-	public DnsConnector[] getConnectors();
+	private static final long serialVersionUID = 1L;
 	
-	public DnsMessage resolve(DnsMessage query) throws IOException;
-
+	private ClientTransaction _tx;
+	
+	public ClientTxException(Exception source, ClientTransaction tx)
+	{
+		super(source);
+		_tx = tx;
+	}
+	
+	public ClientTransaction getClientTransaction()
+	{
+		return _tx;
+	}
 }

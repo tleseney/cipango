@@ -34,17 +34,17 @@ import org.junit.Test;
  * Note: To see DNS requests on network, use bind with configuration file db.cipango.voip saved in
  * this package and replace TestDnsService instance by DnsService instance in setUp method.
  */
-public class DnsSrvResolverTest
+public class Rfc3263DnsResolverTest
 {
 
-	private DnsSrvResolver _dnsResolver;
+	private Rfc3263DnsResolver _dnsResolver;
 	private static InetAddress DEFAULT_IP;
 		
 	@Before
 	public void setUp() throws Exception
 	{
 		DEFAULT_IP = InetAddress.getByName("192.168.2.183");
-		_dnsResolver = new DnsSrvResolver();
+		_dnsResolver = new Rfc3263DnsResolver();
 		DnsService dnsService = new TestDnsService();
 		_dnsResolver.setDnsService(dnsService);
 		dnsService.start();

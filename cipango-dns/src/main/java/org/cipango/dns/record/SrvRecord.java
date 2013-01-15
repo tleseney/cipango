@@ -24,7 +24,7 @@ import org.cipango.dns.util.BufferUtil;
 /**
  * @see <a href="http://www.faqs.org/rfcs/rfc2782.html">RFC 2782 - DNS SRV RR</a>
  */
-public class SrvRecord extends Record implements AdditionalName
+public class SrvRecord extends Record implements AdditionalName, Comparable<SrvRecord>
 {
 	private int _priority;
 	private int _weight;
@@ -174,6 +174,18 @@ public class SrvRecord extends Record implements AdditionalName
 	public boolean doEquals(Record record)
 	{
 		return compare(_target, ((SrvRecord) record).getTarget()) && _port == ((SrvRecord) record).getPort();
+	}
+
+	@Override
+	public int compareTo(SrvRecord o)
+	{
+		int priority = getPriority() - o.getPriority();
+		if (priority != 0)
+			return priority;
+		int weight = (getWeight() * hashCode()) - (o.getWeight() * o.hashCode());
+		if (weight != 0)
+			return weight;
+		return hashCode() - o.hashCode();
 	}
 
 }

@@ -50,6 +50,7 @@ import javax.servlet.sip.ar.SipApplicationRouterInfo;
 import javax.servlet.sip.ar.SipApplicationRoutingDirective;
 import javax.servlet.sip.ar.SipApplicationRoutingRegion;
 
+import org.cipango.server.dns.Hop;
 import org.cipango.server.security.AuthInfoImpl;
 import org.cipango.server.security.AuthInfoImpl.AuthElement;
 import org.cipango.server.session.SessionManager.ApplicationSessionScope;
@@ -92,6 +93,7 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	
     private boolean _nextHopStrictRouting = false;
     private boolean _handled = false;
+    private ListIterator<Hop> _hops;
 	
     public SipRequest()
     {
@@ -764,6 +766,16 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	{
 		_handled = handled;
 	}
+
+	public ListIterator<Hop> getHops()
+	{
+		return _hops;
+	}
+
+	public void setHops(ListIterator<Hop> hops)
+	{
+		_hops = hops;
+	}
 	
 	@Override
 	public String toString()
@@ -826,5 +838,6 @@ public class SipRequest extends SipMessage implements SipServletRequest
 	{
 		__strictRoutingEnabled = strictRoutingEnabled;
 	}
+
 
 }

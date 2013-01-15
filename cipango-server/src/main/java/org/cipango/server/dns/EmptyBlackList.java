@@ -11,23 +11,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // ========================================================================
-package org.cipango.dns;
+package org.cipango.server.dns;
 
-import java.io.IOException;
-
-public interface DnsClient
+public class EmptyBlackList implements BlackList
 {
 
-	public Cache getCache();
+	@Override
+	public boolean isBlacklisted(Hop hop)
+	{
+		return false;
+	}
 
-	public Name[] getSearchList();
-
-	public DnsConnector getDefaultConnector();
-
-	public Resolver[] getResolvers();
-
-	public DnsConnector[] getConnectors();
-	
-	public DnsMessage resolve(DnsMessage query) throws IOException;
+	@Override
+	public void hopFailed(Hop hop, Reason reason)
+	{
+	}
 
 }

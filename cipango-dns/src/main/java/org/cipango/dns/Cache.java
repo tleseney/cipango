@@ -13,22 +13,28 @@
 // ========================================================================
 package org.cipango.dns;
 
+import java.io.IOException;
 import java.rmi.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.cipango.dns.record.AdditionalName;
 import org.cipango.dns.record.Record;
 import org.cipango.dns.record.SoaRecord;
+import org.eclipse.jetty.util.annotation.ManagedObject;
+import org.eclipse.jetty.util.annotation.ManagedOperation;
+import org.eclipse.jetty.util.component.ContainerLifeCycle;
+import org.eclipse.jetty.util.component.Dumpable;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
-public class Cache
+@ManagedObject("Cache")
+public class Cache implements Dumpable
 {
 	public static final int DEFAULT_NEGATIVE_TTL = 3600;
 	private static final Logger LOG = Log.getLogger(Cache.class);
@@ -86,7 +92,7 @@ public class Cache
 				ttl = ((SoaRecord) record2).getTtl();
 		}
 		
-		LOG.debug("Negative cache.add: " + record + " on " + records + " with ttl " + ttl);
+		LOG.debug("Negative cache.add: {} on {} with ttl {}", record, records, ttl);
 		synchronized (records)
 		{
 			records.add(new Element(record, ttl, true));
@@ -153,8 +159,31 @@ public class Cache
 		return Collections.EMPTY_LIST;
 	}
 	
+	@ManagedOperation(value="Clear cache", impact="ACTION")
+	public void clear()
+	{
+		_cache.clear();
+	}
 	
-	class Element
+
+	@Override
+	public String dump()
+	{
+		return ContainerLifeCycle.dump(this);
+	}
+
+	@Override
+	public void dump(Appendable out, String indent) throws IOException
+	{
+		out.append("DNS cache").append('\n');
+		for (Entry<Name, List<Element>> entry : _cache.entrySet())
+		{
+			out.append(indent).append("  - ");
+			out.append(entry.getKey().toString()).append(": ").append(entry.getValue().toString()).append('\n');
+		}
+	}
+	
+	static class Element
 	{
 		private Record _record;
 		private Long _expires;
@@ -185,7 +214,12 @@ public class Cache
 		
 		public String toString()
 		{
-			return _record.toString() + "@" + new Date(_expires);
+			StringBuilder sb = new StringBuilder();
+			sb.append(_record.toString());
+			if (isNegative())
+				sb.append(" [Negative]");
+			sb.append('@').append(((_expires - System.currentTimeMillis()) / 1000)).append("s");
+			return sb.toString();
 		}
 
 		public boolean isNegative()
@@ -193,4 +227,6 @@ public class Cache
 			return _negative;
 		}
 	}
+
+
 }

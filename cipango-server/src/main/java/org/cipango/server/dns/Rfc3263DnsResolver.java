@@ -18,6 +18,8 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -29,20 +31,33 @@ import org.cipango.dns.record.Record;
 import org.cipango.dns.record.SrvRecord;
 import org.cipango.dns.util.Inet6Util;
 import org.cipango.server.Transport;
+import org.eclipse.jetty.util.annotation.ManagedAttribute;
+import org.eclipse.jetty.util.annotation.ManagedObject;
+import org.eclipse.jetty.util.component.ContainerLifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
-public class DnsSrvResolver implements DnsResolver
+@ManagedObject("RFC 3263 DNS resolver")
+public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolver
 {	
-	private static final Logger LOG = Log.getLogger(DnsSrvResolver.class);
+	private static final Logger LOG = Log.getLogger(Rfc3263DnsResolver.class);
 	
 	private DnsService _dnsService;
 	private final List<String> _enableNaptrTransports = new ArrayList<String>();
 	private final List<Transport> _enableTransports = new ArrayList<Transport>();
 
-	public DnsSrvResolver()
+	public Rfc3263DnsResolver()
 	{
 		setEnableTransports(Arrays.asList(Transport.TCP, Transport.UDP, Transport.TLS));
+	}
+	
+
+	@Override
+	protected void doStart() throws Exception
+	{
+		if (_dnsService == null)
+			setDnsService(new DnsService());
+		super.doStart();
 	}
 	
 	
@@ -78,7 +93,7 @@ public class DnsSrvResolver implements DnsResolver
 			}
 			catch (IOException e)
 			{
-				LOG.warn("Could not get NAPTR records for name {}, SRV resolution will be done.", hop.getHost());
+				LOG.debug("Could not get NAPTR records for name {}, SRV resolution will be done.", hop.getHost());
 			}
 			
 			if (records != null && !records.isEmpty())
@@ -179,31 +194,31 @@ public class DnsSrvResolver implements DnsResolver
 		return resolveSrv(srvName, transport);
 	}
 	
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private List<Hop> resolveSrv(Name srvName, Transport transport)
 	{
-		List<Record> records;
+		SortedSet<SrvRecord> records;
 		try
 		{
-			records = _dnsService.lookup(new SrvRecord(srvName));
+			records = new TreeSet(_dnsService.lookup(new SrvRecord(srvName)));
 		}
 		catch (Exception e1)
 		{
-			LOG.warn("Could not get SRV record for name {}", srvName);
+			LOG.debug("Could not get SRV record for name {}", srvName);
 			return null;
 		}
 		
 		List<Hop> hops = new ArrayList<Hop>();
-		for (Record record : records)
+		for (SrvRecord record : records)
 		{
-			SrvRecord srvRecord = (SrvRecord) record;
 			try
 			{
-				InetAddress[] addresses = _dnsService.lookupAllHostAddr(srvRecord.getTarget().toString());
+				InetAddress[] addresses = _dnsService.lookupAllHostAddr(record.getTarget().toString());
 				for (InetAddress address : addresses)
 				{
 					Hop hop = new Hop();
-					hop.setHost(srvRecord.getTarget().toString());
-					hop.setPort(srvRecord.getPort());
+					hop.setHost(record.getTarget().toString());
+					hop.setPort(record.getPort());
 					hop.setAddress(address);
 					hop.setTransport(transport);
 					hops.add(hop);
@@ -211,7 +226,7 @@ public class DnsSrvResolver implements DnsResolver
 			}
 			catch (UnknownHostException e)
 			{
-				LOG.warn("Could not get IP address for {} retrieve for SRV name {}", srvRecord.getTarget(), srvName);
+				LOG.debug("Could not get IP address for {} retrieve for SRV name {}", record.getTarget(), srvName);
 			}
 		}
 		return hops;
@@ -222,7 +237,7 @@ public class DnsSrvResolver implements DnsResolver
 		return _enableNaptrTransports;
 	}
 
-	public void setEnableTransports(List<Transport> transports)
+	public void setEnableTransports(Collection<Transport> transports)
 	{
 		_enableNaptrTransports.clear();
 		for (Transport transport : transports)
@@ -232,6 +247,13 @@ public class DnsSrvResolver implements DnsResolver
 	}
 
 
+	@ManagedAttribute(value="Enabled transport", readonly=true)
+	public Collection<Transport> getEnableTransports()
+	{
+		return Collections.unmodifiableList(_enableTransports);
+	}
+
+	@ManagedAttribute("DNS service")
 	public DnsService getDnsService()
 	{
 		return _dnsService;
@@ -240,7 +262,14 @@ public class DnsSrvResolver implements DnsResolver
 
 	public void setDnsService(DnsService dnsService)
 	{
+		updateBean(_dnsService, dnsService);
 		_dnsService = dnsService;
 	}
+
+
+
+
+
+
 
 }

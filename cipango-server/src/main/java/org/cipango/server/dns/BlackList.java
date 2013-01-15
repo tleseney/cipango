@@ -11,23 +11,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // ========================================================================
-package org.cipango.dns;
+package org.cipango.server.dns;
 
-import java.io.IOException;
-
-public interface DnsClient
+public interface BlackList
 {
-
-	public Cache getCache();
-
-	public Name[] getSearchList();
-
-	public DnsConnector getDefaultConnector();
-
-	public Resolver[] getResolvers();
-
-	public DnsConnector[] getConnectors();
+	/**
+	 * For SIP requests, failure occurs if the transaction layer reports a 503 error response or a
+	 * transport failure of some sort (generally, due to fatal ICMP errors in UDP or connection
+	 * failures in TCP). Failure also occurs if the transaction layer times out without ever having
+	 * received any response, provisional or final (i.e., timer B or timer F in RFC 3261 [1] fires)
+	 * 
+	 * @see RFC 3263 §4.3
+	 */
+	public enum Reason { CONNECT_FAILED, ICMP_ERROR, TIMEOUT, RESPONSE_CODE_503 }
 	
-	public DnsMessage resolve(DnsMessage query) throws IOException;
-
+	public boolean isBlacklisted(Hop hop);
+	
+	public void hopFailed(Hop hop, Reason reason);
+	
+	
 }

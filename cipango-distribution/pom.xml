@@ -173,6 +173,10 @@
 -->
                 <artifactItem>
                   <groupId>org.cipango</groupId>
+                  <artifactId>cipango-dns</artifactId>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.cipango</groupId>
                   <artifactId>cipango-plus</artifactId>
                 </artifactItem>
                 <artifactItem>
@@ -256,6 +260,11 @@
     <dependency>
       <groupId>org.cipango</groupId>
       <artifactId>cipango-deploy</artifactId>
+      <version>${project.version}</version>
+    </dependency>    
+    <dependency>
+      <groupId>org.cipango</groupId>
+      <artifactId>cipango-dns</artifactId>
       <version>${project.version}</version>
     </dependency>
 <!--

@@ -253,7 +253,7 @@ public class ProxyTest extends UaTestCase
 	 * Note:This test is marked as ignored as it requires a specific DNS configuration.
 	 */
 	@Ignore
-	public void testDns() throws Exception
+	public void dnsCase() throws Exception
 	{
 		final Endpoint bob = createEndpoint("bob");
 		bob.getUserAgent().setDefaultHandler(new MessageHandler()

@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2010 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -43,6 +43,7 @@ public class ReliableServlet extends AbstractServlet
 			SipServletResponse response = request.createResponse(SipServletResponse.SC_OK);
 			response.send();
 
+			try { Thread.sleep(200); } catch (InterruptedException e){}
 			SipServletRequest invite = (SipServletRequest) request.getSession().getAttribute("INVITE");
 			if (request.getSession().getAttribute("FirstPrack") == null)
 			{
@@ -51,7 +52,6 @@ public class ReliableServlet extends AbstractServlet
 			}
 			else
 			{
-				try { Thread.sleep(200); } catch (InterruptedException e){}
 				invite.createResponse(SipServletResponse.SC_OK).send();
 			}
 		}

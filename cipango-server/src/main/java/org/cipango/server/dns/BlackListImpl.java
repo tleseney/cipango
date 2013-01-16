@@ -94,7 +94,7 @@ public class BlackListImpl implements BlackList, Dumpable
 	
 	protected void blackListHop(Hop hop)
 	{
-		LOG.debug("The hop {} is no blacklisted for {} seconds", hop, _blackListDuration / 1000);
+		LOG.debug("The hop {} is now blacklisted for {} seconds", hop, _blackListDuration / 1000);
 		_map.putIfAbsent(getKey(hop), new ExpirableHop(hop, _blackListDuration));
 	}
 	

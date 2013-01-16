@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2012 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -50,4 +50,24 @@ public class UasServlet extends AbstractServlet
 	}
 	
 
+	public void testBigResponse(SipServletRequest request) throws Exception
+	{
+		SipServletResponse response = request.createResponse(SipServletResponse.SC_OK);
+		StringBuilder sb = new StringBuilder();
+		int lines = 0;
+		for (int i = 0; i < 60000; i++)
+		{
+			sb.append((char) ('a' + lines));
+			if ((i+1) % 200 == 0)
+			{
+				sb.append("\r\n");
+				i += 2;
+				lines++;
+				if (lines > 25)
+					lines = 0;
+			}
+		}
+		response.setContent(sb.toString(), "text/plain");
+		response.send();
+	}
 }

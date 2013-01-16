@@ -345,6 +345,21 @@ public class SipServer extends ContainerLifeCycle
 		}
 		catch (MessageTooLongException e)
 		{
+			if (connection instanceof UdpConnector.UdpConnection)
+			{
+				try
+				{
+					LOG.debug("Failed to send response has it is bigger than MTU, try with UDP maximum size");
+					((UdpConnector.UdpConnection) connection).send(response, true);
+					messageSent(response, connection);
+					return;
+				}
+				catch (MessageTooLongException e1)
+				{
+				}
+			}
+
+			// TODO  apply procedure described in RFC 3263 §5
 			LOG.warn(e);
 		}
 	}

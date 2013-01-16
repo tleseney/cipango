@@ -26,6 +26,7 @@ import org.junit.Test;
 public class SystemDnsResolverTest
 {
 	private DnsResolver _dnsResolver;
+	public static final String  IPV4_ADDR = "46.105.46.188";
 		
 	@Before
 	public void setUp() throws Exception
@@ -37,7 +38,7 @@ public class SystemDnsResolverTest
 	public void testPortSet() throws IOException
 	{
 		Hop hop = new Hop();
-		hop.setHost("port-set.cipango.voip");
+		hop.setHost("jira.cipango.org");
 		hop.setPort(5060);
 		
 		List<Hop> hops = _dnsResolver.getHops(hop);
@@ -46,7 +47,7 @@ public class SystemDnsResolverTest
 		assertEquals(1, hops.size());
 		hop = hops.get(0);
 		assertEquals(Transport.UDP, hop.getTransport());
-		assertEquals("192.168.1.2", hop.getAddress().getHostAddress());
+		assertEquals(IPV4_ADDR, hop.getAddress().getHostAddress());
 	}
 		
 	/**
@@ -57,7 +58,7 @@ public class SystemDnsResolverTest
 	{
 		_dnsResolver.setEnableTransports(Arrays.asList(Transport.UDP, Transport.TCP));
 		Hop hop = new Hop();
-		hop.setHost("srv-empty.cipango.voip");
+		hop.setHost("jira.cipango.org");
 		
 		List<Hop> hops = _dnsResolver.getHops(hop);
 		
@@ -66,7 +67,7 @@ public class SystemDnsResolverTest
 		hop = hops.get(0);
 		assertEquals(Transport.UDP, hop.getTransport());
 		assertEquals(5060, hop.getPort());
-		assertEquals("srv-empty.cipango.voip", hop.getHost());
-		assertEquals("192.168.1.3", hop.getAddress().getHostAddress());
+		assertEquals("jira.cipango.org", hop.getHost());
+		assertEquals(IPV4_ADDR, hop.getAddress().getHostAddress());
 	}
 }

@@ -241,7 +241,7 @@ public class SessionManager extends AbstractLifeCycle
 		{
 			int holds = applicationSession.getLock().getHoldCount();
 
-			if (holds == 1)
+			if (holds == 1 && !applicationSession.getLock().hasQueuedThreads())
 			{
 
 				applicationSession.invalidateIfReady();

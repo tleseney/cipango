@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2007-2012 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,6 +30,8 @@ import javax.servlet.sip.SipApplicationSessionListener;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipSession;
+import javax.servlet.sip.SipSessionBindingEvent;
+import javax.servlet.sip.SipSessionBindingListener;
 import javax.servlet.sip.SipSession.State;
 import javax.servlet.sip.SipSessionEvent;
 import javax.servlet.sip.SipSessionListener;
@@ -152,6 +154,47 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			assertTrue(session.isReadyToInvalidate());
 			assertTrue(session.getApplicationSession().isReadyToInvalidate());
 			assertThat(session, hasState(State.INITIAL));
+		}
+	}
+	
+	public void testUacEarlyResponse(SipServletRequest request) throws Exception
+	{
+		SipSession session = request.getSession();
+		assertThat(session, hasState(State.INITIAL));
+		request.createResponse(SipServletResponse.SC_RINGING).send();
+		
+		SipServletRequest message = getSipFactory().createRequest(getSipFactory().createApplicationSession(),
+				"MESSAGE", request.getFrom(), request.getTo());
+		session = message.getSession();
+		session.setAttribute(SipServletRequest.class.getName(),  request);
+		session.setHandler(getServletName());
+		message.setRequestURI(request.getRequestURI());
+		assertFalse(session.isReadyToInvalidate());
+		assertFalse(session.getApplicationSession().isReadyToInvalidate());
+		assertThat(session, hasState(State.INITIAL));
+		message.send();
+		session.setAttribute("attribute", new BindingListener());
+	}
+	
+	public void testUacEarlyResponse(SipServletResponse response) throws Exception
+	{
+		SipSession session = response.getSession();
+		SipServletRequest invite = (SipServletRequest) session.getAttribute(SipServletRequest.class.getName());
+		try
+		{
+			assertTrue(session.isReadyToInvalidate());
+			assertTrue(session.getApplicationSession().isReadyToInvalidate());
+			assertThat(session, hasState(State.INITIAL));
+			BindingListener bindingListener = (BindingListener) session.getAttribute("attribute");
+			assertNotNull("Attribute not set before response", bindingListener);
+			assertThat(bindingListener.getBound(), is(1));
+			assertThat(bindingListener.getUnbound(), is(0));
+							
+			invite.createResponse(SipServletResponse.SC_FORBIDDEN).send();
+		}
+		catch (Exception e)
+		{
+			sendError(invite, e);
 		}
 	}
 	
@@ -639,4 +682,31 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		}
 	}
 
+	
+	static class BindingListener implements SipSessionBindingListener
+	{
+		private int _bound = 0;
+		private int _unbound = 0;
+		
+		public void valueUnbound(SipSessionBindingEvent event)
+		{	
+			_unbound++;
+		}
+		
+		public void valueBound(SipSessionBindingEvent arg0)
+		{
+			try { Thread.sleep(500); } catch (InterruptedException e){}
+			_bound++;
+		}
+
+		public int getBound()
+		{
+			return _bound;
+		}
+
+		public int getUnbound()
+		{
+			return _unbound;
+		}
+	}
 }

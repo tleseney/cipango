@@ -216,4 +216,30 @@ public abstract class UasScript
 			_ua.createResponse(request, SipServletResponse.SC_OK).send();
 		}
 	};
+	
+	public static class OkNonInvite extends UaRunnable
+	{
+
+		/**
+		 * <pre>
+		 * Remote                    Sip unit
+		 * | MESSAGE                    |
+		 * |--------------------------->|
+		 * |                        200 |
+		 * |<---------------------------|
+	
+		 * </pre>
+		 */
+		public OkNonInvite(TestAgent userAgent)
+		{
+			super(userAgent);
+		}
+
+		@Override
+		public void doTest() throws Throwable
+		{
+			SipServletRequest request = waitForInitialRequest();
+			_ua.createResponse(request, SipServletResponse.SC_OK).send();
+		}
+	};
 }

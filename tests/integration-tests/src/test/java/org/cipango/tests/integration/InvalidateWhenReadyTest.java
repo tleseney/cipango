@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2010-2012 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ import static org.cipango.tests.matcher.SipMatchers.hasStatus;
 import static org.cipango.tests.matcher.SipMatchers.isSuccess;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 import java.util.concurrent.Semaphore;
 
@@ -125,21 +125,50 @@ public class InvalidateWhenReadyTest extends UaTestCase
 	public void testUac4xx() throws Throwable 
 	{
 		UaRunnable call = new UasScript.RingingForbidden(_ua);
-		try
-		{
-			call.start();
-			startUacScenario();
-			call.join(2000);
-			call.assertDone();
-		}
-    	catch (Throwable t)
-    	{
-    		throw new Exception(t);
-    	}
-    	finally
-    	{
-    		checkForFailure();
-    	}
+		call.start();
+		startUacScenario();
+		call.join(2000);
+		call.assertDone();
+		checkForFailure();
+	}
+	
+	/**
+	 * Simulate case when response is received while session is still locked by sender thread.
+	 * Ensure that the session is not invalidated before servlet has been invoked.
+	 * <pre>
+	 *   
+	 * Alice          AS       Bob
+	 *   | INVITE     |          |
+	 *   |----------->|          |
+	 *   |        180 |          |
+	 *   |<-----------|          |
+	 *   |            | MESSAGE  |
+	 *   |            |--------->|
+	 *   |            |      200 |
+	 *   |            |<---------|
+	 *   |        403 |          |
+	 *   |<-----------|          |
+	 *   | ACK        |          |
+	 *   |----------->|          |
+	 * </pre>
+	 * @see http://jira.cipango.org/browse/CIPANGO-191
+	 */
+	@Test
+	public void testUacEarlyResponse() throws Throwable 
+	{
+		Call callA;
+		Endpoint bob = createEndpoint("bob");
+		UaRunnable callB = new UasScript.OkNonInvite(bob.getUserAgent());
+		
+		callB.start();
+		
+		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, bob.getUri());
+		request.setRequestURI(bob.getContact().getURI());
+		callA = _ua.createCall(request);
+		assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
+		SipServletResponse response = callA.waitForResponse();
+		assertThat("No response received, doResponse might have not been invoked", response, notNullValue());
+		assertThat(response, hasStatus(SipServletResponse.SC_FORBIDDEN));
 	}
 	
 	/**

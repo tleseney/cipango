@@ -133,6 +133,8 @@ public class Session implements SipSessionIf, Dumpable
 		_callId = callId;
 		_localParty = local;
 		_remoteParty = remote;
+		if (applicationSession.getContext().getSpecVersion() == SipAppContext.VERSION_10)
+			_invalidateWhenReady = false;
 	}
 	
 	public Session(String id, Session other)

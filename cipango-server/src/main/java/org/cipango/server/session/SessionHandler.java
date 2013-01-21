@@ -43,6 +43,7 @@ import org.eclipse.jetty.util.log.Logger;
 public class SessionHandler extends SipHandlerWrapper
 {
 	public static final String APP_ID = "appid";
+	private static final int MAX_TRY_LOCK_TIME = 64 * Transaction.__T1 / 1000; // 32 seconds
 	private static final Logger LOG = Log.getLogger(SessionHandler.class);
 	private final SessionManager _sessionManager;
     private Method _sipApplicationKeyMethod;
@@ -67,9 +68,13 @@ public class SessionHandler extends SipHandlerWrapper
 			handleRequest((SipRequest) message);
 		else
 		{
-			ApplicationSessionScope scope = getSessionManager().openScope(message.appSession(), Transaction.__T4);
+			ApplicationSessionScope scope = getSessionManager().openScope(message.appSession(), MAX_TRY_LOCK_TIME);
 			if (!scope.isLocked())
+			{
+				LOG.warn("Drop message {} as could not lock the session after {} seconds (the transaction should be now expired)",
+						message, MAX_TRY_LOCK_TIME);
 				return;
+			}
 			try
 			{
 				_handler.handle(message);

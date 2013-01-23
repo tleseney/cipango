@@ -33,7 +33,6 @@ import javax.servlet.sip.TooManyHopsException;
 import javax.servlet.sip.URI;
 import javax.servlet.sip.ar.SipApplicationRoutingDirective;
 
-import org.cipango.server.dns.BlackList.Reason;
 import org.cipango.server.session.ApplicationSession;
 import org.cipango.server.session.Session;
 import org.cipango.server.session.SessionHandler;
@@ -900,7 +899,7 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 			//_ctx = _request.getCallSession().getServer().sendRequest(_request, this);
 			try
 			{
-				_ctx = _request.session().sendRequest(_request, this, false);
+				_ctx = _request.session().sendRequest(_request, this);
 			
 				if (_request.isInvite())
 					startTimerC();
@@ -964,14 +963,6 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 	        SipRequest request = _tx.getRequest();
 	        
 	        Session session = request.session();
-	        
-	        Reason reason = session.isRetryable(response);
-	        if (reason != null)
-			{
-	        	LOG.debug("Response is retryable for reason {} on session {}", reason, session);
-				if (session.retry(response, reason, this))
-					return;
-			}
 	        
 	        if (request.isInitial())
 	        { 

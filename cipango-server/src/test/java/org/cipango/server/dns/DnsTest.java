@@ -28,7 +28,6 @@ import junit.framework.Assert;
 import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.SipConnector;
 import org.cipango.server.SipRequest;
-import org.cipango.server.SipResponse;
 import org.cipango.server.SipServer;
 import org.cipango.server.Transport;
 import org.cipango.server.dns.BlackListImpl.Criteria;
@@ -37,6 +36,7 @@ import org.cipango.server.nio.UdpConnector;
 import org.cipango.server.servlet.DefaultServlet;
 import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.sipapp.SipAppContext;
+import org.cipango.server.transaction.RetryableTransactionManager;
 import org.cipango.server.transaction.TransactionManagerTest.TestServlet;
 import org.cipango.sip.SipHeader;
 import org.eclipse.jetty.util.log.Log;
@@ -52,6 +52,7 @@ public class DnsTest
 	private static final Logger LOG = Log.getLogger(DnsTest.class);
 	
 	private SipServer _server;
+	private RetryableTransactionManager _transactionManager;
 	private SipAppContext _context;
 	private TestServlet _testServlet;
 	private BlackListImpl _blackList;
@@ -64,6 +65,7 @@ public class DnsTest
 	{
 		_testServlet = new TestServlet();
 		_server = newServer(45060, _testServlet);
+		_transactionManager = (RetryableTransactionManager) _server.getTransactionManager();
 				
 		Rfc3263DnsResolver resolver = new Rfc3263DnsResolver();
 		resolver.setDnsService(new TestDnsService());
@@ -81,7 +83,7 @@ public class DnsTest
 	
 	private SipServer newServer(int port, SipServlet servlet) throws Exception
 	{
-		SipServer server = new SipServer();
+		SipServer server = new SipServer(null, new RetryableTransactionManager());
 		AbstractSipConnector connector = new UdpConnector(server);
 		connector.setHost("localhost");
 		connector.setPort(port);
@@ -129,6 +131,36 @@ public class DnsTest
 
 	}
 	
+	@Test
+	public void testMaxRetryTime() throws Exception
+	{
+		_transactionManager.setMaxRetryTime(600);
+		TestServlet testServlet = new TestServlet()
+		{			
+			protected void doMessage(SipServletRequest request) throws IOException
+			{
+				try { Thread.sleep(700); } catch (InterruptedException e) {}
+				request.createResponse(SipServletResponse.SC_SERVICE_UNAVAILABLE).send();
+			}
+		};
+		_testServer2 = newServer(45062, testServlet);
+		_testServer2.start();
+		
+		SipRequest request = createRequest("sip:backup-udp.cipango.voip");
+		request.send();
+		//System.out.println(request);
+		//System.out.println(testServlet.getRequests());
+		_testServlet.assertDone(1);
+		SipServletResponse response =  _testServlet.getResponses().peek();
+		Assert.assertEquals(SipServletResponse.SC_REQUEST_TIMEOUT, response.getStatus());
+
+		Assert.assertEquals("Server 2 has not been invoked", 1, testServlet.getRequests().size()); 
+		//System.out.println(_testServlet.getResponses());
+		//System.out.println(request.session().dump());
+		
+		//System.out.println(_server.getTransactionManager().dump());
+	} 
+	
 	/**
 	 * Test that if first hop is not available, the second is tried.
 	 */
@@ -145,7 +177,9 @@ public class DnsTest
 		Assert.assertEquals("There should be only one transaction", 1, request.session().getClientTransactions().size()); 
 		
 		//System.out.println(_server.getTransactionManager().dump());
-		Assert.assertEquals("There should be only one transaction", 1, _server.getTransactionManager().getClientTransactions()); 
+		Assert.assertEquals("There should be only one transaction", 1, _server.getTransactionManager().getClientTransactions());
+
+		Assert.assertEquals(1, _transactionManager.getRetries());
 	} 
 	
 	/**
@@ -178,10 +212,9 @@ public class DnsTest
 		Assert.assertEquals("Server 2 has not been invoked", 1, testServlet.getRequests().size()); 
 		//System.out.println(_testServlet.getResponses());
 		//System.out.println(request.session().dump());
-		Assert.assertEquals("There should be two transactions", 2, request.session().getClientTransactions().size()); 
 		
 		//System.out.println(_server.getTransactionManager().dump());
-		Assert.assertEquals("There should be only two transactions", 2, _server.getTransactionManager().getClientTransactions()); 
+		Assert.assertEquals(1, _transactionManager.getRetries());
 	} 
 	
 	/**
@@ -221,6 +254,8 @@ public class DnsTest
 		request.send();
 		_testServlet.assertDone(2);
 		Assert.assertEquals("Server 2 has been called while blacklisted", 1, testServlet.getRequests().size()); 
+
+		Assert.assertEquals(1, _transactionManager.getRetries());
 	} 
 	
 	/**
@@ -257,7 +292,10 @@ public class DnsTest
 		Assert.assertEquals("There should be only one transaction", 1, request.session().getClientTransactions().size()); 
 		
 		//System.out.println(_server.getTransactionManager().dump());
-		Assert.assertEquals("There should be only one transaction", 1, _server.getTransactionManager().getClientTransactions()); 	} 
+		Assert.assertEquals("There should be only one transaction", 1, _server.getTransactionManager().getClientTransactions()); 	
+
+		Assert.assertEquals(1, _transactionManager.getRetries());	
+	} 
 	
 	@Test
 	public void testUnknown() throws Exception
@@ -272,7 +310,9 @@ public class DnsTest
 		Assert.assertEquals("There should be only one transaction", 1, request.session().getClientTransactions().size()); 
 		
 		//System.out.println(_server.getTransactionManager().dump());
-		Assert.assertEquals("There should be only one transaction", 1, _server.getTransactionManager().getClientTransactions()); 
+		Assert.assertEquals("There should be only one transaction", 1, _server.getTransactionManager().getClientTransactions());
+
+		Assert.assertEquals(0, _transactionManager.getRetries());
 	} 
 	
 	/**
@@ -292,7 +332,9 @@ public class DnsTest
 		Assert.assertEquals("There should be only one transaction", 1, request.session().getClientTransactions().size()); 
 		
 		//System.out.println(_server.getTransactionManager().dump());
-		Assert.assertEquals("There should be only one transaction", 1, _server.getTransactionManager().getClientTransactions()); 
+		Assert.assertEquals("There should be only one transaction", 1, _server.getTransactionManager().getClientTransactions());
+
+		Assert.assertEquals(0, _transactionManager.getRetries());
 	} 
 
 }

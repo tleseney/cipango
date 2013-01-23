@@ -23,7 +23,7 @@ import org.cipango.server.SipServer;
 import org.cipango.server.Transport;
 import org.cipango.server.servlet.DefaultServlet;
 import org.cipango.server.sipapp.SipAppContext;
-import org.cipango.server.transaction.Transaction;
+import org.cipango.server.transaction.TransactionImpl;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipParser;
 import org.eclipse.jetty.io.ArrayByteBufferPool;
@@ -39,7 +39,7 @@ public class TcpConnector extends AbstractSipConnector
 	private static final Logger LOG = Log.getLogger(TcpConnector.class);
 
 	public static final int MINIMAL_BUFFER_LENGTH = 2048;
-	public static final int DEFAULT_SO_TIMEOUT = 2 * Transaction.__T1 * 64;
+	public static final int DEFAULT_SO_TIMEOUT = 2 * TransactionImpl.__T1 * 64;
 	
 	private ServerSocketChannel _channel;
 	private ByteBufferPool _outBuffers;

@@ -52,20 +52,17 @@ import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
 import org.cipango.server.SipServer;
-import org.cipango.server.dns.BlackList.Reason;
-import org.cipango.server.dns.Hop;
 import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.session.SessionManager.SipSessionIf;
 import org.cipango.server.session.scoped.ScopedClientTransactionListener;
 import org.cipango.server.session.scoped.ScopedServerTransactionListener;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.ClientTransaction;
-import org.cipango.server.transaction.ClientTransaction.TimeoutConnection;
 import org.cipango.server.transaction.ClientTransactionListener;
-import org.cipango.server.transaction.ClientTxException;
 import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.server.transaction.ServerTransactionListener;
 import org.cipango.server.transaction.Transaction;
+import org.cipango.server.transaction.TransactionImpl;
 import org.cipango.server.util.ReadOnlyAddress;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.RAck;
@@ -313,62 +310,19 @@ public class Session implements SipSessionIf, Dumpable
 		}
 	}
 		
-	public ClientTransaction sendRequest(SipRequest request, ClientTransactionListener listener, boolean isRetry) throws IOException
+	public ClientTransaction sendRequest(SipRequest request, ClientTransactionListener listener) throws IOException
 	{
 		SipServer server = getServer();
-		if (!isRetry)
-		{
-			access();
-					
-			if (server.getHandler() instanceof RequestCustomizer)
-				((RequestCustomizer) server.getHandler()).customizeRequest(request);
-			
-			request.setCommitted(true);
-		}
+
+		access();
+				
+		if (server.getHandler() instanceof RequestCustomizer)
+			((RequestCustomizer) server.getHandler()).customizeRequest(request);
 		
-		ClientTransaction tx = null;
-		while (tx == null)
-		{
-			try
-			{
-				tx = server.getTransactionManager().sendRequest(request, new ScopedClientTransactionListener(this, listener));
-			}
-			catch (ClientTxException e)
-			{
-				ClientTransaction failedTx = e.getClientTransaction();
-				ListIterator<Hop> hops = failedTx.getRequest().getHops();
-				if (hops == null)
-				{
-					LOG.debug(e.getCause()); // Could happens in case of UnknownHostException
-					tx = failedTx;
-				}
-				else
-				{	
-					// Notify black list
-					if (hops.hasPrevious()) 
-					{
-						Hop failedHop = hops.previous();
-						getServer().getTransportProcessor().getBlackList().hopFailed(failedHop, Reason.CONNECT_FAILED);
-						hops.next(); // Set iterator to initial value
-						if (hops.hasNext())
-							LOG.warn("Could not send request using hop {} due to {}, try with next hop", failedHop, e.getCause());
-						else
-							LOG.warn("Could not send request using hop {} due to {} and there is no more hops", failedHop, e.getCause());
-					}				
+		request.setCommitted(true);
 	
-					if (hops.hasNext())
-					{
-						failedTx.terminate();
-					}
-					else
-					{
-						LOG.debug(e.getCause());
-						tx = failedTx;
-					}
-				}
-			}
-		}
-		
+		ClientTransaction tx = server.getTransactionManager().sendRequest(request, new ScopedClientTransactionListener(this, listener));
+
 		if (!request.isAck())
 			addClientTransaction(tx);
 		return tx;
@@ -379,53 +333,9 @@ public class Session implements SipSessionIf, Dumpable
 		if (!isUA())
 			throw new IllegalStateException("Session is not UA");
 		
-		return sendRequest(request, _dialog, false);
+		return sendRequest(request, _dialog);
 	}
-	
-	public Reason isRetryable(SipResponse response)
-	{
-		int status = response.getStatus();
-		if (((ClientTransaction) response.getTransaction()).isCanceled())
-			return null;
-		if (status == SipServletResponse.SC_SERVICE_UNAVAILABLE)
-			return Reason.RESPONSE_CODE_503;
-		else if (status == SipServletResponse.SC_REQUEST_TIMEOUT && response.getConnection() instanceof TimeoutConnection)
-			return Reason.TIMEOUT;	// TODO do not select in case of Timer C timeout
-		else
-			return null;
-	}
-	
-	public boolean retry(SipResponse response, Reason reason, ClientTransactionListener listener)
-	{
-		SipRequest request = (SipRequest) response.getRequest();
-		ListIterator<Hop> hops = request.getHops();
-		
-		if (hops.hasPrevious())
-		{
-			Hop failedHop = hops.previous();
-			getServer().getTransportProcessor().getBlackList().hopFailed(failedHop, isRetryable(response));
-			hops.next();
-		}
-		
-		if (hops.hasNext())
-		{
-			try
-			{
-				LOG.debug("Retrying to send request on session {}", this);
-				request.removeTopVia();
-				sendRequest(request, listener, true);
-				return true;
-			}
-			catch (Exception e)
-			{
-				LOG.debug("Failed to send request to another hop", e);
-			}
-		}
-		LOG.debug("Could not retry to send request on session {} as there is no more hop", this);
-		return false;
-	}
-
-		
+			
 	private void setState(State state)
 	{
 		if (LOG.isDebugEnabled())
@@ -1208,15 +1118,7 @@ public class Session implements SipSessionIf, Dumpable
 		{
 			if (response.getStatus() == 100)
 				return;
-			
-			Reason reason = isRetryable(response);
-	        if (reason != null)
-			{
-	        	LOG.debug("Response is retryable for reason {} on session {}", reason, this);
-				if (retry(response, reason, this))
-					return;
-			}
-			
+						
 			if (!isSameDialog(response))
 			{
 				Session derived = _applicationSession.getSession(response);
@@ -1674,7 +1576,7 @@ public class Session implements SipSessionIf, Dumpable
 			private long _seq;
 			protected SipResponse _response;
 			private TimerTask[] _timers;
-			private long _retransDelay = Transaction.__T1;
+			private long _retransDelay = TransactionImpl.__T1;
 			
 			public ReliableResponse(long seq) { _seq = seq; }
 			
@@ -1689,7 +1591,7 @@ public class Session implements SipSessionIf, Dumpable
 				_timers[TIMER_RETRANS] = appSession().getSessionManager()
 						.schedule(new Timer(TIMER_RETRANS), _retransDelay);
 				_timers[TIMER_WAIT_ACK] = appSession().getSessionManager()
-						.schedule(new Timer(TIMER_WAIT_ACK), 64 * Transaction.__T1);
+						.schedule(new Timer(TIMER_WAIT_ACK), 64 * TransactionImpl.__T1);
 			}
 			
 			public void stopRetrans()
@@ -1828,7 +1730,7 @@ public class Session implements SipSessionIf, Dumpable
 						LOG.debug(e);
 					}
 				}
-				return Math.min(delay*2, Transaction.__T2);
+				return Math.min(delay*2, TransactionImpl.__T2);
 			}
 			
 			@Override 

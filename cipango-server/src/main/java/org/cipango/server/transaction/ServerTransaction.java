@@ -23,7 +23,7 @@ import org.cipango.sip.SipHeader;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
-public class ServerTransaction extends Transaction
+public class ServerTransaction extends TransactionImpl
 {
 	private static final Logger LOG = Log.getLogger(ServerTransaction.class);
 	

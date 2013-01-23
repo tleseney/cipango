@@ -30,7 +30,7 @@ import org.cipango.server.handler.SipHandlerWrapper;
 import org.cipango.server.session.SessionManager.ApplicationSessionScope;
 import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.ServerTransaction;
-import org.cipango.server.transaction.Transaction;
+import org.cipango.server.transaction.TransactionImpl;
 import org.cipango.server.util.ExceptionUtil;
 import org.cipango.sip.SipException;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
@@ -43,7 +43,7 @@ import org.eclipse.jetty.util.log.Logger;
 public class SessionHandler extends SipHandlerWrapper
 {
 	public static final String APP_ID = "appid";
-	private static final int MAX_TRY_LOCK_TIME = 64 * Transaction.__T1 / 1000; // 32 seconds
+	private static final int MAX_TRY_LOCK_TIME = 64 * TransactionImpl.__T1 / 1000; // 32 seconds
 	private static final Logger LOG = Log.getLogger(SessionHandler.class);
 	private final SessionManager _sessionManager;
     private Method _sipApplicationKeyMethod;

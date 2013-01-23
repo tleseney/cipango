@@ -1,3 +1,16 @@
+// ========================================================================
+// Copyright 2006-2013 NEXCOM Systems
+// ------------------------------------------------------------------------
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at 
+// http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ========================================================================
 package org.cipango.server.transaction;
 
 import java.io.IOException;
@@ -55,7 +68,7 @@ public class TransactionManager extends SipProcessorWrapper implements Dumpable
 	public void doStart()
 	{
 		//new Thread(new Watcher()).start();
-		new Thread(new Timer()).start();
+		new Thread(new Timer(), "Timer-TransactionManager").start();
 	}
 	
 	public void doProcessRequest(SipRequest request) throws Exception
@@ -200,13 +213,13 @@ public class TransactionManager extends SipProcessorWrapper implements Dumpable
 		return oldTx;
 	}
 
-	public ClientTransaction sendRequest(SipRequest request, ClientTransactionListener listener) throws ClientTxException
+	public ClientTransaction sendRequest(SipRequest request, ClientTransactionListener listener)
 	{
 		ClientTransaction oldTx = null;
 		ClientTransaction ctx;
 		do
 		{
-			ctx = new ClientTransaction(request, listener);
+			ctx = newClientTransaction(request, listener);
 			ctx.setTransactionManager(this);
 
 			if (!request.isAck())
@@ -220,9 +233,14 @@ public class TransactionManager extends SipProcessorWrapper implements Dumpable
 		}
 		catch (IOException e)
 		{
-			throw new ClientTxException(e, ctx);
+			LOG.warn("Failed to start client transaction {}: {}", ctx, e);
 		}
 		return ctx;
+	}
+	
+	protected ClientTransaction newClientTransaction(SipRequest request, ClientTransactionListener listener)
+	{
+		return new ClientTransactionImpl(request, listener);
 	}
 	
 	@ManagedAttribute("Current active client transactions")
@@ -262,13 +280,13 @@ public class TransactionManager extends SipProcessorWrapper implements Dumpable
 	}
 	
 	@ManagedAttribute(value="Timer T1 in milliseconds", readonly=true)
-	public int getT1() { return Transaction.__T1; }
+	public int getT1() { return TransactionImpl.__T1; }
 	@ManagedAttribute(value="Timer T2 in milliseconds", readonly=true)
-	public int getT2() { return Transaction.__T2; }
+	public int getT2() { return TransactionImpl.__T2; }
 	@ManagedAttribute(value="Timer T4 in milliseconds", readonly=true)
-	public int getT4() { return Transaction.__T4; }
+	public int getT4() { return TransactionImpl.__T4; }
 	@ManagedAttribute(value="Timer TD in milliseconds", readonly=true)
-	public int getTD() { return Transaction.__TD; }
+	public int getTD() { return TransactionImpl.__TD; }
 	@ManagedAttribute(value="Timer C in seconds", readonly=true)
 	public int getTimerC() { return SipProxy.__timerC; }
 	
@@ -276,28 +294,28 @@ public class TransactionManager extends SipProcessorWrapper implements Dumpable
 	{ 
 		if (millis < 0)
 			throw new IllegalArgumentException("SIP Timers must be positive");
-		Transaction.__T1 = millis;
+		TransactionImpl.__T1 = millis;
 	}
 	
 	public void setT2(int millis) 
 	{
 		if (millis < 0)
 			throw new IllegalArgumentException("SIP Timers must be positive");
-		Transaction.__T2 = millis;
+		TransactionImpl.__T2 = millis;
 	}
 	
 	public void setT4(int millis) 
 	{
 		if (millis < 0)
 			throw new IllegalArgumentException("SIP Timers must be positive");
-		Transaction.__T4 = millis;
+		TransactionImpl.__T4 = millis;
 	}
 	
 	public void setTD(int millis) 
 	{
 		if (millis < 0)
 			throw new IllegalArgumentException("SIP Timers must be positive");
-		Transaction.__TD = millis;
+		TransactionImpl.__TD = millis;
 	}
 	
 	@ManagedOperation(value="Reset statistics", impact="ACTION")
@@ -317,22 +335,22 @@ public class TransactionManager extends SipProcessorWrapper implements Dumpable
 	public void dump(Appendable out, String indent) throws IOException
 	{
 		out.append(indent).append(" +- TransactionManager\n");
-		indent = indent + "    ";
+		indent = indent + "  ";
 		out.append(indent).append(" +- ClientTransactions\n");
 		Iterator<ClientTransaction> it = _clientTransactions.values().iterator();
 		int i = 50;
 		while (it.hasNext() && --i >0)
-			out.append(indent).append(it.next().toString()).append("\n");
+			out.append(indent).append("  - ").append(it.next().toString()).append("\n");
 		if (it.hasNext())
-			out.append(indent).append("...\n");
+			out.append(indent).append("  - ").append("...\n");
 		
 		out.append(indent).append(" +- ServerTransactions\n");
 		Iterator<ServerTransaction> it2 = _serverTransactions.values().iterator();
 		i = 50;
 		while (it2.hasNext() && --i >0)
-			out.append(indent).append(it2.next().toString()).append("\n");
+			out.append(indent).append("  - ").append(it2.next().toString()).append("\n");
 		if (it.hasNext())
-			out.append(indent).append("...\n");
+			out.append(indent).append("  - ").append("...\n");
 
 	}
 	

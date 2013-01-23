@@ -27,6 +27,7 @@ import org.cipango.server.dns.Hop;
 import org.cipango.server.log.AccessLog;
 import org.cipango.server.nio.UdpConnector;
 import org.cipango.server.processor.TransportProcessor;
+import org.cipango.server.transaction.RetryableTransactionManager;
 import org.cipango.server.transaction.TransactionManager;
 import org.cipango.sip.Via;
 import org.eclipse.jetty.server.Server;
@@ -85,10 +86,15 @@ public class SipServer extends ContainerLifeCycle
 	
 	public SipServer(@Name("threadpool") ThreadPool pool)
 	{
+		this(pool, null);
+	}
+	
+	public SipServer(@Name("threadpool") ThreadPool pool, TransactionManager transactionManager)
+	{
         _threadPool = pool != null? pool: new QueuedThreadPool();
         addBean(_threadPool);
         
-        _transactionManager = new TransactionManager();
+        _transactionManager = transactionManager != null ? transactionManager : new RetryableTransactionManager();
 		_transportProcessor = new TransportProcessor(_transactionManager);
 		_transactionManager.setTransportProcessor(_transportProcessor);
 		addBean(_transactionManager);

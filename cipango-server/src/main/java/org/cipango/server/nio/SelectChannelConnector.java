@@ -17,7 +17,7 @@ import org.cipango.server.SipServer;
 import org.cipango.server.Transport;
 import org.cipango.server.servlet.DefaultServlet;
 import org.cipango.server.sipapp.SipAppContext;
-import org.cipango.server.transaction.Transaction;
+import org.cipango.server.transaction.TransactionImpl;
 import org.eclipse.jetty.io.AbstractConnection;
 import org.eclipse.jetty.io.ArrayByteBufferPool;
 import org.eclipse.jetty.io.ByteBufferPool;
@@ -36,7 +36,7 @@ public class SelectChannelConnector extends AbstractSipConnector
 {
 	private static final Logger LOG = Log.getLogger(SelectChannelConnector.class);
 
-	public static final int DEFAULT_SO_TIMEOUT = 2 * Transaction.__T1 * 64;
+	public static final int DEFAULT_SO_TIMEOUT = 2 * TransactionImpl.__T1 * 64;
 
     private final Scheduler _scheduler;
     private final ByteBufferPool _byteBufferPool;

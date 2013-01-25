@@ -13,6 +13,8 @@
 // ========================================================================
 package org.cipango.server.dns;
 
+import org.cipango.server.SipResponse;
+
 public interface BlackList
 {
 	/**
@@ -27,7 +29,15 @@ public interface BlackList
 	
 	public boolean isBlacklisted(Hop hop);
 	
-	public void hopFailed(Hop hop, Reason reason);
+	/**
+	 * Report a failure to the black list.
+	 * The response parameter MUST not be <code>null</code> for reason RESPONSE_CODE_503.
+	 * 
+	 * @param hop the hop for which a failure has occurs
+	 * @param reason the failure reason
+	 * @param response the response associated for failure if available
+	 */
+	public void hopFailed(Hop hop, Reason reason, SipResponse response);
 	
 	
 }

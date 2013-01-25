@@ -13,6 +13,7 @@
 // ========================================================================
 package org.cipango.console;
 
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 
+import javax.management.JMException;
 import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
@@ -37,9 +39,9 @@ import org.cipango.console.data.FileLogger.StopFileLoggerAction;
 import org.cipango.console.data.Property;
 import org.cipango.console.data.PropertyList;
 import org.cipango.console.data.Row;
-import org.cipango.console.data.SessionIds;
 import org.cipango.console.data.Row.Header;
 import org.cipango.console.data.Row.Value;
+import org.cipango.console.data.SessionIds;
 import org.cipango.console.data.SipConsoleLogger;
 import org.cipango.console.data.Table;
 import org.cipango.console.menu.MenuImpl;
@@ -57,8 +59,7 @@ public class SipManager extends Manager
 		CONNECTOR_MANAGER = ObjectNameFactory.create("org.cipango.server:type=connectormanager,id=0"),
 		CONSOLE_LOGGER = ObjectNameFactory.create("org.cipango.callflow:type=jmxmessagelog,id=0"),
 		FILE_MESSAGE_LOG = ObjectNameFactory.create("org.cipango.server.log:type=filemessagelog,id=0"),
-		HANDLER_COLLECTION = ObjectNameFactory.create("org.cipango.server.handler:type=sipcontexthandlercollection,id=0"),
-		TRANSACTION_MANAGER = ObjectNameFactory.create("org.cipango.server.transaction:type=transactionmanager,id=0");;
+		HANDLER_COLLECTION = ObjectNameFactory.create("org.cipango.server.handler:type=sipcontexthandlercollection,id=0");
 	
 	public static final Action CHANGE_TIME_GRAPH = Action.add(new Action(MenuImpl.STATISTICS_GRAPH, "change-time")
 	{
@@ -151,17 +152,18 @@ public class SipManager extends Manager
 		table.setHeaders(headers);
 		Iterator<Header> it = headers.iterator();
 		Row row = new Row();
+		ObjectName transactionManager = getTransactionManager();
 		row.getValues().add(new Value("Client transaction", it.next()));
-		row.getValues().add(new Value(_mbsc.getAttribute(TRANSACTION_MANAGER, "clientTransactions"), it.next()));
-		row.getValues().add(new Value(_mbsc.getAttribute(TRANSACTION_MANAGER, "clientTransactionsMax"), it.next()));
-		row.getValues().add(new Value(_mbsc.getAttribute(TRANSACTION_MANAGER, "clientTransactionsTotal"), it.next()));
+		row.getValues().add(new Value(_mbsc.getAttribute(transactionManager, "clientTransactions"), it.next()));
+		row.getValues().add(new Value(_mbsc.getAttribute(transactionManager, "clientTransactionsMax"), it.next()));
+		row.getValues().add(new Value(_mbsc.getAttribute(transactionManager, "clientTransactionsTotal"), it.next()));
 		table.add(row);
 		it = headers.iterator();
 		row = new Row();
 		row.getValues().add(new Value("Server transaction", it.next()));
-		row.getValues().add(new Value(_mbsc.getAttribute(TRANSACTION_MANAGER, "serverTransactions"), it.next()));
-		row.getValues().add(new Value(_mbsc.getAttribute(TRANSACTION_MANAGER, "serverTransactionsMax"), it.next()));
-		row.getValues().add(new Value(_mbsc.getAttribute(TRANSACTION_MANAGER, "serverTransactionsTotal"), it.next()));
+		row.getValues().add(new Value(_mbsc.getAttribute(transactionManager, "serverTransactions"), it.next()));
+		row.getValues().add(new Value(_mbsc.getAttribute(transactionManager, "serverTransactionsMax"), it.next()));
+		row.getValues().add(new Value(_mbsc.getAttribute(transactionManager, "serverTransactionsTotal"), it.next()));
 		table.add(row);
 		return table;
 	}
@@ -263,9 +265,14 @@ public class SipManager extends Manager
 		return properties;
 	}
 	
+	public ObjectName getTransactionManager() throws JMException, IOException
+	{
+		return (ObjectName) _mbsc.getAttribute(SERVER, "transactionManager");
+	}
+	
 	public PropertyList getTimers() throws Exception
 	{
-		return new PropertyList(_mbsc, TRANSACTION_MANAGER, "sip.timers");
+		return new PropertyList(_mbsc, getTransactionManager(), "sip.timers");
 	}
 		
 	public FileLogger getFileLogger() throws Exception

@@ -13,6 +13,8 @@
 // ========================================================================
 package org.cipango.server.dns;
 
+import org.cipango.server.SipResponse;
+
 public class EmptyBlackList implements BlackList
 {
 
@@ -23,7 +25,7 @@ public class EmptyBlackList implements BlackList
 	}
 
 	@Override
-	public void hopFailed(Hop hop, Reason reason)
+	public void hopFailed(Hop hop, Reason reason, SipResponse response)
 	{
 	}
 

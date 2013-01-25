@@ -161,7 +161,7 @@ public class RetryableTransactionManager extends TransactionManager
 						if (hops.hasPrevious()) 
 						{
 							Hop failedHop = hops.previous();
-							getTransportProcessor().getBlackList().hopFailed(failedHop, Reason.CONNECT_FAILED);
+							getTransportProcessor().getBlackList().hopFailed(failedHop, Reason.CONNECT_FAILED, null);
 							hops.next(); // Set iterator to initial value
 							if (hops.hasNext())
 								LOG.warn("Could not send request using hop {} due to {}, try with next hop", failedHop, e.getCause());
@@ -200,13 +200,12 @@ public class RetryableTransactionManager extends TransactionManager
 		
 		protected boolean retry(SipResponse response, Reason reason)
 		{
-			SipRequest request = (SipRequest) response.getRequest();
-			ListIterator<Hop> hops = request.getHops();
+			ListIterator<Hop> hops = getRequest().getHops();
 			
 			if (hops.hasPrevious())
 			{
 				Hop failedHop = hops.previous();
-				getTransportProcessor().getBlackList().hopFailed(failedHop, isRetryable(response));
+				getTransportProcessor().getBlackList().hopFailed(failedHop, reason, response);
 				hops.next();
 			}
 			
@@ -215,7 +214,7 @@ public class RetryableTransactionManager extends TransactionManager
 				try
 				{
 					LOG.debug("Retrying to send request on session {}", this);
-					request.removeTopVia();
+					getRequest().removeTopVia();
 					_activeTx = newClientTransaction(getRequest(), true);
 					start();
 					return true;

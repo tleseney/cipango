@@ -13,6 +13,11 @@
       </New>
     </Arg>
     
+    <Arg name="transactionManager">
+      <New class="org.cipango.server.transaction.RetryableTransactionManager">
+      </New>
+    </Arg>
+    
     <Set name="server"><Ref id="Server" /></Set>
     
     <Call name="addConnector">

@@ -89,7 +89,7 @@ public class SipServer extends ContainerLifeCycle
 		this(pool, null);
 	}
 	
-	public SipServer(@Name("threadpool") ThreadPool pool, TransactionManager transactionManager)
+	public SipServer(@Name("threadpool") ThreadPool pool, @Name("transactionManager") TransactionManager transactionManager)
 	{
         _threadPool = pool != null? pool: new QueuedThreadPool();
         addBean(_threadPool);
@@ -172,7 +172,7 @@ public class SipServer extends ContainerLifeCycle
 		return __version;
 	}
 	
-	@ManagedAttribute("SIP connectors")
+	@ManagedAttribute(value="SIP connectors", readonly=true)
 	public SipConnector[] getConnectors()
     {
         return _connectors;
@@ -439,11 +439,13 @@ public class SipServer extends ContainerLifeCycle
 			_accessLog.messageSent(message, connection);
 	}
 	
+	@ManagedAttribute(value="Transaction manager", readonly=true)
 	public TransactionManager getTransactionManager()
 	{
 		return _transactionManager;
 	}
 
+	@ManagedAttribute(value="Transport processor", readonly=true)
 	public TransportProcessor getTransportProcessor()
 	{
 		return _transportProcessor;

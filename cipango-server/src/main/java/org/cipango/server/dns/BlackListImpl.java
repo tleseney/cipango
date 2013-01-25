@@ -18,6 +18,8 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.cipango.server.SipResponse;
+import org.cipango.sip.SipHeader;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.annotation.ManagedOperation;
@@ -44,6 +46,9 @@ public class BlackListImpl implements BlackList, Dumpable
 	private ConcurrentHashMap<String, ExpirableHop> _map = new ConcurrentHashMap<String, ExpirableHop>();
 	private Criteria _criteria = Criteria.IP_ADDRESS;
 	
+	private long _scavengePeriod = 60000;
+	private long _nextScavenge = System.currentTimeMillis() + _scavengePeriod;
+	
 	public BlackListImpl()
 	{
 		setBlackListDuration(DEFAULT_BLACK_LIST_DURATION);
@@ -52,6 +57,9 @@ public class BlackListImpl implements BlackList, Dumpable
 	@Override
 	public boolean isBlacklisted(Hop hop)
 	{
+		if (System.currentTimeMillis() < _nextScavenge)
+			scavenge();
+		
 		String key = getKey(hop);		
 		ExpirableHop expirableHop = _map.get(key);
 		if (expirableHop == null)
@@ -87,20 +95,50 @@ public class BlackListImpl implements BlackList, Dumpable
 	}
 	
 	@Override
-	public void hopFailed(Hop hop, Reason reason)
+	public void hopFailed(Hop hop, Reason reason, SipResponse response)
 	{
-		blackListHop(hop);
+		blackListHop(hop, getBlacklistDuration(response));
 	}
 	
-	protected void blackListHop(Hop hop)
+	protected long getBlacklistDuration(SipResponse response)
 	{
-		LOG.debug("The hop {} is now blacklisted for {} seconds", hop, _blackListDuration / 1000);
-		_map.putIfAbsent(getKey(hop), new ExpirableHop(hop, _blackListDuration));
+		if (response == null)
+			return _blackListDuration;
+		
+		int retryAfter = -1;
+		String sRetryAfter= response.getHeader(SipHeader.RETRY_AFTER.asString());
+		if (sRetryAfter != null)
+		{
+			try
+			{
+				retryAfter = Integer.parseInt(sRetryAfter);
+			}
+			catch (Exception e)
+			{
+				LOG.debug("Failed to parse Retry-After header", e);
+				return _blackListDuration;
+			}
+			if (retryAfter >= 0)
+				return retryAfter * 1000;
+			
+			LOG.debug("Negative Retry-After header in 503 response, blacklist server for " + getBlackListDuration() + "s");
+			return _blackListDuration;
+		}
+		LOG.debug("No Retry-After header in 503 response, blacklist server for " + getBlackListDuration() + "s");
+		return _blackListDuration;
+	}
+	
+	protected void blackListHop(Hop hop, long duration)
+	{
+		LOG.debug("The hop {} is now blacklisted for {} seconds", hop, duration / 1000);
+		_map.putIfAbsent(getKey(hop), new ExpirableHop(hop, duration));
 	}
 	
 	@ManagedOperation(value="Remove hops that are no more blacklisted", impact="ACTION")
 	public void scavenge()
 	{
+		_nextScavenge = System.currentTimeMillis() + _scavengePeriod;
+		
 		Iterator<ExpirableHop> it = _map.values().iterator();
 		while (it.hasNext())
 		{
@@ -145,7 +183,17 @@ public class BlackListImpl implements BlackList, Dumpable
 	{
 		_criteria = Criteria.valueOf(criteria.toUpperCase());
 	}
-	
+
+	@ManagedAttribute("Scavenge period")
+	public long getScavengePeriod()
+	{
+		return _scavengePeriod;
+	}
+
+	public void setScavengePeriod(long scavengePeriod)
+	{
+		_scavengePeriod = scavengePeriod;
+	}
 
 	@Override
 	public String dump()
@@ -203,6 +251,7 @@ public class BlackListImpl implements BlackList, Dumpable
 			return _hop.toString() + "@" + (getRemaining() / 1000) + "s";
 		}
 	}
+
 
 
 }

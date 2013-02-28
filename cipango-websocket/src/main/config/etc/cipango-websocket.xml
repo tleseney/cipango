@@ -6,7 +6,6 @@
 <!-- =============================================================== -->
 <Configure class="org.cipango.server.SipServer" id="SipServer">
 
-  <Get name="connectorManager">
     <Call name="addConnector">
       <Arg>
         <New class="org.cipango.websocket.WebSocketConnector" id="WebSocketConnector">
@@ -16,10 +15,5 @@
         </New>
       </Arg>
     </Call>
-  </Get>
 
-  <Call name="setAttribute">
-    <Arg>org.cipango.websocket.WebSocketConnector</Arg>
-    <Arg><Ref id="WebSocketConnector"/></Arg>
-  </Call>
 </Configure>

@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!DOCTYPE Configure PUBLIC "-//Jetty//Configure//EN" "http://www.eclipse.org/jetty/configure.dtd">
+
+<!-- =============================================================== -->
+<!-- Configure SIP Web socket connector for the Cipango Server       -->
+<!-- =============================================================== -->
+<Configure class="org.cipango.server.SipServer" id="SipServer">
+
+  <Get name="connectorManager">
+    <Call name="addConnector">
+      <Arg>
+        <New class="org.cipango.websocket.WebSocketConnector" id="WebSocketConnector">
+          <Arg name="sipServer"><Ref id="SipServer" /></Arg>
+          <Set name="host"><Property name="jetty.host" /></Set>
+          <Set name="port"><Property name="jetty.port" default="8080" /></Set>
+        </New>
+      </Arg>
+    </Call>
+  </Get>
+
+  <Call name="setAttribute">
+    <Arg>org.cipango.websocket.WebSocketConnector</Arg>
+    <Arg><Ref id="WebSocketConnector"/></Arg>
+  </Call>
+</Configure>

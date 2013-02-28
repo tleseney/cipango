@@ -4,7 +4,9 @@ public enum Transport
 {
 	UDP("UDP", 5060, false, false, "SIP+D2U", "_sip._udp."),
 	TCP("TCP", 5060, true, false, "SIP+D2T", "_sip._tcp."),
-	TLS("TLS", 5061, true, true, "SIPS+D2T", "_sips._tcp.");
+	TLS("TLS", 5061, true, true, "SIPS+D2T", "_sips._tcp."),
+	WS("WS", 80, true, false, "SIP+D2W", "_sip._tcp."), // FIXME srv prefix
+	WSS("WSS", 443, true, true, "SIPS+D2W ", "_sips._tcp."); // FIXME srv prefix
 	
 	private String _name;
 	private int _defaultPort;

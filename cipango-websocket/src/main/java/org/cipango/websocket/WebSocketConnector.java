@@ -76,6 +76,7 @@ public class WebSocketConnector extends ContainerLifeCycle implements SipConnect
 				_host = "127.0.0.1";
 			}
 		}
+		_localAddr = InetAddress.getByName(_host);
 		
 		_sipUri = new SipURIImpl(_host, _port);
     	_sipUri.setTransportParam(getTransport().getName().toLowerCase());

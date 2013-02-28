@@ -1,0 +1,9 @@
+REGISTER sip:proxy.atlanta.com SIP/2.0
+Via: SIP/2.0/WS 127.0.0.1:19465;branch=z9hG4bKasudf
+From: <sip:alice@atlanta.com>;tag=65bnmj.34asd
+To: <sip:uas@atlanta.com>
+Call-ID: aiuy7k9njasd
+CSeq: 1 REGISTER
+Max-Forwards: 70
+Contact: <sip:alice@127.0.0.1:19465;transport=ws>
+

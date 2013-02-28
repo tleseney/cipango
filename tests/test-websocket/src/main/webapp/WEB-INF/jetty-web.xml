@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<Configure class="org.eclipse.jetty.webapp.WebAppContext">
+  <Get name="Server">
+    <Call name="getAttribute" id="WebSocketConnector">
+      <Arg>org.cipango.websocket.WebSocketConnector</Arg>
+    </Call>
+  </Get>
+
+  <Call name="addServlet">
+    <Arg>
+			<New class="org.eclipse.jetty.servlet.ServletHolder">
+				<Arg>
+					<New class="org.cipango.websocket.SipWebsocketServlet">
+						<Arg><Ref id="WebSocketConnector"/></Arg>
+					</New>
+				</Arg>
+			</New>
+		</Arg>
+    <Arg>/*</Arg>
+  </Call>
+
+</Configure>

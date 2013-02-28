@@ -1,0 +1,10 @@
+INVITE sip:uas@atlanta.com SIP/2.0
+Via: SIP/2.0/WS ${host}:${port};branch=z9hG4bK56sdasks
+From: <sip:alice@atlanta.com>;tag=asdyka899
+To: <sip:uas@atlanta.com>
+Call-ID: ${callId}
+CSeq: 1 INVITE
+Max-Forwards: 70
+Contact: <sips:alice@${host}:${port};transport=ws>
+Content-Length: 0
+

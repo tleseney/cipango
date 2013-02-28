@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Configure PUBLIC "-//Jetty//Configure//EN" "http://www.eclipse.org/jetty/configure.dtd">
+
+<Configure class="org.cipango.server.Server" id="Server">
+    <!-- =========================================================== -->
+    <!-- Server Thread Pool                                          -->
+    <!-- =========================================================== -->
+    <Set name="ThreadPool">
+      <!-- Default queued blocking threadpool -->
+      <New class="org.eclipse.jetty.util.thread.QueuedThreadPool">
+        <Set name="minThreads">10</Set>
+        <Set name="maxThreads">200</Set>
+        <Set name="detailedDump">false</Set>
+      </New>
+    </Set>
+
+    <!-- =========================================================== -->
+    <!-- Set connectors                                              -->
+    <!-- =========================================================== -->
+
+    <Call name="addConnector">
+      <Arg>
+          <New class="org.eclipse.jetty.server.nio.SelectChannelConnector" id="SelectChannelConnector">
+            <Set name="host"><Property name="jetty.host" default="localhost"/></Set>
+            <Set name="port"><Property name="jetty.port" default="8078"/></Set>
+            <Set name="maxIdleTime">300000</Set>
+            <Set name="Acceptors">2</Set>
+            <Set name="statsOn">false</Set>
+            <Set name="confidentialPort">8443</Set>
+            <Set name="lowResourcesConnections">20000</Set>
+            <Set name="lowResourcesMaxIdleTime">5000</Set>
+          </New>
+      </Arg>
+    </Call>
+
+
+  
+  <Set name="handler">
+     <New class="org.cipango.server.handler.SipContextHandlerCollection" id="Contexts"/>
+  </Set>
+ 
+  <Get name="connectorManager">
+    <Call name="addConnector">
+      <Arg>
+        <New class="org.cipango.server.bio.UdpConnector">
+          <Set name="port"><Property default="5060" name="sip.port"/></Set>
+          <Set name="host"><Property name="sip.host"/></Set>
+          <Set name="acceptors">4</Set>
+        </New>
+      </Arg>
+    </Call>
+    <Call name="addConnector">
+      <Arg>
+        <New class="org.cipango.server.bio.TcpConnector">
+          <Set name="port"><Property default="5060" name="sip.port"/></Set>
+          <Set name="host"><Property name="sip.host"/></Set>
+        </New>
+      </Arg>
+    </Call>
+		<Call name="addConnector">
+      <Arg>
+        <New class="org.cipango.websocket.WebSocketConnector" id="WebSocketConnector">
+          <Arg><Ref id="SelectChannelConnector"/></Arg>
+        </New>
+      </Arg>
+    </Call>
+    <Call name="setAccessLog">
+      <Arg>
+        <New class="org.cipango.server.log.FileMessageLog" id="FileMessageLog">
+          <Set name="filename"><Property default="." name="jetty.home"/>/target/logs/yyyy_mm_dd.message.log</Set>
+          <Set name="append">true</Set>
+          <Set name="retainDays">31</Set>
+        </New>
+      </Arg>
+    </Call>
+  </Get>
+ 
+  <!-- Set name="applicationRouter">
+    <New class="org.cipango.dar.DefaultApplicationRouter">
+      <Set name="configuration"><Property default="." name="jetty.home"/>/etc/dar.properties</Set>
+    </New>
+  </Set -->
+
+  <Call class="org.cipango.log.event.Events" name="setDispatcher">
+    <Arg><New class="org.cipango.log.event.LogEventDispatcher"/></Arg>
+  </Call>
+
+  <Get name="transactionManager">
+    <Set name="t1">500</Set>
+    <Set name="t2">4000</Set>
+    <Set name="t4">5000</Set>
+    <Set name="tD">32000</Set>
+    <Set name="timerC">180</Set>
+  </Get>
+      
+  
+  <Set name="SipThreadPool">
+    <New class="org.eclipse.jetty.util.thread.QueuedThreadPool">
+      <Set name="minThreads">5</Set>
+      <Set name="maxThreads">100</Set>
+      <Set name="detailedDump">false</Set>
+    </New>
+  </Set>
+	
+	<Call name="setAttribute">
+    <Arg>org.cipango.websocket.WebSocketConnector</Arg>
+    <Arg><Ref id="WebSocketConnector"/></Arg>
+  </Call>
+  
+  <!-- =========================================================== -->
+  <!-- extra options                                               -->
+  <!-- =========================================================== -->
+  <Set name="stopAtShutdown">true</Set>
+  <Set name="sendServerVersion">true</Set>
+  <Set name="sendDateHeader">true</Set>
+  <Set name="gracefulShutdown">1000</Set>
+  <Set name="dumpAfterStart">false</Set>
+  <Set name="dumpBeforeStop">false</Set>
+  
+</Configure>

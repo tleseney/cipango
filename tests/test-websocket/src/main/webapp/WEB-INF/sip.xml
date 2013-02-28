@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<sip-app xmlns="http://www.jcp.org/xml/ns/sipservlet" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.jcp.org/xml/ns/sipservlet http://www.jcp.org/xml/ns/sipservlet/sip-app_1_1.xsd"
+    version="1.1">
+
+  <app-name>org.cipango.websocket</app-name>
+	
+	<servlet-selection>
+		<main-servlet>MainServlet</main-servlet>
+	</servlet-selection>
+	
+  <servlet>
+    <servlet-name>MainServlet</servlet-name>
+    <servlet-class>org.cipango.websocket.MainServlet</servlet-class>
+    <load-on-startup/>
+  </servlet>
+  
+  <servlet>
+    <servlet-name>uas</servlet-name>
+    <servlet-class>org.cipango.websocket.UasServlet</servlet-class>
+    <load-on-startup/>
+  </servlet>
+  
+  <servlet>
+    <servlet-name>proxy</servlet-name>
+    <servlet-class>org.cipango.websocket.ProxyServlet</servlet-class>
+    <load-on-startup/>
+  </servlet>
+
+	
+</sip-app>

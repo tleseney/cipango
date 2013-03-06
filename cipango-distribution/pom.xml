@@ -122,6 +122,11 @@
                   <artifactId>cipango-server</artifactId>
                   <classifier>config</classifier>
                 </artifactItem>
+                <artifactItem>
+                  <groupId>org.cipango</groupId>
+                  <artifactId>cipango-websocket</artifactId>
+                  <classifier>config</classifier>
+                </artifactItem>
               </artifactItems>
               <outputDirectory>${assembly-directory}</outputDirectory>
               <overWriteReleases>true</overWriteReleases>
@@ -190,6 +195,10 @@
                 <artifactItem>
                   <groupId>org.cipango</groupId>
                   <artifactId>cipango-util</artifactId>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.cipango</groupId>
+                  <artifactId>cipango-websocket</artifactId>
                 </artifactItem>
                 <artifactItem>
                   <groupId>javax.servlet</groupId>
@@ -292,6 +301,11 @@
     <dependency>
       <groupId>org.cipango</groupId>
       <artifactId>cipango-util</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.cipango</groupId>
+      <artifactId>cipango-websocket</artifactId>
       <version>${project.version}</version>
     </dependency>
   </dependencies>

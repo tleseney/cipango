@@ -126,6 +126,12 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.cipango</groupId>
+      <artifactId>cipango-websocket</artifactId>
+      <version>${project.version}</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-jsp</artifactId>
     </dependency>

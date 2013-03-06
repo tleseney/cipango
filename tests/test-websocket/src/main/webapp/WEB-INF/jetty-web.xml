@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="ISO-8859-1"?>
-<Configure class="org.eclipse.jetty.webapp.WebAppContext">
-<!-- 
-  <Call name="addServlet">
-    <Arg>org.cipango.websocket.SipWebsocketServlet</Arg>
-    <Arg>/*</Arg>
-  </Call>
--->
-</Configure>

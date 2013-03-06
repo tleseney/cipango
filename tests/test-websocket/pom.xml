@@ -17,12 +17,25 @@
 				<artifactId>cipango-maven-plugin</artifactId>
 				<version>${project.version}</version>
 				<configuration>
-					<jettyConfig>${basedir}/src/test/config/cipango.xml</jettyConfig>
+					<httpConnector implementation="org.eclipse.jetty.maven.plugin.MavenServerConnector">
+						<host>localhost</host>
+						<port>8078</port>
+					</httpConnector>
+					<sipConnectors>
+						<sipConnector implementation="org.cipango.plugin.MavenUdpConnector">
+							<host>localhost</host>
+							<port>5060</port>
+						</sipConnector>
+						<sipConnector implementation="org.cipango.plugin.MavenWebSocketConnector">
+							<host>localhost</host>
+							<port>8078</port>
+						</sipConnector>
+					</sipConnectors>
 					<stopKey>foo</stopKey>
 					<stopPort>9999</stopPort>
-					<webAppConfig>
+					<webApp>
 						<contextPath>/${project.artifactId}</contextPath>
-					</webAppConfig>
+					</webApp>
 				</configuration>
 				<dependencies>
 						<dependency>

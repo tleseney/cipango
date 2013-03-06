@@ -7,6 +7,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
+import java.text.ParseException;
 import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.Random;
@@ -34,6 +35,7 @@ import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipParser;
 import org.cipango.sip.Via;
+import org.cipango.sip.SipParser.State;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
@@ -76,6 +78,7 @@ public class WebSocketTest
     	__port++;
     	_client.setBindAdddress(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), __port));
     	_websocket = new TestWebSocket();
+    	_client.start();
     	_client.connect(_websocket, new URI(BASE_URL));
     	waitWsEvent();
     	Assert.assertTrue("Websocket is not open", _websocket.isOpen());
@@ -171,7 +174,7 @@ public class WebSocketTest
     {
     	SipClient sipClient = new SipClient("localhost", 15070);
     	sipClient.start();
-    	TestUserAgent userAgent = new TestUserAgent(new AddressImpl("sip:proxy@cipango.org"));
+    	TestUserAgent userAgent = new TestUserAgent(new AddressImpl("sip:proxy@cipango.org", true));
     	sipClient.addUserAgent(userAgent);
     	
     	_websocket.send(getRawMessage("/inviteProxy.dat"));
@@ -220,10 +223,10 @@ public class WebSocketTest
     }
     
     
-    private SipRequest createAck(SipResponse response) throws ServletParseException
+    private SipRequest createAck(SipResponse response) throws ServletParseException, ParseException
     {
     	SipRequest request = new SipRequest();
-    	request.setMethod(SipMethod.ACK, null);
+    	request.setMethod(SipMethod.ACK, SipMethod.ACK.asString());
     	SipFields fields = request.getFields();
     	request.setRequestURI(response.getAddressHeader(SipHeaders.CONTACT).getURI());
     	fields.set(SipHeader.FROM, response.getFrom());
@@ -231,6 +234,7 @@ public class WebSocketTest
     	fields.set(SipHeaders.CALL_ID, response.getCallId());
     	fields.set(SipHeader.CSEQ, "1 ACK");
     	Via via = new Via("SIP/2.0/WS 127.0.0.1:20565;branch=z9hG4bK56sdasks");
+    	via.parse();
     	via.setBranch("z9hG4bK5" + new Random().nextInt());
     	fields.add(SipHeader.VIA.asString(), via, true);
     	ListIterator<String> it = response.getHeaders(SipHeaders.RECORD_ROUTE);
@@ -248,7 +252,10 @@ public class WebSocketTest
     {
     	MessageBuilder builder = new MessageBuilder(null, null);
 		SipParser parser = new SipParser(builder);
+		
     	parser.parseNext(ByteBuffer.wrap(msg.getBytes()));
+    	if (parser.getState() != State.END)
+			throw new IOException("Parse not ended: state is " + parser.getState());
 		return builder.getMessage();
     }
     

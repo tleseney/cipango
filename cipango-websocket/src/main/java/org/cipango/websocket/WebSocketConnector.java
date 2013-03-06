@@ -26,10 +26,16 @@ import org.cipango.server.MessageTooLongException;
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipConnector;
 import org.cipango.server.SipMessage;
+import org.cipango.server.SipMessageGenerator;
 import org.cipango.server.SipServer;
 import org.cipango.server.Transport;
+import org.cipango.server.nio.SelectSipConnection;
 import org.cipango.sip.SipParser;
 import org.cipango.sip.SipURIImpl;
+import org.eclipse.jetty.io.ArrayByteBufferPool;
+import org.eclipse.jetty.io.ByteBufferPool;
+import org.eclipse.jetty.util.StringUtil;
+import org.eclipse.jetty.util.annotation.Name;
 import org.eclipse.jetty.util.component.ContainerLifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
@@ -47,10 +53,12 @@ public class WebSocketConnector extends ContainerLifeCycle implements SipConnect
 	private String _host;
 	private SipURI _sipUri;
     private final SipServer _server;
+    private final ByteBufferPool _bufferPool;
 	
-	public WebSocketConnector(SipServer server)
+	public WebSocketConnector(@Name("sipServer") SipServer server)
 	{
 		_server = server;
+		_bufferPool = new ArrayByteBufferPool(SelectSipConnection.MINIMAL_BUFFER_LENGTH, 4096, 65536);
 		
 		addBean(_server,false);
 		
@@ -165,6 +173,13 @@ public class WebSocketConnector extends ContainerLifeCycle implements SipConnect
 		}
 	}
 	
+
+	public ByteBufferPool getBufferPool()
+	{
+		return _bufferPool;
+	}
+	
+	
 	private String key(WebSocketConnection connection) 
 	{
 		return key(connection.getRemoteAddress(), connection.getRemotePort());
@@ -179,9 +194,12 @@ public class WebSocketConnector extends ContainerLifeCycle implements SipConnect
 	{		
 
 		private static WebSocketConnector __connector;
+	    private final SipMessageGenerator _sipGenerator;
+		
 		
 		public WebSocketConnection()
 		{
+			_sipGenerator = new SipMessageGenerator();
 		}
 		
 		public SipConnector getConnector()
@@ -224,7 +242,6 @@ public class WebSocketConnector extends ContainerLifeCycle implements SipConnect
 			
 			try
 			{
-
 				MessageBuilder builder = new MessageBuilder(__connector._server, this);
 				SipParser parser = new SipParser(builder);
 				
@@ -245,7 +262,23 @@ public class WebSocketConnector extends ContainerLifeCycle implements SipConnect
 		@Override
 		public void send(SipMessage message) throws MessageTooLongException
 		{
-			// TODO Auto-generated method stub
+			ByteBuffer buffer = __connector.getBufferPool().acquire(SelectSipConnection.MINIMAL_BUFFER_LENGTH, false);
+			
+			buffer.clear();
+			
+			_sipGenerator.generateMessage(buffer, message);
+
+			buffer.flip();
+			try
+			{
+				write(buffer);
+			}
+			catch (Exception e)
+			{
+				LOG.warn(e);
+			}
+			
+			__connector.getBufferPool().release(buffer);
 			
 		}
 
@@ -253,7 +286,8 @@ public class WebSocketConnector extends ContainerLifeCycle implements SipConnect
 		@Override
 		public void write(ByteBuffer buffer) throws IOException
 		{
-			getSession().getRemote().sendString(buffer.toString());
+			String s = new String(buffer.array(), 0, buffer.limit(), StringUtil.__UTF8_CHARSET);
+			getSession().getRemote().sendString(s);
 		}
 
 		@Override
@@ -277,6 +311,4 @@ public class WebSocketConnector extends ContainerLifeCycle implements SipConnect
 		}
 	
 	}
-	
-
 }

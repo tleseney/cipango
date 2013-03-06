@@ -1,7 +1,7 @@
 SIP/2.0 200 OK
-Via: SIP/2.0/WS 127.0.0.1:19465;branch=z9hG4bKasudf
-From: <sip:alice@atlanta.com>;tag=65bnmj.34asd
-To: <sip:uas@atlanta.com>;tag=f204a6ac
 Call-ID: aiuy7k9njasd
 CSeq: 1 REGISTER
+From: <sip:alice@atlanta.com>;tag=65bnmj.34asd
+To: <sip:uas@atlanta.com>;tag=hqA.9jUxLe4b7ZN-16uc54
+Via: SIP/2.0/WS 127.0.0.1:19465;branch=z9hG4bKasudf
 Content-Length: 0

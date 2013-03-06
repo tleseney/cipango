@@ -168,6 +168,7 @@
     <module>cipango-dar</module>
     <module>cipango-dns</module>
     <module>cipango-client</module>
+    <module>cipango-websocket</module>
     <module>cipango-distribution</module>
     <module>cipango-maven-plugin</module>
     <module>tests</module>
@@ -284,6 +285,12 @@
         <groupId>javax.servlet</groupId>
         <artifactId>sip-api</artifactId>
         <version>${sip-api-version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.eclipse.jetty.orbit</groupId>

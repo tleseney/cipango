@@ -1,5 +1,5 @@
 INVITE sip:uas@atlanta.com SIP/2.0
-Via: SIP/2.0/WS ${host}:${port};branch=z9hG4bK56sdasks
+Via: SIP/2.0/WS ${host}:${port};branch=z9hG4bK5${branch}
 From: <sip:alice@atlanta.com>;tag=asdyka899
 To: <sip:uas@atlanta.com>
 Call-ID: ${callId}

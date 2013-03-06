@@ -1,5 +1,5 @@
 INVITE sip:localhost:15070 SIP/2.0
-Via: SIP/2.0/WS ${host}:${port};branch=z9hG4bK56sdasks
+Via: SIP/2.0/WS ${host}:${port};branch=z9hG4bK5${branch}
 From: <sip:webSocketClient@cipango.org>;tag=asdyka899
 To: <sip:proxy@cipango.org>
 Call-ID: ${callId}

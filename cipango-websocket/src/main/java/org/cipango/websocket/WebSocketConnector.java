@@ -194,14 +194,11 @@ public class WebSocketConnector extends ContainerLifeCycle implements SipConnect
 
 		private static WebSocketConnector __connector;
 	    private final SipMessageGenerator _sipGenerator;
-	    private final SipParser _parser;
 		
 		
 		public WebSocketConnection()
 		{
 			_sipGenerator = new SipMessageGenerator();
-			MessageBuilder builder = new MessageBuilder(__connector._server, this);
-	        _parser = new SipParser(builder);
 		}
 		
 		public SipConnector getConnector()
@@ -245,8 +242,9 @@ public class WebSocketConnector extends ContainerLifeCycle implements SipConnect
 				LOG.debug("Received raw data on web socket connection {}:\n{}", this, data);
 			try
 			{
-				_parser.parseNext(buffer);
-				_parser.reset();
+				MessageBuilder builder = new MessageBuilder(__connector._server, this);
+				SipParser parser = new SipParser(builder);
+				parser.parseNext(buffer);
 				
 			}
 			catch (Throwable t) 

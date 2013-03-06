@@ -20,7 +20,7 @@
         <extensions>true</extensions>
         <configuration>
           <instructions>
-            <Import-Package>!sun.misc,org.eclipse.jetty.jmx.*;version="[9,10)";resolution:=optional,*</Import-Package>
+            <Import-Package>org.eclipse.jetty.jmx.*;version="[9,10)";resolution:=optional,*</Import-Package>
           </instructions>
         </configuration>
         <executions>

@@ -16,8 +16,8 @@ package org.cipango.websocket;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import javax.servlet.sip.SipURI;
 
@@ -44,10 +44,10 @@ import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 
 public class WebSocketConnector extends ContainerLifeCycle implements SipConnector
 {
-	private static final Logger LOG = Log.getLogger(WebSocketConnection.class);
+	private static final Logger LOG = Log.getLogger(WebSocketConnector.class);
 	
 	private InetAddress _localAddr;
-	private Map<String, WebSocketConnection> _connections;
+	private ConcurrentMap<String, WebSocketConnection> _connections;
 	
 	private int _port;
 	private String _host;
@@ -62,7 +62,7 @@ public class WebSocketConnector extends ContainerLifeCycle implements SipConnect
 		
 		addBean(_server,false);
 		
-		_connections = new HashMap<String, WebSocketConnection>();
+		_connections = new ConcurrentHashMap<String, WebSocketConnection>();
 		WebSocketConnection.__connector = this; //FIXME
 	}
 	
@@ -150,33 +150,32 @@ public class WebSocketConnector extends ContainerLifeCycle implements SipConnect
 	
 	public SipConnection getConnection(InetAddress addr, int port) throws IOException
 	{
-		synchronized (_connections)
-		{
-			return _connections.get(key(addr, port));
-		}
+		return _connections.get(key(addr, port));
 	}
 	
 	public WebSocketConnection addConnection(WebSocketConnection connection)
 	{
-		synchronized (_connections)
-		{
-			_connections.put(key(connection), connection);
-		}
+		_connections.put(key(connection), connection);
 		return connection;
 	}
 	
 	public void removeConnection(WebSocketConnection connection)
 	{
-		synchronized (_connections)
-		{
-			_connections.put(key(connection), connection);
-		}
+		_connections.remove(key(connection));
 	}
 	
 
 	public ByteBufferPool getBufferPool()
 	{
 		return _bufferPool;
+	}
+	
+	@Override
+	public String toString()
+	{
+		String name = getClass().getSimpleName();
+		
+		return name + "@" + getHost() + ":" + getPort();
 	}
 	
 	
@@ -195,11 +194,14 @@ public class WebSocketConnector extends ContainerLifeCycle implements SipConnect
 
 		private static WebSocketConnector __connector;
 	    private final SipMessageGenerator _sipGenerator;
+	    private final SipParser _parser;
 		
 		
 		public WebSocketConnection()
 		{
 			_sipGenerator = new SipMessageGenerator();
+			MessageBuilder builder = new MessageBuilder(__connector._server, this);
+	        _parser = new SipParser(builder);
 		}
 		
 		public SipConnector getConnector()
@@ -230,22 +232,22 @@ public class WebSocketConnector extends ContainerLifeCycle implements SipConnect
 		@Override
 		public void onWebSocketClose(int statusCode, String reason)
 		{
+			__connector.removeConnection(this);
 			super.onWebSocketClose(statusCode, reason);
 
-			__connector.removeConnection(this);
 		}
 
 
 		public void onWebSocketText(String data)
 		{
-			ByteBuffer buffer = ByteBuffer.wrap(data.getBytes());
-			
+			ByteBuffer buffer = ByteBuffer.wrap(data.getBytes(StringUtil.__UTF8_CHARSET));
+			if (LOG.isDebugEnabled())
+				LOG.debug("Received raw data on web socket connection {}:\n{}", this, data);
 			try
 			{
-				MessageBuilder builder = new MessageBuilder(__connector._server, this);
-				SipParser parser = new SipParser(builder);
+				_parser.parseNext(buffer);
+				_parser.reset();
 				
-				parser.parseNext(buffer);
 			}
 			catch (Throwable t) 
 			{
@@ -293,7 +295,10 @@ public class WebSocketConnector extends ContainerLifeCycle implements SipConnect
 		@Override
 		public Transport getTransport()
 		{
-			return __connector.getTransport();
+			if (getSession().isSecure())
+				return Transport.WSS;
+			else
+				return Transport.WS;
 		}
 
 		@Override

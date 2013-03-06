@@ -249,7 +249,7 @@ public class SelectSipConnection extends AbstractConnection implements SipConnec
         }
     }
     
-	class MessageBuilder extends AbstractSipConnector.MessageBuilder
+	public static class MessageBuilder extends AbstractSipConnector.MessageBuilder
 	{
 		public MessageBuilder(SipServer server, SipConnection connection)
 		{

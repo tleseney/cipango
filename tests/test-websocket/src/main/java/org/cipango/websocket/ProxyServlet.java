@@ -26,7 +26,7 @@ public class ProxyServlet extends SipServlet
 
 	protected void doRequest(SipServletRequest req) throws ServletException, IOException
 	{
-		System.out.println(req);
+		log("Proxy got request:\n" + req);
 		if (req.isInitial())
 		{
 			Proxy proxy = req.getProxy();
@@ -39,7 +39,7 @@ public class ProxyServlet extends SipServlet
 
 	protected void doResponse(SipServletResponse response)
 	{
-		System.out.println(response);
+		log("Proxy got response:\n" + response);
 		response.addHeader("mode", "proxy");
 		if (response.getMethod().equals("BYE"))
 		{

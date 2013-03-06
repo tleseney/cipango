@@ -26,7 +26,7 @@ public class UasServlet extends SipServlet
 	@Override
 	protected void doRequest(SipServletRequest request) throws ServletException, IOException
 	{		
-		System.out.println("Got request: " + request);
+		log("UAS Got request:\n" + request);
 		if ("ACK".equals(request.getMethod()))
 		{
 			request.getSession().createRequest("BYE").send();

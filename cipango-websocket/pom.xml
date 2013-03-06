@@ -17,12 +17,17 @@
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
         <extensions>true</extensions>
+        <configuration>
+          <instructions>
+            <Import-Package>org.eclipse.jetty.jmx.*;version="[9,10)";resolution:=optional,*</Import-Package>
+          </instructions>
+        </configuration>
         <executions>
           <execution>
             <goals>
               <goal>manifest</goal>
             </goals>
-           </execution>
+          </execution>
         </executions>
       </plugin>
       
@@ -78,6 +83,11 @@
     <dependency>
       <groupId>org.eclipse.jetty.websocket</groupId> 
       <artifactId>websocket-server</artifactId> 
+    </dependency>    
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-jmx</artifactId>
+      <optional>true</optional>
     </dependency>
   </dependencies>
   

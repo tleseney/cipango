@@ -68,7 +68,8 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 		if (Inet6Util.isValidIPV4Address(hop.getHost()) ||  Inet6Util.isValidIP6Address(hop.getHost()))
 		{
 			hop.setAddress(InetAddress.getByName(hop.getHost()));
-			hop.setTransport(hop.isSecure() ? Transport.TLS : Transport.UDP);
+			if (transport == null)
+				hop.setTransport(hop.isSecure() ? Transport.TLS : Transport.UDP);
 			if (!hop.isPortSet())
 				hop.setPort(hop.getTransport().getDefaultPort());
 			return Arrays.asList(hop);

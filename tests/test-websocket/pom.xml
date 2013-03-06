@@ -1,7 +1,7 @@
 <project	xmlns="http://maven.apache.org/POM/4.0.0"	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0	http://maven.apache.org/maven-v4_0_0.xsd">
 	<parent>
 		<groupId>org.cipango.tests</groupId>
-  <artifactId>tests-parent</artifactId>
+	<artifactId>tests-parent</artifactId>
 		<version>3.0.0-SNAPSHOT</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
@@ -80,17 +80,22 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-      <groupId>org.eclipse.jetty.websocket</groupId> 
-      <artifactId>websocket-api</artifactId> 
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.jetty.websocket</groupId> 
-      <artifactId>websocket-client</artifactId> 
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.jetty.websocket</groupId> 
-      <artifactId>websocket-server</artifactId> 
-    </dependency>
+			<groupId>org.eclipse.jetty.orbit</groupId>
+			<artifactId>javax.servlet</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty.websocket</groupId> 
+			<artifactId>websocket-api</artifactId> 
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty.websocket</groupId> 
+			<artifactId>websocket-client</artifactId> 
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty.websocket</groupId> 
+			<artifactId>websocket-server</artifactId> 
+		</dependency>
 		<dependency>
 			<groupId>org.cipango</groupId>
 			<artifactId>cipango-client</artifactId>

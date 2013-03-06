@@ -284,12 +284,6 @@
         <groupId>javax.servlet</groupId>
         <artifactId>sip-api</artifactId>
         <version>${sip-api-version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>javax.servlet</groupId>
-            <artifactId>servlet-api</artifactId>
-          </exclusion>
-        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.eclipse.jetty.orbit</groupId>

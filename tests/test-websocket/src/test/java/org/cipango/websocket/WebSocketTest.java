@@ -15,6 +15,7 @@ import java.util.Random;
 import javax.servlet.ServletException;
 import javax.servlet.sip.Address;
 import javax.servlet.sip.ServletParseException;
+import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipURI;
@@ -39,6 +40,7 @@ import org.cipango.sip.SipParser.State;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -85,6 +87,12 @@ public class WebSocketTest
     	
     }
     
+    @After
+    public void tearDown() throws Exception
+    {
+    	_client.stop();
+    }
+    
     private void waitWsEvent() throws InterruptedException
     {
     	synchronized (_websocket)
@@ -102,7 +110,7 @@ public class WebSocketTest
     	Assert.assertNotNull("No response received", _websocket.getMessage());
     	
     	
-    	assertSimilar(getRawMessage("/registerResponse.dat"), _websocket.getRawResponse());
+    	assertSimilar(getSipMessage(getRawMessage("/registerResponse.dat")), _websocket.getMessage());
     }
     
     
@@ -264,28 +272,31 @@ public class WebSocketTest
      * @param expected
      * @param actual
      */
-    private void assertSimilar(String expected, String actual)
+    private void assertSimilar(SipServletMessage expected, SipServletMessage actual)
     {
-    	int i = 0;
-    	while (true)
+    	Assert.assertNotNull(actual);
+    	
+    	Assert.assertEquals(expected.getClass(), actual.getClass());
+    	
+    	Iterator<String> it = expected.getHeaderNames();
+    	
+    	while (it.hasNext())
 		{
-    		int j = expected.indexOf('\n', i);
-    		if (j == -1)
-    			break;
-			String lineExpected = expected.substring(i, j);
-			String lineActual = actual.substring(i, j);
-			int indexTag = lineExpected.indexOf("tag=");
+			String name = (String) it.next();
+			String valueExpected = expected.getHeader(name);
+			String valueActual = actual.getHeader(name);
+			int indexTag = valueExpected.indexOf("tag=");
 			if (indexTag == -1)
-				indexTag = lineExpected.indexOf("app-session-id=");
+				indexTag = valueExpected.indexOf("app-session-id=");
 			if (indexTag != -1)
 			{
-				lineExpected = lineExpected.substring(0, indexTag);
-				lineActual = lineActual.substring(0, indexTag);
+				valueExpected = valueExpected.substring(0, indexTag);
+				valueActual = valueActual.substring(0, indexTag);
 			}
-			Assert.assertEquals(lineExpected, lineActual);
-			i = j + 1;
+			Assert.assertEquals(valueExpected, valueActual);
+			
 		}
-    	
+      	
     }
     
     private String getRawMessage(String name) throws IOException
@@ -299,7 +310,7 @@ public class WebSocketTest
 			os.write(buffer, 0, read);
 		}
 		String message = new String(os.toByteArray());
-		message = message.replaceAll("\\$\\{callId\\}", new Random().nextInt() + "@localhost");
+		message = message.replaceAll("\\$\\{callId\\}", Math.abs(new Random().nextInt()) + "@localhost");
 		message = message.replaceAll("\\$\\{host\\}", "127.0.0.1");
 		message = message.replaceAll("\\$\\{port\\}", String.valueOf(__port));
 		

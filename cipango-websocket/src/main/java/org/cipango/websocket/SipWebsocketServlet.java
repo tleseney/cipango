@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2011 NEXCOM Systems
+// Copyright 2011-203 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,26 +20,12 @@ import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 public class SipWebsocketServlet extends WebSocketServlet
 {
 
-//	private WebSocketConnector _connector;
-//	
-//	public SipWebsocketServlet(WebSocketConnector connector)
-//	{
-//		_connector = connector;
-//	}
-	
-//	public WebSocket doWebSocketConnect(HttpServletRequest request, String protocol)
-//	{
-//		return _connector.addConnection(request);
-//	}
+	private static final long serialVersionUID = 1L;
 
 	@Override
 	public void configure(WebSocketServletFactory factory)
 	{
 		factory.register(WebSocketConnection.class);
-		// TODO Auto-generated method stub
-		
 	}
-
-	
 	
 }

@@ -262,11 +262,27 @@ public class WebSocketConnector extends ContainerLifeCycle implements SipConnect
 		@Override
 		public void send(SipMessage message) throws MessageTooLongException
 		{
-			ByteBuffer buffer = __connector.getBufferPool().acquire(SelectSipConnection.MINIMAL_BUFFER_LENGTH, false);
+			ByteBuffer buffer = null;
+			int bufferSize = SelectSipConnection.MINIMAL_BUFFER_LENGTH;
 			
-			buffer.clear();
-			
-			_sipGenerator.generateMessage(buffer, message);
+			while (true)
+			{
+				buffer = __connector.getBufferPool().acquire(bufferSize, false);
+				buffer.clear();
+
+				try
+				{
+					_sipGenerator.generateMessage(buffer, message);
+					break;
+				}
+				catch (MessageTooLongException e)
+				{
+					if (bufferSize < SelectSipConnection.MAXIMAL_BUFFER_LENGTH)
+						bufferSize += SelectSipConnection.MINIMAL_BUFFER_LENGTH + message.getContentLength();
+					else
+						throw e;
+				}
+			}
 
 			buffer.flip();
 			try

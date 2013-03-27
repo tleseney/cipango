@@ -90,8 +90,8 @@ public class TransportProcessor extends SipProcessorWrapper
 		if (route != null && getServer().isLocalURI(route.getURI()))
 		{
 			request.removeTopRoute();
-			
-			if (route.getURI().getParameter(SipGrammar.DRR) != null)
+			String ddr = route.getURI().getParameter(SipGrammar.DRR);
+			if (ddr != null)
 			{
 				// Case double record route, see RFC 5658
 				Address route2 = request.getTopRoute();
@@ -102,7 +102,7 @@ public class TransportProcessor extends SipProcessorWrapper
 				{
 					LOG.debug("Remove second top route {} due to RFC 5658", route2);
 					request.removeTopRoute();
-					if ("2".equals(route.getParameter(SipGrammar.DRR)))
+					if ("2".equals(ddr))
 						route = route2;
 				}
 			}

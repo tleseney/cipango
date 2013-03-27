@@ -167,6 +167,7 @@ public abstract class UaTestCase extends TestCase
 		_sipClient.stop();
 		for (Endpoint e: _endpoints)
 			e.stop();
+		Thread.sleep(10);
 	}
 	
 	public TestAgent decorate(TestAgent agent)

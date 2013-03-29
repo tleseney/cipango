@@ -27,7 +27,7 @@ import javax.servlet.sip.URI;
 import org.cipango.util.StringUtil;
 
 
-public class URIImpl implements URI, Serializable 
+public class URIImpl implements URI, Serializable, Modifiable 
 {	
 	private static final long serialVersionUID = 1l;
 	private static final BitSet ALPHA_BS = StringUtil.toBitSet(StringUtil.ALPHA);
@@ -38,6 +38,7 @@ public class URIImpl implements URI, Serializable
 	private String _scheme;
 	private String _file;
 	private HashMap<String, String> _params = new HashMap<String, String>();
+	private transient boolean _modified;
 	
 	protected URIImpl() { }
 	
@@ -45,6 +46,7 @@ public class URIImpl implements URI, Serializable
 	{
 		_uri = uri;
 		parse();
+		_modified = false;
 	}
 	
 	private void parse() throws ParseException 
@@ -195,6 +197,7 @@ public class URIImpl implements URI, Serializable
 	{
 		_uri = null;
 		_params.remove(name);	
+		_modified = true;
 	}
 	
 	public void setParameter(String name, String value)
@@ -203,6 +206,7 @@ public class URIImpl implements URI, Serializable
 			throw new NullPointerException("Null value or name");
 		_uri = null;
 		_params.put(name, value);
+		_modified = true;
 	}
 	
 	public synchronized Iterator<String> getParameterNames() 
@@ -227,6 +231,12 @@ public class URIImpl implements URI, Serializable
 		{
 			throw new IOException(e);
 		}
+	}
+
+	@Override
+	public boolean hasBeenModified()
+	{
+		return _modified;
 	}
 
 }

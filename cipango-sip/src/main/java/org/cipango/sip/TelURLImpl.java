@@ -30,7 +30,7 @@ import org.cipango.util.StringUtil;
 
 
 // TODO extends from URIImpl
-public class TelURLImpl implements TelURL, Serializable 
+public class TelURLImpl implements TelURL, Serializable, Modifiable 
 {	
 	private static final long serialVersionUID = 1l;
 	
@@ -38,6 +38,7 @@ public class TelURLImpl implements TelURL, Serializable
 	private String _scheme;
 	private String _number;
 	private HashMap<String, String> _params;
+	private transient boolean _modified;
 	
 	public static final String PHONE_CONTEXT = "phone-context";
 	private static final BitSet PHONE_DIGITS = StringUtil.toBitSet(StringUtil.DIGITS + '-' + '.' + '(' + ')');
@@ -46,6 +47,7 @@ public class TelURLImpl implements TelURL, Serializable
 	{
 		_uri = uri;
 		parse();
+		_modified = false;
 	}
 	
 	private void parse() throws ParseException 
@@ -138,6 +140,7 @@ public class TelURLImpl implements TelURL, Serializable
 		if (!StringUtil.contains(n, PHONE_DIGITS)) 
 			throw new IllegalArgumentException("Invalid phone number [" + number + "]");
 		_number = number;
+		_modified = true;
 	}
 	
 	public void setPhoneNumber(String number, String phoneContext)
@@ -148,6 +151,7 @@ public class TelURLImpl implements TelURL, Serializable
 //			throw new IllegalArgumentException("Invalid phone number [" + number + "]");
 		_number = number;
 		setParameter(PHONE_CONTEXT, phoneContext);
+		_modified = true;
 	}
 	
 	public String getPhoneContext()
@@ -171,6 +175,7 @@ public class TelURLImpl implements TelURL, Serializable
 	{
 		if (_params != null)
 			_params.remove(name);	
+		_modified = true;
 	}
 	
 	public void setParameter(String name, String value)
@@ -180,6 +185,7 @@ public class TelURLImpl implements TelURL, Serializable
 		if (_params == null)
 			_params = new HashMap<String, String>();
 		_params.put(name, value);
+		_modified = true;
 	}
 	
 	public synchronized Iterator<String> getParameterNames() 
@@ -261,6 +267,12 @@ public class TelURLImpl implements TelURL, Serializable
 			}
 		}
 		return true;
+	}
+	
+	@Override
+	public boolean hasBeenModified()
+	{
+		return _modified;
 	}
 	
 	private void writeObject(java.io.ObjectOutputStream out) throws IOException

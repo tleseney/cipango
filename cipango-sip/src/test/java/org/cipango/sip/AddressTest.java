@@ -204,6 +204,25 @@ public class AddressTest
 		assertEquals("\"Missing, Quotes\" <sip:a.g.bell@example.com>;tag=43", address.toString());
 	}
 	
+	@Test
+	public void testToString() throws ServletParseException
+	{
+		Address address = newAddress("<sip:alice@cipango.org>");
+		address.getURI().setParameter("lr", "");
+		assertTrue(address.getURI() instanceof Modifiable);
+		assertEquals("<sip:alice@cipango.org;lr>", address.toString());
+		
+		address = newAddress("<tel:+332960000>");
+		address.getURI().setParameter("user", "phone");
+		assertTrue(address.getURI() instanceof Modifiable);
+		assertEquals("<tel:+332960000;user=phone>", address.toString());
+		
+		address = newAddress("<http://www.cipango.org>");
+		address.getURI().setParameter("jsessionid", "1");
+		assertTrue(address.getURI() instanceof Modifiable);
+		assertEquals("<http://www.cipango.org;jsessionid=1>", address.toString());
+	}
+	
 	
 	private Address newAddress(String string) throws ServletParseException
 	{

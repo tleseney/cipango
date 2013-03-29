@@ -330,7 +330,8 @@ public class AddressImpl extends Parameters implements Address, Serializable
 	@Override
 	public String toString()
 	{
-		if (_string == null)
+		boolean uriModified = !(_uri instanceof Modifiable) || ((Modifiable) _uri).hasBeenModified();
+		if (_string == null || uriModified)
 		{
 			StringBuilder buffer = getValueBuffer();
 			
@@ -342,7 +343,6 @@ public class AddressImpl extends Parameters implements Address, Serializable
 			appendParameters(buffer);
 			_string = buffer.toString();
 		}
-		//FIXME how detect that URI has been modified
 		return _string;
 	}
 	

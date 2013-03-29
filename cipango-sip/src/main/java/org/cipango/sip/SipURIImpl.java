@@ -17,7 +17,7 @@ import org.cipango.util.StringUtil;
 import org.eclipse.jetty.util.StringMap;
 import org.eclipse.jetty.util.UrlEncoded;
 
-public class SipURIImpl implements SipURI, Serializable
+public class SipURIImpl implements SipURI, Serializable, Modifiable
 {
 	private static final long serialVersionUID = 1L;
 	public static final String SIP_SCHEME = "sip:";
@@ -71,23 +71,27 @@ public class SipURIImpl implements SipURI, Serializable
 	private Map<String, String> _otherParameters;
 	
 	private Map<String, String> _headers;
+	private transient boolean _modified;
 	
 	public SipURIImpl(String user, String host, int port)
 	{
 		_user = user;
 		_host = host;
 		_port = port;
+		_modified = false;
 	}
 	
 	public SipURIImpl(String host, int port)
 	{
 		_host = host;
 		_port = port;
+		_modified = false;
 	}
 	
 	public SipURIImpl(String uri) throws ParseException
 	{
 		parse(uri);
+		_modified = false;
 	}
 	
 	public SipURIImpl() { }
@@ -439,6 +443,8 @@ public class SipURIImpl implements SipURI, Serializable
 			removeParameter(param);
 		else if (_otherParameters != null)
 			_otherParameters.remove(name);
+
+		_modified = true;
 	}
 
 	public void setParameter(String name, String value) 
@@ -455,6 +461,8 @@ public class SipURIImpl implements SipURI, Serializable
 				_otherParameters = new HashMap<String, String>();
 			_otherParameters.put(name, value);
 		}
+
+		_modified = true;
 	}
 	
 	public boolean getLrParam() 
@@ -489,12 +497,14 @@ public class SipURIImpl implements SipURI, Serializable
     		_host = "[" + host + "]";
     	else
             _host = host;
+		_modified = true;
 	}
 	
 
 	public void setUser(String user) 
 	{
 		_user = user;
+		_modified = true;
 	}
 
 	public void setLrParam(boolean b) 
@@ -514,13 +524,17 @@ public class SipURIImpl implements SipURI, Serializable
 	{
 		if (_headers != null)
 			_headers.remove(name);
+
+		_modified = true;
 	}
 
 	public void setHeader(String name, String value) 
 	{
 		if (_headers == null)
 			_headers = new HashMap<String, String>();
-		_headers.put(name, value);		
+		_headers.put(name, value);	
+
+		_modified = true;
 	}
 
 	public void setMAddrParam(String maddr) 
@@ -755,6 +769,12 @@ public class SipURIImpl implements SipURI, Serializable
 		{
 			throw new IOException(e);
 		}
+	}
+
+	@Override
+	public boolean hasBeenModified()
+	{
+		return _modified;
 	}
 
 }

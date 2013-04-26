@@ -638,11 +638,11 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 		}
 	}
 	
-	static class BranchTimeoutTasdk extends TimeoutC
+	static class BranchTimeoutTask extends TimeoutC
 	{
     private static final long serialVersionUID = 2854010558145561212L;
 
-    BranchTimeoutTasdk(Branch branch)
+    BranchTimeoutTask(Branch branch)
     {
       super(branch);
     }
@@ -943,7 +943,7 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
         }
         private void startBranchTimeout()
         {
-          _branchTimeoutTask = _request.appSession().getSessionManager().schedule(new TimeoutC(this), _branchTimeout * 1000);
+          _branchTimeoutTask = _request.appSession().getSessionManager().schedule(new BranchTimeoutTask(this), _branchTimeout * 1000);
         }
         
         public void updateTimerC()

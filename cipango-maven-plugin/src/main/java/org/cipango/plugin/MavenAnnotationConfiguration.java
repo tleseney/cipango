@@ -45,7 +45,7 @@ public class MavenAnnotationConfiguration extends AnnotationConfiguration
             {
                 if (f.isDirectory() && f.exists())
                 {
-                    parser.parse(Resource.newResource(f.toURL()), 
+                    parser.parseDir(Resource.newResource(f.toURL()), 
                                 new ClassNameResolver()
                     {
                         public boolean isExcluded (String name)

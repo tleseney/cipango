@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2012-2013 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,13 +13,22 @@
 // ========================================================================
 package org.cipango.plugin;
 
+import org.cipango.server.SipConnector;
+import org.cipango.server.Transport;
 import org.cipango.websocket.WebSocketConnector;
 
-public class MavenWebSocketConnector extends WebSocketConnector
+public class MavenWebSocketConnector extends MavenSipConnector
 {
 
-	public MavenWebSocketConnector()
+	@Override
+	protected SipConnector newDelegate()
 	{
-		super(CipangoSipServer.getInstance());
+		return new WebSocketConnector(getServer());
+	}
+
+	@Override
+	public Transport getTransport()
+	{
+		return Transport.WS;
 	}
 }

@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2012 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,13 +13,37 @@
 // ========================================================================
 package org.cipango.plugin;
 
+import org.cipango.server.SipConnector;
+import org.cipango.server.Transport;
 import org.cipango.server.nio.UdpConnector;
 
-public class MavenUdpConnector extends UdpConnector
+public class MavenUdpConnector extends MavenSipConnector
 {
-
-	public MavenUdpConnector()
+	private Integer mtu;
+	
+	@Override
+	protected SipConnector newDelegate()
 	{
-		super(CipangoSipServer.getInstance());
+		UdpConnector connector = new UdpConnector(getServer());
+		if (mtu != null)
+			connector.setMtu(mtu);
+		return connector;
 	}
+	
+	@Override
+	public Transport getTransport()
+	{
+		return Transport.UDP;
+	}
+	
+	public int getMtu()
+	{
+		return mtu;
+	}
+
+	public void setMtu(int mtu)
+	{
+		this.mtu = mtu;
+	}
+
 }

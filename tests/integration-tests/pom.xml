@@ -33,6 +33,7 @@
 				<version>1.0-alpha-2</version>
 				<executions>
 					<execution>
+						<phase>initialize</phase>
 						<goals>
 							<goal>set-system-properties</goal>
 						</goals>

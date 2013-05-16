@@ -87,7 +87,7 @@ public class AnnotationConfiguration extends AbstractConfiguration
        
         //Convert from Resource to URI
         ArrayList<URI> containerUris = new ArrayList<URI>();
-        for (Resource r : context.getMetaData().getOrderedContainerJars())
+        for (Resource r : context.getMetaData().getContainerResources())
         {
             URI uri = r.getURI();
                 containerUris.add(uri);          
@@ -154,10 +154,10 @@ public class AnnotationConfiguration extends AbstractConfiguration
         LOG.debug("Scanning classes in WEB-INF/classes");
         if (context.getWebInf() != null)
         {
-            Resource classesDir = context.getWebInf().addPath("classes/");
+        	Resource classesDir = context.getWebInf().addPath("classes/");
             if (classesDir.exists())
             {
-                parser.parse(classesDir, 
+                parser.parseDir(classesDir, 
                              new ClassNameResolver()
                 {
                     public boolean isExcluded (String name)

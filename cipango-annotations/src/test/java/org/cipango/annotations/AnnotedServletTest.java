@@ -63,7 +63,7 @@ public class AnnotedServletTest
     		public void parseWebInfClasses(WebAppContext context, AnnotationParser parser) throws Exception
     		{
     			Resource r = new FileResource(AnnotedServletTest.class.getResource("resources"));
-    	        parser.parse(r , new SimpleResolver());
+    	        parser.parseDir(r , new SimpleResolver());
     		}
 
     		@Override

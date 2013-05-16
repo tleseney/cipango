@@ -90,10 +90,11 @@ public abstract class AbstractCipangoMojo extends AbstractJettyMojo
      */
     protected SipAppContext sipApp;
     
+        
     /**
      * A wrapper for the Server object
      */
-    private SipServer sipServer = CipangoSipServer.getInstance();
+    private SipServer sipServer = new SipServer();
                 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException
@@ -106,6 +107,7 @@ public abstract class AbstractCipangoMojo extends AbstractJettyMojo
 	public void finishConfigurationBeforeStart() throws Exception
 	{
 		super.finishConfigurationBeforeStart();
+		sipServer.setServer(server);
 		sipServer.setHandler(sipApp);
         sipServer.setConnectors(sipConnectors);
         SipConnector[] connectors = sipServer.getConnectors();
@@ -130,6 +132,10 @@ public abstract class AbstractCipangoMojo extends AbstractJettyMojo
 
         	sipServer.setConnectors(sipConnectors);
         }
+        
+        for (SipConnector connector : sipServer.getConnectors())
+        	if (connector instanceof MavenSipConnector && ((MavenSipConnector) connector).getServer() == null)
+        		((MavenSipConnector) connector).setServer(sipServer);
         
 		if (messageLog == null)
 		{

@@ -21,6 +21,8 @@ public interface SipConnector extends LifeCycle
 	@ManagedAttribute(value="Host", readonly=true)
 	String getHost();
 	
+	void setHost(String host);
+	
 	void setPort(int port);
 
 	@ManagedAttribute(value="Port", readonly=true)

@@ -69,7 +69,7 @@
               <target>
                 <delete failonerror="false">
                   <!-- HelpMojo is recreated by maven-plugin-plugin and JettyRunForkedMojo does not work with Cipango -->
-                  <fileset dir="${project.build.directory}/jetty-maven-plugin/org/eclipse/jetty/maven/plugin" includes="HelpMojo.java,JettyRunForkedMojo" />
+                  <fileset dir="${project.build.directory}/jetty-maven-plugin/org/eclipse/jetty/maven/plugin" includes="HelpMojo.java,JettyRunForkedMojo.java" />
                 </delete>
                 <replace token="extends AbstractJettyMojo" value="extends org.cipango.plugin.AbstractCipangoMojo">
                   <fileset dir="${project.build.directory}/jetty-maven-plugin" includes="org/eclipse/jetty/maven/plugin/*.java" />

@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2012 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,7 +33,6 @@ import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.server.session.Session;
 import org.cipango.server.session.SessionManager.ApplicationSessionScope;
-import org.cipango.server.transaction.ClientTransaction;
 import org.cipango.server.transaction.Transaction;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.Authenticate;
@@ -44,7 +43,6 @@ import org.cipango.sip.SipGrammar;
 import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipStatus;
-import org.cipango.sip.Via;
 import org.eclipse.jetty.util.StringUtil;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
@@ -103,6 +101,16 @@ public class SipResponse extends SipMessage implements SipServletResponse
 				_fields.set(SipHeader.CONTACT, _session.getContact(request.getConnection()));
 			}
 		}
+	}
+	
+	public SipResponse(SipResponse other)
+	{
+		super(other);
+		_request = other._request;
+		_status = other._status;
+		_reason = other._reason;
+		_proxyBranch = other._proxyBranch;
+		_branchResponse = other._branchResponse;
 	}
 	
 	public boolean is2xx()
@@ -309,6 +317,19 @@ public class SipResponse extends SipMessage implements SipServletResponse
 	 * @see SipServletResponse#getReasonPhrase()
 	 */
 	public String getReasonPhrase()
+	{
+		if (_reason != null)
+			return _reason;
+		SipStatus status = SipStatus.get(_status);
+		if (status == null)
+			return null;
+		return status.getReason();
+	}
+	
+	/**
+	 * Returns the reason phrase if it has been set else returns <code>null</code>.
+	 */
+	public String getNullableReasonPhrase()
 	{
 		return _reason;
 	}

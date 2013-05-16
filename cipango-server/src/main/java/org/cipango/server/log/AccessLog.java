@@ -16,7 +16,9 @@ package org.cipango.server.log;
 
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipMessage;
+import org.eclipse.jetty.util.annotation.ManagedObject;
 
+@ManagedObject
 public interface AccessLog
 {
 	void messageReceived(SipMessage message, SipConnection connection);

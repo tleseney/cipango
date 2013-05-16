@@ -51,9 +51,8 @@ public class SvgServlet extends HttpServlet
 			{
 				String userAgent = request.getHeader("User-Agent");
 				
-				// Firefox does not support animation and IE does not support foreignObject
-				boolean supportAnimation = (userAgent.indexOf("Firefox") == -1 
-					&& userAgent.indexOf("MSIE") == -1 )
+				// IE does not support foreignObject
+				boolean supportAnimation = userAgent.indexOf("MSIE") == -1
 					|| "Chrome".equalsIgnoreCase(request.getParameter("ua"));
 				
 				Object[] params = {new Integer(maxMessages), msgFilter, "dataToSvg.xsl", supportAnimation};

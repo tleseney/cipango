@@ -16,7 +16,7 @@ public class SipMessageGenerator extends SipGenerator
     			SipResponse response = (SipResponse) message;
     			generateResponse(buffer, 
     					response.getStatus(),
-    					response.getReasonPhrase(), 
+    					response.getNullableReasonPhrase(), 
     					response.getFields(), 
     					response.getRawContent(),
     					response.getHeaderForm());

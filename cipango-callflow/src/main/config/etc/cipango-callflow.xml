@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Configure PUBLIC "-//Jetty//Configure//EN" "http://www.eclipse.org/jetty/configure.dtd">
+
+<!-- =============================================================== -->
+<!-- This configuration allows to see and filter SIP message         -->
+<!-- received and sent from cipango-console.                         -->
+<!-- =============================================================== -->
+<Configure class="org.cipango.server.SipServer" id="SipServer">
+  
+  <Set name="accessLog">
+    <New class="org.cipango.server.log.AccessLogCollection">
+      <Set name="loggers">
+        <Array type="org.cipango.server.log.AccessLog">
+          <Item>
+            <New class="org.cipango.callflow.JmxMessageLog">
+              <Set name="maxMessages">100</Set>
+            </New>
+          </Item>
+          <Item>
+            <Ref id="FileMessageLog"/>
+          </Item>
+        </Array>
+      </Set>
+    </New>
+  </Set>
+  
+</Configure>

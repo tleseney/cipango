@@ -13,6 +13,7 @@ import javax.management.ReflectionException;
 import javax.servlet.http.HttpServletRequest;
 
 import org.cipango.console.Action;
+import org.cipango.console.Manager;
 import org.cipango.console.Action.StartAction;
 import org.cipango.console.Action.StopAction;
 import org.cipango.console.menu.Page;
@@ -50,7 +51,7 @@ public class ConsoleLogger
 	
 	public boolean isEnabled() throws Exception
 	{
-		return (Boolean) _mbsc.getAttribute(_objectName, "running");
+		return Manager.isRunning(_mbsc, _objectName);
 	}
 	
 	public boolean isRegistered() throws IOException

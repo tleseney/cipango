@@ -163,6 +163,7 @@
     <module>cipango-util</module>
     <module>cipango-plus</module>
     <module>cipango-annotations</module>
+    <module>cipango-callflow</module>
     <module>cipango-console</module>
     <module>cipango-deploy</module>
     <module>cipango-dar</module>

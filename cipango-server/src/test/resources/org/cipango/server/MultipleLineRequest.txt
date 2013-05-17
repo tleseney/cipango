@@ -20,5 +20,6 @@ Proxy-Authenticate: Digest realm="biloxi.com",
        opaque="", stale=FALSE, algorithm=MD5
 Route: <sip:127.0.0.1;lr>, <sip:127.0.0.1:5070;lr>
 Route: <sip:127.0.0.1;lr>
+Contact: <sip:alice@127.0.0.1:5062;lr;transport=udp>;expires=1800,<sip:localhost>;expires=1500
 Content-Length: 0
 

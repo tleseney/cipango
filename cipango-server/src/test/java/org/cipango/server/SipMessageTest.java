@@ -10,6 +10,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.Iterator;
 import java.util.ListIterator;
 
 import javax.servlet.sip.Address;
@@ -239,11 +240,12 @@ public class SipMessageTest
 		SipMessage message = getMessage(os.toString());
 		String toString = message.toString();
 		//System.out.println(message);
-		
+	
 		assertEquals(1, count(toString, "Accept:"));
 		assertEquals(3, count(toString, "Via:"));
 		assertEquals(2, count(toString, "UnknownHeader:"));
 		assertEquals(2, count(toString, "Proxy-Authenticate:"));
+		assertEquals(2, count(toString, "Contact:"));
 		
 		ListIterator<String> it = message.getHeaders("UnknownHeader");
 		while (it.hasNext())

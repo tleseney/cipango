@@ -17,7 +17,7 @@ public enum SipHeader
 	TO("To", Type.ADDRESS, true),
 	CALL_ID("Call-ID", Type.STRING, true),
 	CSEQ("CSeq", Type.STRING, true),
-	CONTACT("Contact"),
+	CONTACT("Contact", Type.ADDRESS, false, true, false),
 	
 	ACCEPT("Accept", Type.PARAMETERABLE, false, true, true), 
 	ACCEPT_CONTACT("Accept-Contact", Type.STRING, false, true, true),

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<presence xmlns="urn:ietf:params:xml:ns:pidf" 
+        xmlns:rpid="urn:ietf:params:xml:ns:pidf:rpid" 
+        xmlns:gml="urn:ietf:params:xml:ns:pidf:geopriv10" 
+        xmlns:gp="urn:opengis:specification:gp:schema-xsd:feature:v3.0" 
+entity="sip:tv@cipango.org">
+  <tuple id="gfcfd">
+    <status>
+      <basic>open</basic>
+      <gml:geopriv>
+        <gml:location-info>
+          <gp:location>
+            <gp:Point srsDimension="2" srsName="urn:ogc:def:crs:EPSG:6.6:4326">
+              <pos>48.124667783333344 -3.121677833333334</pos>
+            </gp:Point>
+          </gp:location>
+        </gml:location-info>
+        <gml:usage-rules>
+          <gml:retransmission-allowed>no</gml:retransmission-allowed>
+        </gml:usage-rules>
+      </gml:geopriv>
+    </status>
+    <contact>sip:tv@cipango.org</contact>
+    <note>Online</note>
+  </tuple>
+</presence>

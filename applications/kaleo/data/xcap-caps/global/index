@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><xcap-caps xmlns="urn:ietf:params:xml:ns:xcap-caps" xmlns:xsi="htt//www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ietf:params:xml:ns:xcap-caps xcap-caps.xsd">
+<auids>
+	<auid>pres-rules</auid>
+	<auid>org.openmobilealliance.group-usage-list</auid>
+	<auid>org.openmobilealliance.pres-rules</auid>
+	<auid>resource-lists</auid>
+	<auid>org.openmobilealliance.locked-user-profile</auid>
+	<auid>org.openmobilealliance.user-profile</auid>
+	<auid>org.openmobilealliance.groups</auid>
+	<auid>org.openmobilealliance.access-rules</auid>
+	<auid>xcap-caps</auid>
+</auids>
+<namespaces>
+	<namespace>urn:ietf:params:xml:ns:common-policy</namespace>
+	<namespace>urn:ietf:params:xml:ns:pres-rules</namespace>
+	<namespace>urn:oma:xml:xdm:extensions</namespace>
+	<namespace>urn:ietf:params:xml:ns:resource-lists</namespace>
+	<namespace>urn:oma:xml:xdm:resource-list:oma-uriusage</namespace>
+	<namespace>urn:ietf:params:xml:ns:common-policy</namespace>
+	<namespace>urn:oma:xml:xdm:common-policy</namespace>
+	<namespace>urn:ietf:params:xml:ns:pres-rules</namespace>
+	<namespace>urn:ietf:params:xml:ns:resource-lists</namespace>
+	<namespace>urn:oma:xml:xdm:user-profile</namespace>
+	<namespace>urn:oma:xml:xdm:user-profile</namespace>
+	<namespace>urn:oma:xml:poc:list-service</namespace>
+	<namespace>urn:ietf:params:xml:ns:common-policy</namespace>
+	<namespace>urn:oma:xml:xdm:common-policy</namespace>
+	<namespace>urn:ietf:params:xml:ns:pres-rules</namespace>
+	<namespace>urn:ietf:params:xml:ns:xcap-caps</namespace>
+</namespaces>
+</xcap-caps>

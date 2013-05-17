@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cr:ruleset 
+        xmlns:cr="urn:ietf:params:xml:ns:common-policy" 
+        xmlns="urn:ietf:params:xml:ns:pres-rules" 
+        xmlns:ocp="urn:oma:xml:xdm:common-policy" xmlns:op="urn:oma:xml:prs:pres-rules">
+  <cr:rule id="wp_prs_allow_own">
+    <cr:conditions>
+      <cr:identity>
+        <cr:one id="sip:alice@cipango.org"/>
+      </cr:identity>
+    </cr:conditions>
+    <cr:actions>
+      <sub-handling>allow</sub-handling>
+    </cr:actions>
+  </cr:rule>
+  <cr:rule id="wp_prs_unlisted">
+    <cr:conditions>
+      <ocp:other-identity/>
+    </cr:conditions>
+    <cr:actions>
+      <sub-handling>confirm</sub-handling>
+    </cr:actions>
+  </cr:rule>
+</cr:ruleset>

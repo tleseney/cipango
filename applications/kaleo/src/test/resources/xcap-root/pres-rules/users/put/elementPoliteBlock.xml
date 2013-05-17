@@ -1,0 +1,3 @@
+   <cr:actions xmlns:cr="urn:ietf:params:xml:ns:common-policy" xmlns:pr="urn:ietf:params:xml:ns:pres-rules">
+      <pr:sub-handling>polite-block</pr:sub-handling>
+    </cr:actions>

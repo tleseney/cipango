@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema
+   targetNamespace="urn:oma:xml:xdm:user-profile"
+   xmlns="urn:oma:xml:xdm:user-profile"   
+   xmlns:xs="http://www.w3.org/2001/XMLSchema"
+   elementFormDefault="qualified" attributeFormDefault="unqualified">
+
+<!-- This import brings in the XML language attribute xml:lang -->
+<xs:import namespace="http://www.w3.org/XML/1998/namespace"
+   schemaLocation="xml.xsd"/>
+
+<!-- The root "user-profiles" element -->
+<xs:element name="user-profiles">
+   <xs:complexType>
+      <xs:sequence>
+         <xs:element name="user-profile" type="user-profileType"/>
+      </xs:sequence>
+   </xs:complexType>
+</xs:element>
+
+<xs:complexType name="user-profileType">
+   <xs:sequence>
+      <xs:element name="communication-addresses" type="communication-addressesType" minOccurs="0"/>
+      <xs:element name="display-name" type="display-nameType" minOccurs="0"/>
+      <xs:element name="birth-date" type="xs:date" minOccurs="0"/>
+      <xs:element name="name" type="nameType" minOccurs="0"/>
+      <xs:element name="address" type="addressType" minOccurs="0"/>
+      <xs:element name="gender" type="genderType" minOccurs="0"/>
+      <xs:element name="freetext" type="freetextType" minOccurs="0"/>
+      <xs:element name="communication-types" type="communication-typesType" minOccurs="0"/>
+      <xs:element name="hobbies" type="hobbiesType" minOccurs="0"/>
+      <xs:element name="favourite-links" type="favourite-linksType" minOccurs="0"/>
+      <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+   </xs:sequence>
+   <xs:attribute name="uri" type="xs:anyURI" use="required"/>
+   <xs:anyAttribute processContents="lax"/>
+</xs:complexType>
+
+<xs:complexType name="communication-addressesType">    <xs:sequence>
+      <xs:element name="comm-addr" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+   </xs:sequence>
+   <xs:anyAttribute processContents="lax"/>
+</xs:complexType> 
+<xs:complexType name="display-nameType">    <xs:simpleContent>
+      <xs:extension base="xs:string">
+         <xs:attribute ref="xml:lang"/>
+          <xs:anyAttribute processContents="lax"/>
+      </xs:extension>
+   </xs:simpleContent>
+</xs:complexType>
+
+<xs:complexType name="nameType">    <xs:sequence>
+      <xs:element name="given-name" type="xs:string" minOccurs="0"/>
+      <xs:element name="family-name" type="xs:string" minOccurs="0"/>
+      <xs:element name="middle-name" type="xs:string" minOccurs="0"/>
+      <xs:element name="name-suffix" type="xs:string" minOccurs="0"/>
+      <xs:element name="name-prefix" type="xs:string" minOccurs="0"/>
+      <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+   </xs:sequence>
+   <xs:attribute ref="xml:lang"/>
+   <xs:anyAttribute processContents="lax"/>
+</xs:complexType> 
+<xs:complexType name="addressType">    <xs:sequence>
+      <xs:element name="country" type="xs:string" minOccurs="0"/>
+      <xs:element name="region" type="xs:string" minOccurs="0"/>
+      <xs:element name="locality" type="xs:string" minOccurs="0"/>
+      <xs:element name="area" type="xs:string" minOccurs="0"/>
+      <xs:element name="street-name" type="xs:string" minOccurs="0"/>
+      <xs:element name="street-number" type="xs:string" minOccurs="0"/>
+      <xs:element name="postal-code" type="xs:string" minOccurs="0"/>
+      <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+   </xs:sequence>
+   <xs:attribute ref="xml:lang"/>
+   <xs:anyAttribute processContents="lax"/>
+</xs:complexType> 
+<xs:simpleType name="genderType">    <xs:restriction base="xs:token">
+      <xs:enumeration value="male"/>
+      <xs:enumeration value="female"/>
+   </xs:restriction>
+</xs:simpleType> 
+<xs:complexType name="freetextType">    <xs:simpleContent>
+      <xs:extension base="xs:string">
+         <xs:attribute ref="xml:lang"/>
+         <xs:anyAttribute processContents="lax"/>
+      </xs:extension>
+   </xs:simpleContent>
+</xs:complexType> 
+<xs:complexType name="communication-typesType"> 
+   <xs:sequence>
+      <xs:element name="comm-type" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:simpleContent>
+            <xs:extension base="xs:string">
+              <xs:attribute ref="xml:lang"/>
+              <xs:anyAttribute processContents="lax"/>
+            </xs:extension>
+          </xs:simpleContent>
+        </xs:complexType>
+      </xs:element>
+      <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+   </xs:sequence>
+   <xs:anyAttribute processContents="lax"/>
+</xs:complexType> 
+<xs:complexType name="hobbiesType">
+     <xs:sequence>
+       <xs:element name="hobby" minOccurs="0" maxOccurs="unbounded">
+         <xs:complexType>
+           <xs:simpleContent>
+             <xs:extension base="xs:string">
+               <xs:attribute ref="xml:lang"/>
+               <xs:anyAttribute processContents="lax"/>
+             </xs:extension>
+           </xs:simpleContent>
+         </xs:complexType>
+       </xs:element>
+       <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+     </xs:sequence>
+   <xs:anyAttribute processContents="lax"/>
+</xs:complexType> 
+<xs:complexType name="favourite-linksType">
+    <xs:sequence>
+      <xs:element name="link" type="xs:anyURI" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+   <xs:anyAttribute processContents="lax"/>
+</xs:complexType> 
+</xs:schema>

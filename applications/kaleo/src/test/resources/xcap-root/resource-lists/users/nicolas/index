@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rl:resource-lists xmlns:rl="urn:ietf:params:xml:ns:resource-lists"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+ <rl:list name="friends">
+  <rl:entry uri="sip:bill@example.com">
+   <rl:display-name>Bill Doe</rl:display-name>
+  </rl:entry>
+  <rl:entry-ref ref="resource-lists/users/bill/mylist/~~/resource-lists/list%5b@name=%22list1%22%5d/entry%5b@uri=%22sip:petri@example.com%22%5d"/>
+  <rl:list name="close-friends">
+   <rl:display-name>Close Friends</rl:display-name>
+   <rl:entry uri="sip:joe@example.com">
+    <rl:display-name>Joe Smith</rl:display-name>
+   </rl:entry>
+   <rl:entry uri="sip:nancy@example.com">
+    <rl:display-name>Nancy Gross</rl:display-name>
+   </rl:entry>
+   <rl:external anchor="http://www.example.org/xcap/resource-lists/users/a/foo/~~/resource-lists/list%5b@name=%22mkting%22%5d">
+     <rl:display-name>Marketing</rl:display-name>
+    </rl:external>
+  </rl:list>
+ </rl:list>
+</rl:resource-lists>

@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<reginfo xmlns="urn:ietf:params:xml:ns:reginfo"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             version="0" state="full">
+  <registration aor="sip:user@example.com" id="as9"
+                state="active">
+    <contact id="76" state="active" event="registered"
+             duration-registered="7322"
+             q="0.8">
+             <uri>sip:user@pc887.example.com</uri>
+    </contact>
+    <contact id="77" state="terminated" event="expired"
+             duration-registered="3600"
+             q="0.5">
+             <uri>sip:user@university.edu</uri>
+    </contact>
+  </registration>
+</reginfo>

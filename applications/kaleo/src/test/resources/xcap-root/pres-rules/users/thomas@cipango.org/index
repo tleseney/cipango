@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+ <cr:ruleset xmlns="urn:ietf:params:xml:ns:pres-rules"
+  xmlns:pr="urn:ietf:params:xml:ns:pres-rules"
+  xmlns:cr="urn:ietf:params:xml:ns:common-policy">
+  <cr:rule id="a">
+   <cr:conditions>
+    <cr:identity>
+     <cr:one id="sip:user@cipango.org"/>
+    </cr:identity>
+   </cr:conditions>
+   <cr:actions>
+    <pr:sub-handling>allow</pr:sub-handling>
+   </cr:actions>
+   <cr:transformations>
+    <pr:provide-services>
+      <pr:service-uri-scheme>sip</pr:service-uri-scheme>
+      <pr:service-uri-scheme>mailto</pr:service-uri-scheme>
+    </pr:provide-services>
+    <pr:provide-persons>
+      <pr:all-persons/>
+    </pr:provide-persons>
+    <pr:provide-activities>true</pr:provide-activities>
+    <pr:provide-user-input>bare</pr:provide-user-input>
+     <pr:provide-unknown-attribute
+      ns="urn:vendor-specific:foo-namespace"
+      name="foo">true</pr:provide-unknown-attribute>
+   </cr:transformations>
+  </cr:rule>
+ </cr:ruleset>

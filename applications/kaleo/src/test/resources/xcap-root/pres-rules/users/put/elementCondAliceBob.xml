@@ -1,0 +1,4 @@
+   <cr:identity xmlns:cr="urn:ietf:params:xml:ns:common-policy" xmlns:pr="urn:ietf:params:xml:ns:pres-rules">
+      <cr:one id="sip:alice@cipango.org"/>
+      <cr:one id="sip:bob@cipango.org"/>
+    </cr:identity>

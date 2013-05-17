@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+ <cr:ruleset xmlns="urn:ietf:params:xml:ns:pres-rules"
+  xmlns:pr="urn:ietf:params:xml:ns:pres-rules"
+  xmlns:cr="urn:ietf:params:xml:ns:common-policy">
+  <cr:rule id="a">
+   <cr:conditions>
+    <cr:identity>
+     <cr:one id="sip:newDocument@cipango.org"/>
+    </cr:identity>
+   </cr:conditions>
+   <cr:actions>
+    <pr:sub-handling>allow</pr:sub-handling>
+   </cr:actions>
+   <cr:transformations>
+   </cr:transformations>
+  </cr:rule>
+ </cr:ruleset>

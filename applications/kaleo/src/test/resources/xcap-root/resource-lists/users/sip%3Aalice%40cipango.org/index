@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<resource-lists xmlns="urn:ietf:params:xml:ns:resource-lists">
+  <list name="rcs">
+    <display-name>All Contacts</display-name>
+    <entry uri="sip:alice@cipango.org"/>
+    <entry uri="sip:allow@cipango.org"/>
+  </list>
+  <list name="rcs_blockedcontacts">
+    <display-name>Blocked Contacts</display-name>
+    <entry uri="sip:block@cipango.org"/>
+  </list>
+  <list name="rcs_revokedcontacts">
+    <display-name>Revoked Contacts</display-name>
+  </list>
+  <list name="oma_allcontacts">
+    <display-name>OMA All Contacts</display-name>
+  </list>
+  <list name="oma_blockedcontacts">
+    <display-name>OMA Blocked Contacts</display-name>
+    <external anchor="http://xcap.cipango.org/resource-lists/users/sip:alice@cipango.org/index/~~/resource-lists/list%5B@name=%22rcs_blockedcontacts%22%5D"/>
+    <external anchor="http://xcap.cipango.org/resource-lists/users/sip:alice@cipango.org/index/~~/resource-lists/list%5B@name=%22rcs_revokedcontacts%22%5D"/>
+  </list>
+  <list name="oma_buddylist">
+    <display-name>OMA BuddyList</display-name>
+    <external anchor="http://xcap.cipango.org/resource-lists/users/sip:alice@cipango.org/index/~~/resource-lists/list%5B@name=%22rcs%22%5D"/>
+    <external anchor="http://xcap.cipango.org/resource-lists/users/sip:alice@cipango.org/index/~~/resource-lists/list%5B@name=%22oma_pocbuddylist%22%5D"/>
+  </list>
+  <list name="oma_grantedcontacts">
+    <display-name>OMA Granted Contacts</display-name>
+    <external anchor="http://xcap.cipango.org/resource-lists/users/sip:alice@cipango.org/index/~~/resource-lists/list%5B@name=%22rcs%22%5D"/>
+    <external anchor="http://xcap.cipango.org/resource-lists/users/sip:alice@cipango.org/index/~~/resource-lists/list%5B@name=%22oma_buddylist%22%5D"/>
+  </list>
+  <list name="oma_pocbuddylist">
+    <display-name>OMA POC BuddyList</display-name>
+  </list>
+<list name="mercuro_list536651651129133822176250000">
+  <display-name>My New Group</display-name>
+</list></resource-lists>

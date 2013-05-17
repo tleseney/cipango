@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cr:ruleset xmlns="urn:ietf:params:xml:ns:pres-rules"
+	xmlns:pr="urn:ietf:params:xml:ns:pres-rules"
+	xmlns:cr="urn:ietf:params:xml:ns:common-policy">
+	<cr:rule id="a">
+		<cr:conditions>
+			<cr:identity>
+				<cr:one id="sip:bob@cipango.org"/>
+			</cr:identity>
+		</cr:conditions>
+		<cr:actions>
+			<pr:sub-handling>block</pr:sub-handling>
+		</cr:actions>
+	</cr:rule>
+	<cr:rule id="b">
+		<cr:conditions>
+			<cr:identity>
+				<cr:many domain="cipango.org">
+					<cr:except id="sip:carol@cipango.org"/>
+					<cr:except id="sip:bob@cipango.org"/>
+				</cr:many>
+			</cr:identity>
+			<cr:identity>
+				<cr:one id="sip:alice@example.com"/>
+			</cr:identity>
+		</cr:conditions>
+		<cr:actions>
+			<pr:sub-handling>polite-block</pr:sub-handling>
+		</cr:actions>
+	</cr:rule>
+ </cr:ruleset>

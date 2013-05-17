@@ -1,0 +1,31 @@
+<!-- An xsdconfig file must begin with a "config" element in the             
+        http://www.bea.com/2002/09/xbean/config namespace. Also, be sure     
+        to declare any namespaces used to qualify types in your schema (here,
+        the namespace corresponding to the pol prefix. -->
+<xb:config xmlns:xb="http://www.bea.com/2002/09/xbean/config">
+    <!-- Use the "namespace" element to map a namespace to the Java package
+        name that should be generated. -->
+    <xb:namespace uri="urn:ietf:params:xml:ns:pidf">
+        <xb:package>org.cipango.kaleo.presence.pidf</xb:package>
+    </xb:namespace>
+
+    <xb:namespace uri="urn:ietf:params:xml:ns:common-policy">
+        <xb:package>org.cipango.kaleo.policy</xb:package>
+    </xb:namespace>
+    
+    <xb:namespace uri="urn:oma:xml:xdm:common-policy">
+        <xb:package>org.cipango.kaleo.policy.oma</xb:package>
+    </xb:namespace>
+    
+    <xb:namespace uri="urn:ietf:params:xml:ns:pres-rules">
+        <xb:package>org.cipango.kaleo.policy.presence</xb:package>
+    </xb:namespace>
+
+    <xb:namespace uri="urn:ietf:params:xml:ns:reginfo">
+        <xb:package>org.cipango.kaleo.location.event</xb:package>
+    </xb:namespace>
+    
+    <xb:namespace uri="urn:ietf:params:xml:ns:watcherinfo">
+        <xb:package>org.cipango.kaleo.presence.watcherinfo</xb:package>
+    </xb:namespace>
+ </xb:config>

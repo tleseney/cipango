@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cr:ruleset 
+        xmlns:cr="urn:ietf:params:xml:ns:common-policy" 
+        xmlns="urn:ietf:params:xml:ns:pres-rules" 
+        xmlns:ocp="urn:oma:xml:xdm:common-policy" xmlns:op="urn:oma:xml:prs:pres-rules">
+  <cr:rule id="wp_prs_allow_own">
+    <cr:conditions>
+      <cr:identity>
+        <cr:one id="sip:oma@cipango.org"/>
+      </cr:identity>
+    </cr:conditions>
+    <cr:actions>
+      <sub-handling>allow</sub-handling>
+    </cr:actions>
+  </cr:rule>
+  <cr:rule id="rcs_allow_services_anonymous">
+    <cr:conditions>
+      <ocp:anonymous-request/>
+    </cr:conditions>
+    <cr:actions>
+      <sub-handling>allow</sub-handling>
+    </cr:actions>
+  </cr:rule>
+  <cr:rule id="wp_prs_unlisted">
+    <cr:conditions>
+      <ocp:other-identity/>
+    </cr:conditions>
+    <cr:actions>
+      <sub-handling>confirm</sub-handling>
+    </cr:actions>
+  </cr:rule>
+  <cr:rule id="wp_prs_grantedcontacts">
+    <cr:conditions>
+      <ocp:external-list>
+        <ocp:entry anc="http://localhost:8080/resource-lists/users/sip:oma@cipango.org/index/~~/resource-lists/list%5B@name=%22oma_grantedcontacts%22%5D"/>
+      </ocp:external-list>
+    </cr:conditions>
+    <cr:actions>
+      <sub-handling>allow</sub-handling>
+    </cr:actions>
+  </cr:rule>
+  <cr:rule id="wp_prs_blockedcontacts">
+    <cr:conditions>
+      <ocp:external-list>
+        <ocp:entry anc="http://localhost:8080/resource-lists/users/sip:oma@cipango.org/index/~~/resource-lists/list%5B@name=%22oma_blockedcontacts%22%5D"/>
+      </ocp:external-list>
+    </cr:conditions>
+    <cr:actions>
+      <sub-handling>block</sub-handling>
+    </cr:actions>
+  </cr:rule>
+</cr:ruleset>

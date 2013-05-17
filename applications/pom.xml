@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.cipango</groupId>
+    <artifactId>cipango-project</artifactId>
+    <version>3.0.0-SNAPSHOT</version>
+  </parent>
+  <groupId>org.cipango.applications</groupId>
+  <artifactId>applications-parent</artifactId>
+  <name>Cipango :: Applications :: Parent</name>
+  <packaging>pom</packaging>
+
+  <modules>
+    <module>cipango-example-sipapp</module>
+    <module>kaleo</module>
+  </modules>
+</project>

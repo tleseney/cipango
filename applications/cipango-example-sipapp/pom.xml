@@ -1,0 +1,85 @@
+<project>
+  <parent>
+    <groupId>org.cipango.applications</groupId>
+    <artifactId>applications-parent</artifactId>
+    <version>3.0.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>cipango-example-sipapp</artifactId>
+  <packaging>war</packaging>
+  <name>Cipango :: Applications :: Example sipapp</name>
+
+  <build>
+    <finalName>${project.artifactId}</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-war-plugin</artifactId>
+      </plugin>
+         
+      <plugin>
+        <artifactId>maven-war-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+          </archive>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <extensions>true</extensions>
+        <configuration>
+          <supportedProjectTypes>
+            <supportedProjectType>war</supportedProjectType>
+          </supportedProjectTypes>
+        </configuration>
+        <executions>
+          <execution>
+            <id>bundle-manifest</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>manifest</goal>
+            </goals>
+            <configuration>
+              <instructions>
+                <Bundle-SymbolicName>org.cipano.example-sipapp</Bundle-SymbolicName>
+                <Import-Package>javax.servlet,javax.servlet.sip,*</Import-Package>
+                <Export-Package>!org.cipango.example</Export-Package>
+                <Web-ContextPath>/${project.artifactId}</Web-ContextPath>
+                <Bundle-RequiredExecutionEnvironment>J2SE-1.5</Bundle-RequiredExecutionEnvironment>
+              </instructions>
+            </configuration>
+           </execution>
+        </executions>
+      </plugin>
+      
+      <plugin>
+        <groupId>org.cipango</groupId>
+        <artifactId>cipango-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <webApp>
+            <contextPath>/${project.artifactId}</contextPath>
+          </webApp>
+        </configuration>
+      </plugin>
+ 
+    </plugins>
+  </build>
+  
+ <dependencies>
+  <dependency>
+      <groupId>javax.servlet</groupId>
+      <artifactId>sip-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty.orbit</groupId>
+      <artifactId>javax.servlet</artifactId>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+</project>

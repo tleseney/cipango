@@ -173,9 +173,9 @@
     <module>cipango-distribution</module>
     <module>cipango-maven-plugin</module>
     <module>tests</module>
+    <module>applications</module>
 <!--
     <module>cipango-diameter</module>
-    <module>cipango-callflow</module>
     <module>cipango-embedded</module>
 -->
   </modules>

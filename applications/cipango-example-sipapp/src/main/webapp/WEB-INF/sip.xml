@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sip-app  xmlns="http://www.jcp.org/xml/ns/sipservlet"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://www.jcp.org/xml/ns/sipservlet http://www.jcp.org/xml/ns/sipservlet/sip-app_1_1.xsd"
+          version="1.1">
+  <app-name>org.cipango.example-sipapp</app-name>
+  <servlet-selection>
+    <main-servlet>ProxyRegistrarServlet</main-servlet>
+  </servlet-selection>
+  
+  <listener>
+    <listener-class>org.cipango.example.ClickToDialSipServlet</listener-class>
+  </listener>
+  
+  <servlet>
+    <servlet-name>ProxyRegistrarServlet</servlet-name>
+    <servlet-class>org.cipango.example.ProxyRegistrarServlet</servlet-class>
+    <load-on-startup>1</load-on-startup>     
+  </servlet>
+  
+  <servlet>
+    <servlet-name>ClickToDialSipServlet</servlet-name>
+    <servlet-class>org.cipango.example.ClickToDialSipServlet</servlet-class>
+    <load-on-startup>1</load-on-startup>     
+  </servlet>
+  
+</sip-app>

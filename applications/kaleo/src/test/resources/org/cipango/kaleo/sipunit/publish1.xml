@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<presence xmlns="urn:ietf:params:xml:ns:pidf" entity="sip:bob@cipango.org">
+ <tuple id="bs35r9">
+   <status>
+     <basic>open</basic>
+   </status>
+   <contact priority="0.8">sip:bob@cipango.org</contact>
+   <note>Don't Disturb Please!</note>
+   <timestamp>2009-09-03T16:49:29Z</timestamp>
+ </tuple>
+</presence>

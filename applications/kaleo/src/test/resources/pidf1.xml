@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<presence xmlns="urn:ietf:params:xml:ns:pidf" xmlns:rpid="urn:ietf:params:xml:ns:pidf:rpid" xmlns:dm="urn:ietf:params:xml:ns:pidf:data-model" xmlns:gp="urn:ietf:params:xml:ns:pidf:geopriv10" xmlns:gml="urn:opengis:specification:gml:schema-xsd:feature:v3.0" xmlns:tv="urn:org:etsi:ngn:params:xml:ns:iptvpresence"
+entity="sip:tv@cipango.org">
+  <tuple id="t7412">
+    <status>
+      <basic>open</basic>
+      <gp:geopriv>
+        <gp:location-info>
+          <gml:location>
+            <gml:Point srsDimension="2" srsName="urn:ogc:def:crs:EPSG:6.6:4326">
+              <pos>48.124667783333344 -3.121677833333334</pos>
+            </gml:Point>
+          </gml:location>
+        </gp:location-info>
+        <gp:usage-rules>
+          <gp:retransmission-allowed>no</gp:retransmission-allowed>
+        </gp:usage-rules>
+      </gp:geopriv>
+      <tv:BCServicePresence>
+        <tv:CurrentBCServiceID>123456789</tv:CurrentBCServiceID>
+        <tv:CurrentBCProgramID>123456789_09</tv:CurrentBCProgramID>
+      </tv:BCServicePresence>
+    </status>
+    <contact>sip:tv@cipango.org</contact>
+    <note>Online</note>
+  </tuple>
+  <dm:person id="p8109">
+    <rpid:activities>
+      <tv:tv/>
+    </rpid:activities>
+  </dm:person>
+</presence>

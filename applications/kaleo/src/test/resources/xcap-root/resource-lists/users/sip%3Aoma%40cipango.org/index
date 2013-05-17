@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?><resource-lists xmlns="urn:ietf:params:xml:ns:resource-lists">
+	<list name="Default">
+		<display-name>All Contacts</display-name>
+		<entry uri="sip:edwige@cipango.org">
+			<display-name>edwige</display-name>
+		</entry>
+		<entry uri="sip:carol@cipango.org">
+				<display-name>Carol</display-name>
+		</entry>
+	</list>
+	<list name="oma_allcontacts">
+		<display-name>OMA All Contacts</display-name>
+	</list>
+	<list name="rcs">
+		<display-name>RCS All Contacts</display-name>
+	</list>
+	<list name="rcs_blockedcontacts">
+		<display-name>RCS Blocked Contacts</display-name>
+	</list>
+	<list name="rcs_revokedcontacts">
+		<display-name>RCS Revoked Contacts</display-name>
+	</list>
+	<list name="oma_blockedcontacts">
+		<display-name>OMA Blocked Contacts</display-name>
+		<entry uri="sip:edwige@cipango.org">
+			<display-name>edwige</display-name>
+		</entry>
+	</list>
+	<list name="oma_buddylist">
+		<display-name>OMA BuddyList</display-name>
+	</list>
+	<list name="oma_grantedcontacts">
+		<display-name>OMA Granted Contacts</display-name>
+		<entry uri="sip:carol@cipango.org">
+            <display-name>Carol</display-name>
+        </entry>
+	</list>
+	<list name="oma_pocbuddylist">
+		<display-name>OMA POC BuddyList</display-name>
+	</list>
+</resource-lists>

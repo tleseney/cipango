@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2011-2012 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,6 +23,15 @@ public class ServletContextListenerTest extends UaTestCase
 {
 
 	public void testInit() throws IOException, ServletException
+	{
+		sendAndAssertMessage();
+	}
+	
+	/**
+	 * 
+	 * Test for CIPANGO-199: SIP servlet are initialized before ServletContextListener if listener has been defined in web.xml
+	 */
+	public void testInitFromWeb() throws IOException, ServletException
 	{
 		sendAndAssertMessage();
 	}

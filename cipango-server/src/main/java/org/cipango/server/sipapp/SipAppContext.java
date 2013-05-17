@@ -80,11 +80,11 @@ import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipURIImpl;
 import org.cipango.sip.URIFactory;
 import org.cipango.util.StringUtil;
-import org.eclipse.jetty.security.SecurityHandler;
 import org.eclipse.jetty.server.handler.HandlerWrapper;
 import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
+import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
@@ -196,7 +196,7 @@ public class SipAppContext extends SipHandlerWrapper
 				for (ServletContextListener listener : _contextListeners)
 					listener.contextInitialized(sce);
 	    	}
-			
+	    				
 			_servletHandler.initialize();
 	
 			for (Decorator decorator : _decorators)
@@ -358,46 +358,60 @@ public class SipAppContext extends SipHandlerWrapper
 		    _context.setAttribute(SipServlet.SUPPORTED, Collections.unmodifiableList(Arrays.asList(EXTENSIONS)));
 		    _context.setAttribute(SipServlet.SUPPORTED_RFCs, Collections.unmodifiableList(Arrays.asList(SUPPORTED_RFC)));
 			
-			
-			// In order to ensure that ServletContextListener is called before HTTP and SIP servlet initialization
-			// a ServletContextListener is added to WebAppContext in order for SipAppContext to be started
-			context.addEventListener(new ServletContextListener()
+			// Add first a bean to WebAppContext, when this bean is started, it adds a
+			// ServletContextListener that will start this SipAppContext (so this listener will the
+			// last initialized).
+			// This mechanism ensures that all ServletContextListeners (including those defined in
+			// web.xml) are initialized before servlets.
+			// @see CIPANGO-199
+		    _context.addBean(new AbstractLifeCycle()
 			{
-				
+
 				@Override
-				public void contextInitialized(ServletContextEvent sce)
+				protected void doStart() throws Exception
 				{
-					try
+					// In order to ensure that ServletContextListener is called before HTTP and SIP servlet initialization
+					// a ServletContextListener is added to WebAppContext in order for SipAppContext to be started
+					_context.addEventListener(new ServletContextListener()
 					{
-						SipAppContext.this.start();
-					}
-					catch (Exception e)
-					{
-						LOG.warn("Failed to start SipAppContext " + getName(), e);
-						_context.setAvailable(false);
-					}
-					
+						
+						@Override
+						public void contextInitialized(ServletContextEvent sce)
+						{
+							try
+							{
+								SipAppContext.this.start();
+							}
+							catch (Exception e)
+							{
+								LOG.warn("Failed to start SipAppContext " + getName(), e);
+								_context.setAvailable(false);
+							}
+							
+						}
+						
+						@Override
+						public void contextDestroyed(ServletContextEvent sce)
+						{
+							try
+							{
+								SipAppContext.this.stop();
+							}
+							catch (Exception e)
+							{
+								LOG.warn("Failed to stop SipAppContext " + getName(), e);
+							}
+						}
+					});
 				}
-				
-				@Override
-				public void contextDestroyed(ServletContextEvent sce)
-				{
-					try
-					{
-						SipAppContext.this.stop();
-					}
-					catch (Exception e)
-					{
-						LOG.warn("Failed to stop SipAppContext " + getName(), e);
-					}
-				}
+		    	
 			});
-				
+							
 			_sContext = new SContext(_context.getServletContext());
 	
-			if (context.getConfigurations() == null  && context.getConfigurationClasses() == context.getDefaultConfigurationClasses())
+			if (context.getConfigurations() == null  && context.getConfigurationClasses() == WebAppContext.getDefaultConfigurationClasses())
 			{
-				String[] classes = ArrayUtil.addToArray(context.getDefaultConfigurationClasses(), 
+				String[] classes = ArrayUtil.addToArray(WebAppContext.getDefaultConfigurationClasses(), 
 						"org.cipango.server.sipapp.SipXmlConfiguration",
 						String.class);
 				context.setConfigurationClasses(classes);

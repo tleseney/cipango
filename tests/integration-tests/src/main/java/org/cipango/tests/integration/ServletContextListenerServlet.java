@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2011-2012 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ public class ServletContextListenerServlet extends AbstractServlet implements Se
 {
 	private int _init = 0;
 	private String _error;
+	private String _webContextListener;
 	
 	public void contextInitialized(ServletContextEvent sce)
 	{
@@ -46,12 +47,23 @@ public class ServletContextListenerServlet extends AbstractServlet implements Se
 	{
 		if (_init != 1)
 			_error = "Context initialized not called before servlet init";
+		_webContextListener = (String) getServletContext().getAttribute(WebContextListener.class.getName());
 	}
 	
 	public void testInit(SipServletRequest request) throws Exception
 	{
 		assertEquals(1, _init);
 		assertNull(_error, _error);
+		request.createResponse(SipServletResponse.SC_OK).send();
+	}
+	
+	public void testInitFromWeb(SipServletRequest request) throws Exception
+	{
+		String s = (String) getServletContext().getAttribute(WebContextListener.class.getName());
+		assertNotNull("Servlet context listener declared in web.xml has not been called", s);
+		assertNotNull("Servlet context listener declared in web.xml has been called after sip servlet init", _webContextListener);
+		if (!"".equals(s))
+			fail(s);
 		request.createResponse(SipServletResponse.SC_OK).send();
 	}
 

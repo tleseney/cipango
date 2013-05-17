@@ -5,6 +5,10 @@
    xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
    version="2.5">
    
+  <listener>
+	<listener-class>org.cipango.tests.integration.WebContextListener</listener-class>
+  </listener>
+   
   <servlet>
     <servlet-name>SipAppHttpServlet</servlet-name>
     <servlet-class>org.cipango.tests.integration.SipAppHttpServlet</servlet-class>

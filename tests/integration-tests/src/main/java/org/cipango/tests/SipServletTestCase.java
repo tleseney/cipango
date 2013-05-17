@@ -128,8 +128,9 @@ public class SipServletTestCase extends SipServlet
 			if (e instanceof TooManyHopsException)
 				throw (TooManyHopsException) e;
 			
-			SipServletResponse error = request.createResponse(SipServletResponse.SC_SERVER_INTERNAL_ERROR);
-			
+			SipServletResponse error = request.createResponse(SipServletResponse.SC_SERVER_INTERNAL_ERROR,
+					e.getMessage());
+
             try
 			{
 				error.setContent(content, "text/plain");

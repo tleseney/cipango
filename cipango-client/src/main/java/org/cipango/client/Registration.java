@@ -41,6 +41,7 @@ public class Registration
 	private SipURI _uri;
 	private long _timeout;
 	private boolean _registered;
+	private Address _outboundProxy;
 
 	public interface Listener
 	{
@@ -114,6 +115,7 @@ public class Registration
 			SipApplicationSession appSession = _factory.createApplicationSession();
 			register = _factory.createRequest(appSession, SipMethods.REGISTER, _uri, _uri);
 			_session = register.getSession();
+			_session.setInvalidateWhenReady(false);
 		}
 		else
 		{
@@ -127,6 +129,9 @@ public class Registration
 		else
 			register.setHeader(SipHeaders.CONTACT, "*");
 		register.setExpires(expires);
+		
+		if (_outboundProxy != null)
+			register.pushRoute(_outboundProxy);
 		
 		return register;
 	}
@@ -235,5 +240,15 @@ public class Registration
 		{
 			registrationFailed(status);
 		}
+	}
+
+	public Address getOutboundProxy()
+	{
+		return _outboundProxy;
+	}
+
+	public void setOutboundProxy(Address outboundProxy)
+	{
+		_outboundProxy = outboundProxy;
 	}
 }

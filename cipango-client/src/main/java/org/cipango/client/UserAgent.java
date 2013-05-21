@@ -130,6 +130,7 @@ public class UserAgent
 			registration.setFactory(_factory);
 			registration.setCredentials(_credentials);
 			registration.setTimeout(_timeout);
+			registration.setOutboundProxy(_outboundProxy);
 			registration.addListener(_registrationListener);
 			_registrationTask = new RegistrationTask(registration, _contact);
 			_registrationThread = new Thread(_registrationTask, "registration-task");	

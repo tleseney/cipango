@@ -330,6 +330,9 @@ public class AddressImpl extends Parameters implements Address, Serializable
 	@Override
 	public String toString()
 	{
+		if (isWildcard())
+			return "*";
+		
 		boolean uriModified = !(_uri instanceof Modifiable) || ((Modifiable) _uri).hasBeenModified();
 		if (_string == null || uriModified)
 		{
@@ -348,6 +351,9 @@ public class AddressImpl extends Parameters implements Address, Serializable
 	
 	public StringBuilder getValueBuffer()
 	{
+		if (isWildcard())
+			return new StringBuilder("*");
+		
 		StringBuilder buffer = new StringBuilder(64);
 		if (_displayName != null)
 			buffer.append(StringUtil.quoteIfNeeded(_displayName, DISPLAY_NAME_BS)).append(' ');
@@ -364,7 +370,8 @@ public class AddressImpl extends Parameters implements Address, Serializable
 		try
 		{
 			AddressImpl clone =  (AddressImpl) super.clone();
-			clone._uri = _uri.clone();
+			if (_uri != null)
+				clone._uri = _uri.clone();
 			return clone;
 		}
 		catch (CloneNotSupportedException e)
@@ -380,6 +387,11 @@ public class AddressImpl extends Parameters implements Address, Serializable
 			return false;
 		
 		Address other = (Address) o;
+		
+		if (isWildcard())
+			return other.isWildcard();
+		if (other.isWildcard())
+			return isWildcard();
 		
 		if (!_uri.equals(other.getURI()))
 			return false;

@@ -34,6 +34,8 @@ public class AddressImplTest
 	{
 		Address address = getAddress("*");
 		assertTrue(address.isWildcard());
+		assertEquals("*", address.toString());
+		assertEquals(address, address.clone());
 	}
 	
 	@Test 

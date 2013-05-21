@@ -13,6 +13,7 @@
 // ========================================================================
 package org.cipango.server.sipapp;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.security.MessageDigest;
@@ -55,6 +56,7 @@ import javax.servlet.sip.URI;
 import javax.servlet.sip.ar.SipApplicationRoutingDirective;
 
 import org.cipango.server.SipConnector;
+import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipServer;
 import org.cipango.server.handler.SipHandlerWrapper;
@@ -436,6 +438,32 @@ public class SipAppContext extends SipHandlerWrapper
 		if (converged)
 			context.setSessionHandler(new org.cipango.server.session.http.SessionHandler(new ConvergedSessionManager()));
 	}
+	
+
+	@Override
+	public void handle(SipMessage message) throws IOException, ServletException
+	{
+		ClassLoader oldClassLoader = null;
+		Thread currentThread = null;
+		
+		if (getClassLoader() != null)
+		{
+			currentThread = Thread.currentThread();
+			oldClassLoader = currentThread.getContextClassLoader();
+			currentThread.setContextClassLoader(getClassLoader());
+		}
+		
+		try
+		{
+			super.handle(message);
+		}
+		finally
+		{
+			if (getClassLoader() != null)
+				currentThread.setContextClassLoader(oldClassLoader);
+		}
+	}
+
 	
 	public ServletContext getServletContext()
 	{
@@ -974,6 +1002,5 @@ public class SipAppContext extends SipHandlerWrapper
 	{
 		void decorateServletHolder(SipServletHolder servlet) throws ServletException;
 	}
-
 
 }

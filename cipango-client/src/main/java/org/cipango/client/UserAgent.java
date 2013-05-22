@@ -136,7 +136,7 @@ public class UserAgent
 			_registrationThread = new Thread(_registrationTask, "registration-task");	
 		}
 				
-		result = _registrationTask.getRegistration().register(_contact.getURI(), expires);
+		result = _registrationTask.getRegistration().register(_contact, expires);
 		if (result)
 			_registrationThread.start();
 		else

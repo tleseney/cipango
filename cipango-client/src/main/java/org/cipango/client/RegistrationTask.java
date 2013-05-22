@@ -66,7 +66,7 @@ public class RegistrationTask implements Registration.Listener, Runnable
     		try
     		{
     			Thread.sleep(delay);
-    			_registration.register(_contact.getURI(), _expires);
+    			_registration.register(_contact, _expires);
     			delay = _expires * 1000 / 2;
     		}
     		catch (InterruptedException e)

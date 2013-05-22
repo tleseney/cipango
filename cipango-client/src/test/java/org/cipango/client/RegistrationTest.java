@@ -31,6 +31,7 @@ import javax.servlet.sip.SipSession;
 import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
 
+import org.cipango.sip.AddressImpl;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.integration.junit4.JUnit4Mockery;
@@ -160,7 +161,7 @@ public class RegistrationTest
 		
 		Registration r = new Registration(_uri);
 		r.setFactory(factory);
-		SipServletRequest req = r.createRegister(BOB_URI, 1800);
+		SipServletRequest req = r.createRegister(new AddressImpl(BOB_URI), 1800);
 
 		assertThat(req, is(sameInstance(request)));
 		
@@ -199,7 +200,7 @@ public class RegistrationTest
 	@Test(expected=NullPointerException.class) 
 	public void testCreateRegisterWithNoFactory()
 	{
-		final SipURI contact = _context.mock(SipURI.class, "contact");
+		final Address contact = _context.mock(Address.class, "contact");
 		Registration r = new Registration(_uri);
 		SipServletRequest request = r.createRegister(contact, 3600);
 		

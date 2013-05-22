@@ -106,7 +106,7 @@ public class Registration
 		_listeners.remove(listener);
 	}
 	
-	public SipServletRequest createRegister(URI contact, int expires)
+	public SipServletRequest createRegister(Address contact, int expires)
 	{
 		SipServletRequest register;
 		
@@ -125,7 +125,7 @@ public class Registration
 		SipURI registrar = _factory.createSipURI(null, _uri.getHost());
 		register.setRequestURI(registrar);
 		if (contact != null)
-			register.setAddressHeader(SipHeaders.CONTACT, _factory.createAddress(contact));
+			register.setAddressHeader(SipHeaders.CONTACT, (Address) contact.clone());
 		else
 			register.setHeader(SipHeaders.CONTACT, "*");
 		register.setExpires(expires);
@@ -152,7 +152,7 @@ public class Registration
 	 * @throws IOException
 	 * @throws ServletException
 	 */
-	public boolean register(URI contact, int expires) throws IOException, ServletException
+	public boolean register(Address contact, int expires) throws IOException, ServletException
 	{
 		RequestHandler handler = new RequestHandler(createRegister(contact, expires), _timeout);
 		handler.setCredentials(_credentials);
@@ -175,7 +175,7 @@ public class Registration
 	 * @throws IOException
 	 * @throws ServletException
 	 */
-	public boolean unregister(URI contact) throws IOException, ServletException
+	public boolean unregister(Address contact) throws IOException, ServletException
 	{
 		boolean success = !register(contact, 0);
 		if (_session != null)

@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2012 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,8 +11,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // ========================================================================
-package org.cipango.tests;
+package org.cipango.client.test;
 import static org.junit.Assert.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
@@ -28,17 +31,15 @@ import org.junit.Ignore;
 @Ignore
 public class TestDialog extends Dialog
 {
-	private String _testServlet;
-	private String _testMethod;
+	private final Map<String, String> _extraHeaders;
 	
-	public TestDialog(Dialog dialog, String testServlet, String testMethod)
+	public TestDialog(Dialog dialog, Map<String, String> extraHeaders)
 	{
 		setFactory(dialog.getFactory());
 		setCredentials(dialog.getCredentials()); 
 		setOutboundProxy(dialog.getOutboundProxy());
 		setTimeout(dialog.getTimeout());
-		_testMethod = testMethod;
-		_testServlet = testServlet;
+		_extraHeaders = (extraHeaders == null) ? new HashMap<String, String>() : extraHeaders;
 	}
 
 	@Override
@@ -73,8 +74,8 @@ public class TestDialog extends Dialog
 		if (message == null)
 			return null;
 				
-		message.setHeader(TestAgent.SERVLET_HEADER, _testServlet);
-		message.setHeader(TestAgent.METHOD_HEADER, _testMethod);
+		for (Map.Entry<String, String> entry : _extraHeaders.entrySet())
+			message.addHeader(entry.getKey(), entry.getValue());
 		return message;
 	}
 	

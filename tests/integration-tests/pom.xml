@@ -163,13 +163,20 @@
 			<groupId>org.cipango</groupId>
 			<artifactId>cipango-client</artifactId>
 			<version>${project.version}</version>
-			<scope>provided</scope>
+			<scope>test</scope>
 			<!-- <exclusions> -->
 			<!--   <exclusion> -->
 			<!--     <groupId>org.jmock</groupId> -->
 			<!--     <artifactId>jmock-junit4</artifactId> -->
 			<!--   </exclusion> -->
 			<!-- </exclusions> -->
+		</dependency>
+		<dependency>
+			<groupId>org.cipango</groupId>
+			<artifactId>cipango-test-client</artifactId>
+			<version>${project.version}</version>
+			<!--  This dependency is defined as compile as matcher are used in servlets -->
+			<scope>compile</scope>
 		</dependency>
 	</dependencies>
 	

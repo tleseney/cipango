@@ -25,9 +25,9 @@ import javax.servlet.sip.SipSession;
 import org.cipango.client.Call;
 import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
+import org.cipango.client.test.TestAgent;
+import org.cipango.client.test.UaRunnable;
 import org.cipango.server.session.SessionManager.ApplicationSessionScope;
-import org.cipango.tests.TestAgent;
-import org.cipango.tests.UaRunnable;
 import org.cipango.tests.UaTestCase;
 
 public class B2bHelperForkTest extends UaTestCase

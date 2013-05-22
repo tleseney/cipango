@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2012 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,7 +11,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // ========================================================================
-package org.cipango.tests;
+package org.cipango.client.test;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.servlet.sip.Address;
 import javax.servlet.sip.SipServletMessage;
@@ -26,11 +29,8 @@ import org.junit.Ignore;
 @Ignore
 public class TestAgent extends UserAgent
 {
-	public static final String SERVLET_HEADER = "P-Servlet";
-	public static final String METHOD_HEADER = "P-method";
-	
-	private String _testServlet;
-	private String _testMethod;
+
+	private final Map<String, String> _extraHeaders = new HashMap<>();
 	private String _alias;
 	
 	public TestAgent(Address aor)
@@ -38,33 +38,15 @@ public class TestAgent extends UserAgent
 		super(aor);
 	}
 
-	public String getTestServlet()
-	{
-		return _testServlet;
-	}
-
-	public void setTestServlet(String testServlet)
-	{
-		_testServlet = testServlet;
-	}
-
-	public String getTestMethod()
-	{
-		return _testMethod;
-	}
-
-	public void setTestMethod(String testMethod)
-	{
-		_testMethod = testMethod;
-	}
 
 	public <T extends SipServletMessage> T decorate(T message)
 	{
 		if (message == null)
 			return null;
 				
-		message.setHeader(TestAgent.SERVLET_HEADER, _testServlet);
-		message.setHeader(TestAgent.METHOD_HEADER, _testMethod);
+		for (Map.Entry<String, String> entry : _extraHeaders.entrySet())
+			message.addHeader(entry.getKey(), entry.getValue());
+
 		return message;
 	}
 
@@ -79,7 +61,7 @@ public class TestAgent extends UserAgent
 			dlg = call;
 		}
 		else
-			dlg = new TestDialog(dialog, _testServlet, _testMethod);
+			dlg = new TestDialog(dialog, _extraHeaders);
 		return super.customize(dlg); 
 	}
 	
@@ -116,6 +98,12 @@ public class TestAgent extends UserAgent
 	public void setAlias(String alias)
 	{
 		_alias = alias;
+	}
+
+
+	public Map<String, String> getExtraHeaders()
+	{
+		return _extraHeaders;
 	}
 
 }

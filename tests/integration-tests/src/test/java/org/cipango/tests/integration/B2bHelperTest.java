@@ -13,9 +13,11 @@
 // ========================================================================
 package org.cipango.tests.integration;
 
+import static org.cipango.tests.matcher.SipMatchers.hasStatus;
+import static org.cipango.tests.matcher.SipMatchers.isSuccess;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.cipango.tests.matcher.SipMatchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
@@ -23,7 +25,7 @@ import javax.servlet.sip.SipServletResponse;
 import org.cipango.client.Call;
 import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
-import org.cipango.tests.UaRunnable;
+import org.cipango.client.test.UaRunnable;
 import org.cipango.tests.UaTestCase;
 import org.junit.Test;
 

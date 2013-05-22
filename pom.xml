@@ -169,6 +169,7 @@
     <module>cipango-dar</module>
     <module>cipango-dns</module>
     <module>cipango-client</module>
+    <module>cipango-test-client</module>
     <module>cipango-websocket</module>
     <module>cipango-distribution</module>
     <module>cipango-maven-plugin</module>

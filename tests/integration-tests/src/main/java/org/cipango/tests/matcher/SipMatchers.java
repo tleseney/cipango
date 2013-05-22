@@ -5,7 +5,7 @@ import java.io.IOException;
 import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletResponse;
 
-import org.cipango.client.matcher.HasHeader;
+import org.cipango.client.test.matcher.HasHeader;
 import org.hamcrest.Description;
 import org.hamcrest.Factory;
 import org.hamcrest.Matcher;

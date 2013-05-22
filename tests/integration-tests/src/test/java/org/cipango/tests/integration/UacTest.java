@@ -25,7 +25,7 @@ import javax.servlet.sip.SipURI;
 
 import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
-import org.cipango.tests.UaRunnable;
+import org.cipango.client.test.UaRunnable;
 import org.cipango.tests.UaTestCase;
 import org.junit.Test;
 

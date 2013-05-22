@@ -4,7 +4,7 @@ import javax.servlet.sip.SipServletResponse;
 
 import org.hamcrest.Description;
 
-public class HasStatus extends org.cipango.client.matcher.HasStatus 
+public class HasStatus extends org.cipango.client.test.matcher.HasStatus 
 {
 	public HasStatus(int status)
 	{

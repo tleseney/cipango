@@ -17,7 +17,8 @@ import static org.cipango.tests.matcher.SipMatchers.hasStatus;
 import static org.cipango.tests.matcher.SipMatchers.isSuccess;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 import java.util.concurrent.Semaphore;
 
@@ -27,10 +28,9 @@ import javax.servlet.sip.SipServletResponse;
 import org.cipango.client.Call;
 import org.cipango.client.Dialog;
 import org.cipango.client.SipMethods;
-import org.cipango.tests.UaRunnable;
+import org.cipango.client.test.UaRunnable;
+import org.cipango.client.test.UasScript;
 import org.cipango.tests.UaTestCase;
-import org.cipango.tests.UasScript;
-import org.cipango.tests.integration.InvalidateWhenReadyServlet;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.junit.Test;

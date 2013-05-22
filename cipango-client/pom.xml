@@ -9,7 +9,7 @@
   <name>Cipango :: Client</name>
   <description>Cipango Client</description>
   <properties>
-    <bundle-symbolic-name>${project.groupId}.plus</bundle-symbolic-name>
+    <bundle-symbolic-name>${project.groupId}.test</bundle-symbolic-name>
   </properties>
  
   <build>
@@ -44,12 +44,12 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <scope>compile</scope>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest-integration</artifactId>
-      <scope>compile</scope>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jmock</groupId>

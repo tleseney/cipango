@@ -23,7 +23,7 @@ import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.client.SipMethods;
-import org.cipango.tests.CredentialsImpl;
+import org.cipango.client.test.CredentialsImpl;
 import org.cipango.tests.UaTestCase;
 import org.junit.Test;
 

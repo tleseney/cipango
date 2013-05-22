@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2007-2012 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.servlet.ServletException;
@@ -37,6 +38,7 @@ import org.cipango.client.SipClient;
 import org.cipango.client.SipClient.Protocol;
 import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
+import org.cipango.client.test.TestAgent;
 
 public abstract class UaTestCase extends TestCase
 {
@@ -172,9 +174,9 @@ public abstract class UaTestCase extends TestCase
 	
 	public TestAgent decorate(TestAgent agent)
 	{
-		agent.setTestServlet(getClass().getName());
-		agent.setTestMethod(getName());
-		
+		Map<String, String> extraHeaders = agent.getExtraHeaders();
+		extraHeaders.put(MainServlet.SERVLET_HEADER, getClass().getName());
+		extraHeaders.put(MainServlet.METHOD_HEADER, getName());		
 		return agent;
 	}
 
@@ -225,8 +227,7 @@ public abstract class UaTestCase extends TestCase
 			Thread.sleep(50);
 
 			SipServletRequest request = _ua.createRequest(SipMethods.MESSAGE, getTo());
-			request.removeHeader(TestAgent.METHOD_HEADER);
-			request.addHeader(TestAgent.METHOD_HEADER, "checkForFailure");
+			request.setHeader(MainServlet.METHOD_HEADER, "checkForFailure");
 			SipServletResponse response = _ua.sendSynchronous(request);
 			assertThat(response, isSuccess());
 		}

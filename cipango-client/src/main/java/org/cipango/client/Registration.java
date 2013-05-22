@@ -177,7 +177,13 @@ public class Registration
 	 */
 	public boolean unregister(URI contact) throws IOException, ServletException
 	{
-		return !register(contact, 0);
+		boolean success = !register(contact, 0);
+		if (_session != null)
+		{
+			_session.invalidate();
+			_session = null;
+		}
+		return success;
 	}
 	
 	protected void registrationDone(Address contact, int expires, List<Address> contacts)

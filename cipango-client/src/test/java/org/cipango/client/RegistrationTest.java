@@ -27,6 +27,7 @@ import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipFactory;
 import javax.servlet.sip.SipServletRequest;
+import javax.servlet.sip.SipSession;
 import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
 
@@ -140,9 +141,10 @@ public class RegistrationTest
 		final SipFactory factory = _context.mock(SipFactory.class);
 		final SipServletRequest request = _context.mock(SipServletRequest.class);
 		final Address addr = _context.mock(Address.class);
+		final SipSession session = _context.mock(SipSession.class);
 		
 		_context.checking(new Expectations() {{
-			allowing(request).getSession(); will(returnValue(null));
+			allowing(request).getSession(); will(returnValue(session));
 			oneOf(request).setRequestURI(with(any(URI.class)));
 			oneOf(request).setAddressHeader(with(equal(SipHeaders.CONTACT)), with(any(Address.class)));
 			// TODO: The following is better but can't match for now...
@@ -153,6 +155,7 @@ public class RegistrationTest
 	        oneOf(factory).createApplicationSession(); will(returnValue(appSession));
 	        oneOf(factory).createRequest(appSession, SipMethods.REGISTER, ALICE_URI, ALICE_URI); will(returnValue(request));
 	        oneOf(factory).createAddress(BOB_URI); will(returnValue(addr));
+	        oneOf(session).setInvalidateWhenReady(false);
 	    }});
 		
 		Registration r = new Registration(_uri);
@@ -170,9 +173,10 @@ public class RegistrationTest
 		final SipApplicationSession appSession = _context.mock(SipApplicationSession.class);
 		final SipFactory factory = _context.mock(SipFactory.class);
 		final SipServletRequest request = _context.mock(SipServletRequest.class);
+		final SipSession session = _context.mock(SipSession.class);
 		
 		_context.checking(new Expectations() {{
-			allowing(request).getSession(); will(returnValue(null));
+			allowing(request).getSession(); will(returnValue(session));
 			oneOf(request).setRequestURI(with(any(URI.class)));
 			oneOf(request).setHeader(SipHeaders.CONTACT, "*");
 			oneOf(request).setExpires(3600);
@@ -180,6 +184,7 @@ public class RegistrationTest
 			allowing(factory).createSipURI(with(any(String.class)), with(any(String.class))); will(returnValue(EXAMPLE_URI));
 	        oneOf(factory).createApplicationSession(); will(returnValue(appSession));
 	        oneOf(factory).createRequest(appSession, SipMethods.REGISTER, ALICE_URI, ALICE_URI); will(returnValue(request));
+	        oneOf(session).setInvalidateWhenReady(false);
 	    }});
 		
 		Registration r = new Registration(_uri);

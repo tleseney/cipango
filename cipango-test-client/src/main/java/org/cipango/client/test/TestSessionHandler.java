@@ -1,8 +1,10 @@
-package org.cipango.client;
+package org.cipango.client.test;
 
 import static junit.framework.Assert.fail;
 
 import javax.servlet.sip.SipServletRequest;
+
+import org.cipango.client.SessionHandler;
 
 public class TestSessionHandler extends SessionHandler
 {

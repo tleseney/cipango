@@ -49,9 +49,8 @@ public abstract class UaTestCase extends TestCase
 		_properties = new Properties();
 		try
 		{
-			_properties.load(getClass().getClassLoader()
-					.getResourceAsStream("commonTest.properties"));
-			_nextPort = getLocalPort() + 1;
+			_properties.load(getClass().getClassLoader().getResourceAsStream("integrationTests.properties"));
+			_nextPort = getInt("local.sip.port");;
 		}
 		catch (IOException e)
 		{
@@ -79,11 +78,6 @@ public abstract class UaTestCase extends TestCase
 		return _properties.getProperty("local.host");
 	}
 	
-	public int getLocalPort()
-	{
-		return getInt("local.sip.port");
-	}
-
 	public int getRemotePort()
 	{
 		return getInt("remote.sip.port");
@@ -128,6 +122,11 @@ public abstract class UaTestCase extends TestCase
 		return ua;
 	}
 	
+	public String getUri(UserAgent agent)
+	{
+		return agent.getAor().getURI().toString();
+	}
+	
 	public TestAgent getBob() throws Exception
 	{
 		if (_bob == null)
@@ -145,9 +144,6 @@ public abstract class UaTestCase extends TestCase
 	@Override
 	protected void setUp() throws Exception
 	{
-		Properties properties = new Properties();
-		properties.putAll(_properties);
-		
 		_alice = newUserAgent("alice");
 	}
 

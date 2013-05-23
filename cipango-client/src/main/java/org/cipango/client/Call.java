@@ -30,7 +30,7 @@ public class Call extends Dialog
 	
 	public SipServletRequest createPrack()
 	{
-		return null; // TODO
+		throw new UnsupportedOperationException("Not implemented yet"); // TODO
 	}
 	
 	public SipServletRequest createBye()
@@ -66,6 +66,6 @@ public class Call extends Dialog
 	 */
 	public void transfer(URI remote)
 	{
-		// TODO: See RFC3515.
+		throw new UnsupportedOperationException("Not implemented yet"); // TODO: See RFC3515.
 	}
 }

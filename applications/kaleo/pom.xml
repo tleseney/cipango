@@ -56,7 +56,7 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
 						<excludes>
-								<exclude>**/sipunit/**</exclude>
+								<exclude>**/integration/**</exclude>
 						</excludes>
 				</configuration>
 			</plugin>
@@ -163,12 +163,6 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.cafesip</groupId>
-			<artifactId>sipunit</artifactId>
-			<version>1.0.0</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>com.mockrunner</groupId>
 			<artifactId>mockrunner-servlet</artifactId>
 			<version>0.4.1</version>
@@ -267,7 +261,7 @@
 														<exclude>**.java</exclude>
 												</excludes>
 												<includes>
-														<include>org/cipango/kaleo/sipunit/**.java</include>
+														<include>org/cipango/kaleo/integration/*.java</include>
 												</includes>
 										</configuration>
 								</execution>

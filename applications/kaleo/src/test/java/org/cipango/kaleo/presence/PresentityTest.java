@@ -87,7 +87,7 @@ public class PresentityTest extends TestCase
 		Presentity presentity = new Presentity("sip:alice@cipango.org");
 		assertEquals(presentity.getNeutralState().getContent().toString(), 
 				presentity.getState().getContent().toString());
-		PresenceDocument doc1 = PresenceDocument.Factory.parse(getClass().getResourceAsStream("/org/cipango/kaleo/sipunit/publish1.xml"));
+		PresenceDocument doc1 = PresenceDocument.Factory.parse(getClass().getResourceAsStream("/org/cipango/kaleo/integration/publish1.xml"));
 		presentity.addState(PresenceEventPackage.PIDF, doc1, 60);
 		PresenceDocument doc2 = PresenceDocument.Factory.parse(getClass().getResourceAsStream("/pidf1.xml"));
 		presentity.addState(PresenceEventPackage.PIDF, doc2, 60);
@@ -96,7 +96,7 @@ public class PresentityTest extends TestCase
 		assertEquals(doc1.getPresence().getTupleArray(0).getId(), presence.getTupleArray(0).getId());
 		assertEquals(doc2.getPresence().getTupleArray(0).getId(), presence.getTupleArray(1).getId());
 		
-		PresenceDocument doc3 = PresenceDocument.Factory.parse(getClass().getResourceAsStream("/org/cipango/kaleo/sipunit/publish2.xml"));
+		PresenceDocument doc3 = PresenceDocument.Factory.parse(getClass().getResourceAsStream("/org/cipango/kaleo/integration/publish2.xml"));
 		presentity.addState(PresenceEventPackage.PIDF, doc3, 60);
 		presence =  ((PresenceDocument) presentity.getState().getContent()).getPresence();
 		assertEquals(3, presence.getTupleArray().length);
@@ -119,7 +119,7 @@ public class PresentityTest extends TestCase
 	public void testInsertSameId() throws Exception
 	{		
 		Presentity presentity = new Presentity("sip:alice@cipango.org");
-		PresenceDocument doc1 = PresenceDocument.Factory.parse(getClass().getResourceAsStream("/org/cipango/kaleo/sipunit/publish1.xml"));
+		PresenceDocument doc1 = PresenceDocument.Factory.parse(getClass().getResourceAsStream("/org/cipango/kaleo/integration/publish1.xml"));
 		presentity.addState(PresenceEventPackage.PIDF, doc1, 60);
 		presentity.addState(PresenceEventPackage.PIDF, doc1, 60);
 		Presence presence =  ((PresenceDocument) presentity.getState().getContent()).getPresence();

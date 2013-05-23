@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.is;
 import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.client.Call;
-import org.cipango.client.test.TestAgent;
 import org.cipango.client.test.UaRunnable;
 import org.cipango.client.test.UasScript;
 

@@ -24,6 +24,7 @@ import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipSession;
 import javax.servlet.sip.URI;
+import javax.servlet.sip.SipSession.State;
 
 /**
  * A SIP Dialog abstraction.
@@ -146,6 +147,11 @@ public class Dialog
 	 */
 	public SipServletRequest createInitialRequest(String method, URI local, URI remote)
 	{
+		return createInitialRequest(method, getFactory().createAddress(local), getFactory().createAddress(remote));
+	}
+	
+	public SipServletRequest createInitialRequest(String method, Address local, Address remote)
+	{
 		if (_session != null)
 			throw new IllegalStateException("Session already created");
 		
@@ -162,7 +168,11 @@ public class Dialog
 		if (_session == null)
 			throw new IllegalStateException("Session not created");
 
-		return _session.createRequest(method);
+		SipServletRequest request = _session.createRequest(method);
+		if (_session.getState() == State.INITIAL && _outboundProxy != null)
+			request.pushRoute(_outboundProxy);
+		
+		return request;
 	}
 
 	public SipServletRequest waitForRequest()

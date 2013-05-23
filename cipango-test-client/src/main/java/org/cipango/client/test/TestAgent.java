@@ -53,6 +53,7 @@ public class TestAgent extends UserAgent
 	@Override
 	public Dialog customize(Dialog dialog)
 	{
+		super.customize(dialog);
 		Dialog dlg = null;
 		if (dialog instanceof Call)
 		{

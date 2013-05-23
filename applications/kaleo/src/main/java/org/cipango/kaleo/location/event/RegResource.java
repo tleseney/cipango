@@ -120,6 +120,7 @@ public class RegResource extends AbstractEventResource implements RegistrationLi
 		for (Contact contact : registration.getContactArray())
 		{
 			contact.setEvent(Event.UNREGISTERED);
+			contact.setExpires(BigInteger.ZERO);
 		}
 		fireStateChanged();
 		 _content.getReginfo().setVersion(_content.getReginfo().getVersion().add(BigInteger.ONE));

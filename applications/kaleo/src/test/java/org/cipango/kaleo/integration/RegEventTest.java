@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2009 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,24 +11,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // ========================================================================
-package org.cipango.kaleo.sipunit;
+package org.cipango.kaleo.integration;
+
+import static org.cipango.client.test.matcher.SipMatchers.hasHeader;
+import static org.cipango.client.test.matcher.SipMatchers.hasMethod;
+import static org.cipango.client.test.matcher.SipMatchers.hasStatus;
+import static org.cipango.client.test.matcher.SipMatchers.isSuccess;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 import java.io.ByteArrayInputStream;
 
-import javax.sip.ServerTransaction;
-import javax.sip.header.ContentTypeHeader;
-import javax.sip.header.EventHeader;
-import javax.sip.header.MinExpiresHeader;
-import javax.sip.header.SubscriptionStateHeader;
-import javax.sip.message.Request;
-import javax.sip.message.Response;
+import javax.servlet.sip.Parameterable;
+import javax.servlet.sip.SipServletRequest;
+import javax.servlet.sip.SipServletResponse;
 
-import org.cafesip.sipunit.RegisterSession;
-import org.cafesip.sipunit.SipResponse;
-import org.cafesip.sipunit.SubscribeSession;
-import org.cipango.kaleo.location.event.ReginfoDocument;
+import org.cipango.client.Dialog;
+import org.cipango.client.SipHeaders;
+import org.cipango.client.SipMethods;
 import org.cipango.kaleo.location.event.ContactDocument.Contact;
 import org.cipango.kaleo.location.event.ContactDocument.Contact.Event;
+import org.cipango.kaleo.location.event.ReginfoDocument;
 import org.cipango.kaleo.location.event.ReginfoDocument.Reginfo;
 import org.cipango.kaleo.location.event.RegistrationDocument.Registration;
 import org.cipango.kaleo.location.event.RegistrationDocument.Registration.State;
@@ -76,37 +80,40 @@ public class RegEventTest extends UaTestCase
           |                   |<------------------|
      * </pre>
 	 */
-	public void testSubscription()
+	public void testSubscription() throws Exception
 	{
-		// Ensure Alice is not registered
-		RegisterSession registerSession = new RegisterSession(getAlicePhone());
-		registerSession.register(null, 0);
+		Dialog subscription = getAlice().customize(new Dialog());
+    	SipServletRequest subscribe = subscription.createInitialRequest(SipMethods.SUBSCRIBE, getAlice().getAor(), getAlice().getAor());
+    	subscribe.setHeader(SipHeaders.EVENT, "reg");
+    	subscribe.setExpires(100);
+    	subscription.start(subscribe); // 1
 		
-		SubscribeSession session = new SubscribeSession(getAlicePhone(), "reg");
-		Request subscribe = session.newInitialSubscribe(100, getAliceUri()); // 1
-		session.sendRequest(subscribe, Response.OK); // 2
+    	SipServletResponse response = subscription.waitForResponse(); // 2
+    	assertThat(response, isSuccess());
+				
+    	SipServletRequest notify = subscription.waitForRequest(); // 3
+    	notify.createResponse(SipServletResponse.SC_OK).send(); //4
+    	assertThat(notify, hasMethod(SipMethods.NOTIFY));
+    	
+    	Parameterable subscriptionState = notify.getParameterableHeader(SipHeaders.SUBSCRIPTION_STATE);
+    	assertThat(subscriptionState, is(notNullValue()));
+    	assertThat(subscriptionState.getValue(), is("active"));
+		assertBetween(95, 100, Integer.parseInt(subscriptionState.getParameter("expires")));
 		
-		ServerTransaction tx = session.waitForNotify();
-		Request notify = tx.getRequest(); // 3
-		//System.out.println(notify);
-		session.sendResponse(Response.OK, tx); // 4
-		SubscriptionStateHeader subState = (SubscriptionStateHeader) notify.getHeader(SubscriptionStateHeader.NAME);
-		assertEquals(SubscriptionStateHeader.ACTIVE.toLowerCase(), subState.getState().toLowerCase());
-		assertBetween(95, 100, subState.getExpires());
-		assertEquals("reg", ((EventHeader) notify.getHeader(EventHeader.NAME)).getEventType());
+		assertThat(notify.getHeader(SipHeaders.EVENT), is("reg"));
+		
 		Reginfo regInfo = getRegInfo(notify);
 		int version = regInfo.getVersion().intValue();
 		Registration registration = regInfo.getRegistrationArray(0);
 		assertEquals(State.INIT, registration.getState());
-		assertEquals(getAliceUri(), registration.getAor());
+		assertEquals(getAlice().getAor().getURI().toString(), registration.getAor());
 		assertEquals(0, registration.getContactArray().length);
 		
-		registerSession.register(null, 1800); // 5 and 6
+		getAlice().register(1800); // 5 and 6
 		
-		tx = session.waitForNotify(); 
-		notify = tx.getRequest(); // 7
-		//System.out.println(notify);
-		session.sendResponse(Response.OK, tx); // 8
+		notify = subscription.waitForRequest(); // 7
+		notify.createResponse(SipServletResponse.SC_OK).send(); //8
+    	assertThat(notify, hasMethod(SipMethods.NOTIFY));
 		regInfo = getRegInfo(notify);
 		registration = regInfo.getRegistrationArray(0);
 		assertEquals(1, registration.getContactArray().length);
@@ -116,11 +123,11 @@ public class RegEventTest extends UaTestCase
 		assertBetween(1795, 1800, contact.getExpires().intValue());
 		assertEquals(Event.REGISTERED, contact.getEvent());
 		
-		registerSession.register(null, 0); // 9 and  10
-		tx = session.waitForNotify(); 
-		notify = tx.getRequest(); // 11
-		//System.out.println(notify);
-		session.sendResponse(Response.OK, tx); // 12
+		getAlice().unregister(); // 9 and  10
+		
+		notify = subscription.waitForRequest(); // 11
+		notify.createResponse(SipServletResponse.SC_OK).send(); //12
+    	assertThat(notify, hasMethod(SipMethods.NOTIFY));
 		regInfo = getRegInfo(notify);
 		registration = regInfo.getRegistrationArray(0);
 		assertEquals(1, registration.getContactArray().length);
@@ -130,16 +137,19 @@ public class RegEventTest extends UaTestCase
 		assertEquals(0, contact.getExpires().intValue());
 		assertEquals(Event.UNREGISTERED, contact.getEvent());
 		
-		subscribe = session.newSubsequentSubscribe(0); // 13
-		session.sendRequest(subscribe, Response.OK); // 14
+		subscribe = subscription.createRequest(SipMethods.SUBSCRIBE); // 13
+    	subscribe.setHeader(SipHeaders.EVENT, "reg");
+    	subscribe.setExpires(0);
+    	subscribe.send();
+    	assertThat(subscription.waitForResponse(), isSuccess()); //14
 		
-		tx = session.waitForNotify();
-		notify = tx.getRequest(); // 15
-		//System.out.println(notify);
-		session.sendResponse(Response.OK, tx); // 16
-		subState = (SubscriptionStateHeader) notify.getHeader(SubscriptionStateHeader.NAME);
-		assertEquals(SubscriptionStateHeader.TERMINATED.toLowerCase(), 
-				subState.getState());
+    	notify = subscription.waitForRequest(); //15
+    	notify.createResponse(SipServletResponse.SC_OK).send(); //16
+    	assertThat(notify, hasMethod(SipMethods.NOTIFY));
+    	//System.out.println(notify);
+    	
+    	subscriptionState = notify.getParameterableHeader(SipHeaders.SUBSCRIPTION_STATE);
+    	assertThat(notify.getHeader(SipHeaders.SUBSCRIPTION_STATE), is("terminated"));
 		regInfo = getRegInfo(notify);
 		registration = regInfo.getRegistrationArray(0);
 		assertEquals(State.TERMINATED, registration.getState());
@@ -185,36 +195,42 @@ public class RegEventTest extends UaTestCase
           |                   |<------------------|
      * </pre>
 	 */
-	public void testSubscription2()
+	public void testSubscription2() throws Exception
 	{
-		getAlicePhone().register(null, 1500);
-		assertLastOperationSuccess(getAlicePhone());
+		getAlice().register(1800); // 1 and 2
 		
-		SubscribeSession session = new SubscribeSession(getAlicePhone(), "reg");
-		Request subscribe = session.newInitialSubscribe(100, getAliceUri());
-		session.sendRequest(subscribe, Response.OK);
+		Dialog subscription = getAlice().customize(new Dialog());
+    	SipServletRequest subscribe = subscription.createInitialRequest(SipMethods.SUBSCRIBE, getAlice().getAor(), getAlice().getAor());
+    	subscribe.setHeader(SipHeaders.EVENT, "reg");
+    	subscribe.setExpires(100);
+    	subscription.start(subscribe); // 3
 		
-		ServerTransaction tx = session.waitForNotify();
-		Request notify = tx.getRequest();
-		//System.out.println(notify);
-		session.sendResponse(Response.OK, tx);
-		SubscriptionStateHeader subState = (SubscriptionStateHeader) notify.getHeader(SubscriptionStateHeader.NAME);
-		assertEquals(SubscriptionStateHeader.ACTIVE.toLowerCase(), subState.getState().toLowerCase());
-		assertBetween(95, 100, subState.getExpires());
-		assertEquals("reg", ((EventHeader) notify.getHeader(EventHeader.NAME)).getEventType());
+    	SipServletResponse response = subscription.waitForResponse(); // 4
+    	assertThat(response, isSuccess());
+				
+    	SipServletRequest notify = subscription.waitForRequest(); // 5
+    	notify.createResponse(SipServletResponse.SC_OK).send(); //6
+    	assertThat(notify, hasMethod(SipMethods.NOTIFY));
+    	
+    	Parameterable subscriptionState = notify.getParameterableHeader(SipHeaders.SUBSCRIPTION_STATE);
+    	assertThat(subscriptionState, is(notNullValue()));
+    	assertThat(subscriptionState.getValue(), is("active"));
+		assertBetween(95, 100, Integer.parseInt(subscriptionState.getParameter("expires")));
+		
+		assertThat(notify.getHeader(SipHeaders.EVENT), is("reg"));
+		
 		Reginfo regInfo = getRegInfo(notify);
 		Registration registration = regInfo.getRegistrationArray(0);
 		assertEquals(0, regInfo.getVersion().intValue());
 		assertEquals(State.ACTIVE, registration.getState());
-		assertEquals(getAliceUri(), registration.getAor());
+		assertEquals(getAlice().getAor().getURI().toString(), registration.getAor());
 		assertEquals(1, registration.getContactArray().length);
 		
+		getAlice().unregister(); // 9 and  10
 		
-		getAlicePhone().unregister(null, 2000);
-		assertLastOperationSuccess(getAlicePhone());
-		tx = session.waitForNotify();
-		notify = tx.getRequest();
-		session.sendResponse(Response.OK, tx);
+		notify = subscription.waitForRequest(); // 11
+		notify.createResponse(SipServletResponse.SC_OK).send(); //12
+    	assertThat(notify, hasMethod(SipMethods.NOTIFY));
 		regInfo = getRegInfo(notify);
 		registration = regInfo.getRegistrationArray(0);
 		assertEquals(1, registration.getContactArray().length);
@@ -224,16 +240,19 @@ public class RegEventTest extends UaTestCase
 		assertEquals(0, contact.getExpires().intValue());
 		assertEquals(Event.UNREGISTERED, contact.getEvent());
 				
-		subscribe = session.newSubsequentSubscribe(0);
-		session.sendRequest(subscribe, Response.OK);
+		subscribe = subscription.createRequest(SipMethods.SUBSCRIBE); // 13
+    	subscribe.setHeader(SipHeaders.EVENT, "reg");
+    	subscribe.setExpires(0);
+    	subscribe.send();
+    	assertThat(subscription.waitForResponse(), isSuccess()); //14
 		
-		tx = session.waitForNotify();
-		notify = tx.getRequest();
-		//System.out.println(notify);
-		session.sendResponse(Response.OK, tx);
-		subState = (SubscriptionStateHeader) notify.getHeader(SubscriptionStateHeader.NAME);
-		assertEquals(SubscriptionStateHeader.TERMINATED.toLowerCase(), 
-				subState.getState());
+    	notify = subscription.waitForRequest(); //15
+    	notify.createResponse(SipServletResponse.SC_OK).send(); //16
+    	assertThat(notify, hasMethod(SipMethods.NOTIFY));
+    	//System.out.println(notify);
+    	
+    	subscriptionState = notify.getParameterableHeader(SipHeaders.SUBSCRIPTION_STATE);
+    	assertThat(notify.getHeader(SipHeaders.SUBSCRIPTION_STATE), is("terminated"));
 		regInfo = getRegInfo(notify);
 		registration = regInfo.getRegistrationArray(0);
 		assertEquals(State.TERMINATED, registration.getState());
@@ -241,11 +260,10 @@ public class RegEventTest extends UaTestCase
 		assertEquals(2, regInfo.getVersion().intValue());
 	}
 	
-	private Reginfo getRegInfo(Request request)
+	private Reginfo getRegInfo(SipServletRequest request)
 	{
-		ContentTypeHeader contentType = (ContentTypeHeader) request.getHeader(ContentTypeHeader.NAME);
-		assertEquals("application", contentType.getContentType());
-		assertEquals("reginfo+xml", contentType.getContentSubType());
+		String contentType = request.getHeader(SipHeaders.CONTENT_TYPE);
+		assertThat(contentType, is("application/reginfo+xml"));
 		try
 		{
 			return ReginfoDocument.Factory.parse(new ByteArrayInputStream(request.getRawContent())).getReginfo();
@@ -257,11 +275,12 @@ public class RegEventTest extends UaTestCase
 	}
 	
     public void testMinExpires() throws Exception
-    {       
-        SubscribeSession session = new SubscribeSession(getAlicePhone(), "reg");
-        Request request = session.newInitialSubscribe(1, getAliceUri());
-        Response response = session.sendRequest(request,SipResponse.INTERVAL_TOO_BRIEF);
-        MinExpiresHeader minExpiresHeader = (MinExpiresHeader) response.getHeader(MinExpiresHeader.NAME);
-        assertNotNull(minExpiresHeader);
+    {      
+    	SipServletRequest request = getAlice().createRequest(SipMethods.SUBSCRIBE, getAlice().getAor());
+    	request.setHeader(SipHeaders.EVENT, "reg");
+    	request.setExpires(1);
+    	SipServletResponse response = getAlice().sendSynchronous(request);
+    	assertThat(response, hasStatus(SipServletResponse.SC_INTERVAL_TOO_BRIEF));
+    	assertThat(response, hasHeader(SipHeaders.MIN_EXPIRES));
     }
 }

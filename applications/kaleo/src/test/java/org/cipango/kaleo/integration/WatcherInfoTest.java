@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2009 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,36 +11,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // ========================================================================
-package org.cipango.kaleo.sipunit;
+package org.cipango.kaleo.integration;
+
+import static org.cipango.client.test.matcher.SipMatchers.hasHeader;
+import static org.cipango.client.test.matcher.SipMatchers.hasStatus;
+import static org.cipango.client.test.matcher.SipMatchers.isSuccess;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.both;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 
-import javax.sip.ServerTransaction;
-import javax.sip.header.ContentTypeHeader;
-import javax.sip.header.EventHeader;
-import javax.sip.header.MinExpiresHeader;
-import javax.sip.header.SubscriptionStateHeader;
-import javax.sip.message.Request;
-import javax.sip.message.Response;
+import javax.servlet.sip.SipServletRequest;
+import javax.servlet.sip.SipServletResponse;
 
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.methods.InputStreamRequestEntity;
 import org.apache.commons.httpclient.methods.PutMethod;
 import org.apache.commons.httpclient.methods.RequestEntity;
-import org.cafesip.sipunit.PublishSession;
-import org.cafesip.sipunit.SipResponse;
-import org.cafesip.sipunit.SubscribeSession;
+import org.cipango.client.Dialog;
+import org.cipango.client.Publisher;
+import org.cipango.client.SipHeaders;
+import org.cipango.client.SipMethods;
+import org.cipango.client.Subscriber;
 import org.cipango.kaleo.presence.PresenceEventPackage;
 import org.cipango.kaleo.presence.pidf.Basic;
 import org.cipango.kaleo.presence.pidf.Presence;
 import org.cipango.kaleo.presence.pidf.PresenceDocument;
-import org.cipango.kaleo.presence.watcherinfo.WatcherInfoEventPackage;
-import org.cipango.kaleo.presence.watcherinfo.WatcherinfoDocument;
 import org.cipango.kaleo.presence.watcherinfo.WatcherDocument.Watcher;
 import org.cipango.kaleo.presence.watcherinfo.WatcherDocument.Watcher.Event;
 import org.cipango.kaleo.presence.watcherinfo.WatcherDocument.Watcher.Status;
 import org.cipango.kaleo.presence.watcherinfo.WatcherListDocument.WatcherList;
+import org.cipango.kaleo.presence.watcherinfo.WatcherinfoDocument;
 import org.cipango.kaleo.presence.watcherinfo.WatcherinfoDocument.Watcherinfo;
 
 public class WatcherInfoTest extends UaTestCase
@@ -54,9 +59,9 @@ public class WatcherInfoTest extends UaTestCase
 	public void setUp() throws Exception
 	{
 		super.setUp();
-		setContent("/org.openmobilealliance.pres-rules/users/" + getAliceUri() + "/pres-rules");
-		setContent("/org.openmobilealliance.pres-rules/users/" + getBobUri() + "/pres-rules");
-		setContent("/resource-lists/users/" + getAliceUri() + "/index");
+		setContent("/org.openmobilealliance.pres-rules/users/sip:alice@" + getDomain() + "/pres-rules");
+		setContent("/org.openmobilealliance.pres-rules/users/sip:bob@" + getDomain() + "/pres-rules");
+		setContent("/resource-lists/users/sip:alice@" + getDomain() + "/index");
 	}
 	
 	/**
@@ -108,83 +113,75 @@ public class WatcherInfoTest extends UaTestCase
           |                   |<--------------------|
      * </pre>
 	 */
-	public void testSubscription()
+	public void testSubscription() throws Exception
 	{		
-		SubscribeSession winfoSession = new SubscribeSession(getBobPhone(), "presence.winfo"); // 1
-		Request subscribe = winfoSession.newInitialSubscribe(100, getBobUri());
-		winfoSession.sendRequest(subscribe, Response.OK); // 2
+		Subscriber winfo = new Subscriber("presence.winfo", getAlice().customize(new Dialog()));
+		SipServletResponse response = winfo.startSubscription(getBob().getAor(), getBob().getAor(), 100); //1
+    	assertThat(response, isSuccess()); // 2
+    	
+    	SipServletRequest notify = winfo.waitForNotify(); //3
+    	notify.createResponse(SipServletResponse.SC_OK).send(); // 4
 		
-		ServerTransaction tx = winfoSession.waitForNotify(); // 3
-		Request notify = tx.getRequest();
-		//System.out.println(notify);
-		winfoSession.sendResponse(Response.OK, tx); // 4 
-		SubscriptionStateHeader subState = (SubscriptionStateHeader) notify.getHeader(SubscriptionStateHeader.NAME);
-		assertEquals(SubscriptionStateHeader.ACTIVE.toLowerCase(), subState.getState().toLowerCase());
-		assertBetween(95, 100, subState.getExpires());
-		assertEquals(WatcherInfoEventPackage.NAME, ((EventHeader) notify.getHeader(EventHeader.NAME)).getEventType());
+    	assertThat(notify, hasHeader(SipHeaders.SUBSCRIPTION_STATE));
+    	assertThat(winfo.getSubscriptionState(), is("active"));
+    	assertThat(winfo.getExpires(), is(both(lessThanOrEqualTo(100)).and(greaterThan(95))));	
+    	assertThat(notify.getHeader(SipHeaders.EVENT), is("presence.winfo"));
+
 		Watcherinfo watcherinfo = getWatcherinfo(notify);
 		assertEquals(0, watcherinfo.getVersion().intValue());
 		assertEquals(Watcherinfo.State.FULL, watcherinfo.getState());
 		assertEquals(1, watcherinfo.getWatcherListArray().length);
 		WatcherList watcherList = watcherinfo.getWatcherListArray(0);
-		assertEquals(getBobUri(), watcherList.getResource());
+		assertEquals(getBob().getAor().getURI().toString(), watcherList.getResource());
 		assertEquals(PresenceEventPackage.NAME, watcherList.getPackage());
 		assertEquals(0, watcherList.getWatcherArray().length);
-		
-		
-		SubscribeSession presenceSession = new SubscribeSession(getAlicePhone(), "presence");
-		subscribe = presenceSession.newInitialSubscribe(100, getBobUri()); // 5
-		presenceSession.sendRequest(subscribe, Response.OK); // 6
-		
-		tx = winfoSession.waitForNotify(); // 7
-		notify = tx.getRequest();
-		//System.out.println(notify);
-		winfoSession.sendResponse(Response.OK, tx); // 8
+			
+		Subscriber presence = new Subscriber("presence", getAlice().customize(new Dialog()));
+		response = presence.startSubscription(getAlice().getAor(), getBob().getAor(), 60); //5
+    	assertThat(response, isSuccess());  //6
+    	
+    	notify = winfo.waitForNotify(); //7
+    	notify.createResponse(SipServletResponse.SC_OK).send(); // 8
 		watcherinfo = getWatcherinfo(notify);
 		assertEquals(1, watcherinfo.getVersion().intValue());
 		watcherList = watcherinfo.getWatcherListArray(0);
 		assertEquals(1, watcherList.sizeOfWatcherArray());
 		Watcher watcher = watcherList.getWatcherArray(0);
 		assertEquals(Event.SUBSCRIBE, watcher.getEvent());
-		assertEquals(getAliceUri(), watcher.getStringValue());
+		assertEquals(getAlice().getAor().getURI().toString(), watcher.getStringValue());
 		assertEquals(Status.ACTIVE, watcher.getStatus());
+    	
+    	notify = presence.waitForNotify(); // 9
+    	notify.createResponse(SipServletResponse.SC_OK).send(); // 10
+    	
+    	response = presence.stopSubscription(); //11
+    	assertThat(response, isSuccess()); //12
 		
-		
-		tx = presenceSession.waitForNotify(); // 9
-		presenceSession.sendResponse(Response.OK, tx); // 10
-		
-		
-		subscribe = presenceSession.newSubsequentSubscribe(0); // 11
-		presenceSession.sendRequest(subscribe, Response.OK); // 12
-		
-		tx = winfoSession.waitForNotify(); // 13
-		notify = tx.getRequest();
-		// System.out.println(notify);
-		winfoSession.sendResponse(Response.OK, tx); // 14
+    	notify = winfo.waitForNotify(); //13
+    	notify.createResponse(SipServletResponse.SC_OK).send(); // 14
 		watcherinfo = getWatcherinfo(notify);
 		assertEquals(2, watcherinfo.getVersion().intValue());
 		watcherList = watcherinfo.getWatcherListArray(0);
 		assertEquals(1, watcherList.sizeOfWatcherArray());
 		watcher = watcherList.getWatcherArray(0);
 		assertEquals(Event.TIMEOUT, watcher.getEvent());
-		assertEquals(getAliceUri(), watcher.getStringValue());
+		assertEquals(getAlice().getAor().getURI().toString(), watcher.getStringValue());
 		assertEquals(Status.TERMINATED, watcher.getStatus());
 		
-		tx = presenceSession.waitForNotify(); // 15
-		presenceSession.sendResponse(Response.OK, tx); // 16
 		
-		subscribe = winfoSession.newSubsequentSubscribe(0); // 17
-		winfoSession.sendRequest(subscribe, Response.OK); //18
-		
-		tx = winfoSession.waitForNotify(); // 19
-		notify = tx.getRequest();
-		// System.out.println(notify);
-		winfoSession.sendResponse(Response.OK, tx); // 20
+		notify = presence.waitForNotify(); // 15
+    	notify.createResponse(SipServletResponse.SC_OK).send(); // 16
+
+    	response = winfo.stopSubscription(); //17
+    	assertThat(response, isSuccess()); //18
+    	
+    	notify = winfo.waitForNotify(); // 19
+    	notify.createResponse(SipServletResponse.SC_OK).send(); // 20
+
 		watcherinfo = getWatcherinfo(notify);
 		assertEquals(3, watcherinfo.getVersion().intValue());
 		watcherList = watcherinfo.getWatcherListArray(0);
 		assertEquals(0, watcherList.sizeOfWatcherArray());
-		
 	}
 	
 	/**
@@ -219,46 +216,42 @@ public class WatcherInfoTest extends UaTestCase
           |------------------>|                     |
      * </pre>
 	 */
-	public void testSubscription2()
+	public void testSubscription2() throws Exception
 	{		
-		SubscribeSession presenceSession = new SubscribeSession(getAlicePhone(), "presence");
-		Request subscribe = presenceSession.newInitialSubscribe(100, getBobUri()); // 1
-		presenceSession.sendRequest(subscribe, Response.OK); // 2
+		Subscriber presence = new Subscriber("presence", getAlice().customize(new Dialog()));
+		SipServletResponse response = presence.startSubscription(getAlice().getAor(), getBob().getAor(), 60); //1
+    	assertThat(response, isSuccess());  //2
+    	
+    	SipServletRequest notify = presence.waitForNotify(); // 3
+    	notify.createResponse(SipServletResponse.SC_OK).send(); // 4
+		
+		Subscriber winfo = new Subscriber("presence.winfo", getAlice().customize(new Dialog()));
+		response = winfo.startSubscription(getBob().getAor(), getBob().getAor(), 0); //5
+    	assertThat(response, isSuccess()); // 6
+    	
+    	notify = winfo.waitForNotify(); //7
+    	notify.createResponse(SipServletResponse.SC_OK).send(); // 8
+		
+    	assertThat(notify, hasHeader(SipHeaders.SUBSCRIPTION_STATE));
+    	assertThat(winfo.getSubscriptionState(), is("terminated"));
+    	assertThat(winfo.getExpires(), is(0));	
+    	assertThat(notify.getHeader(SipHeaders.EVENT), is("presence.winfo"));
 
-		ServerTransaction tx = presenceSession.waitForNotify(); // 3
-		presenceSession.sendResponse(Response.OK, tx); // 4
-		
-		SubscribeSession winfoSession = new SubscribeSession(getBobPhone(), "presence.winfo"); // 5
-		subscribe = winfoSession.newInitialSubscribe(0, getBobUri());
-		winfoSession.sendRequest(subscribe, Response.OK); // 6
-		
-		tx = winfoSession.waitForNotify(); // 7
-		Request notify = tx.getRequest();
-		//System.out.println(notify);
-		winfoSession.sendResponse(Response.OK, tx); // 8 
-		SubscriptionStateHeader subState = (SubscriptionStateHeader) notify.getHeader(SubscriptionStateHeader.NAME);
-		assertEquals(SubscriptionStateHeader.TERMINATED.toLowerCase(), subState.getState().toLowerCase());
-		assertEquals(WatcherInfoEventPackage.NAME, ((EventHeader) notify.getHeader(EventHeader.NAME)).getEventType());
 		Watcherinfo watcherinfo = getWatcherinfo(notify);
+		watcherinfo = getWatcherinfo(notify);
 		assertEquals(0, watcherinfo.getVersion().intValue());
-		assertEquals(Watcherinfo.State.FULL, watcherinfo.getState());
-		assertEquals(1, watcherinfo.getWatcherListArray().length);
 		WatcherList watcherList = watcherinfo.getWatcherListArray(0);
-		assertEquals(getBobUri(), watcherList.getResource());
-		assertEquals(PresenceEventPackage.NAME, watcherList.getPackage());
-		assertEquals(1, watcherList.getWatcherArray().length);
+		assertEquals(1, watcherList.sizeOfWatcherArray());
 		Watcher watcher = watcherList.getWatcherArray(0);
 		assertEquals(Event.SUBSCRIBE, watcher.getEvent());
-		assertEquals(getAliceUri(), watcher.getStringValue());
+		assertEquals(getAlice().getAor().getURI().toString(), watcher.getStringValue());
 		assertEquals(Status.ACTIVE, watcher.getStatus());
-		
-		
-		subscribe = presenceSession.newSubsequentSubscribe(0); // 9
-		presenceSession.sendRequest(subscribe, Response.OK); // 10
-				
-		tx = presenceSession.waitForNotify(); // 11
-		presenceSession.sendResponse(Response.OK, tx); // 12
+    	
+    	response = presence.stopSubscription(); //9
+    	assertThat(response, isSuccess()); //10
 			
+		notify = presence.waitForNotify(); // 11
+    	notify.createResponse(SipServletResponse.SC_OK).send(); // 12		
 	}
 	
 	/**
@@ -325,45 +318,41 @@ public class WatcherInfoTest extends UaTestCase
 	 */
 	public void testSubscription3() throws Exception
 	{
-		PublishSession publishSession = new PublishSession(getBobPhone());
-        Request publish = publishSession.newPublish(getClass().getResourceAsStream("publish1.xml"), 60); // 1
-        publishSession.sendRequest(publish, SipResponse.OK); // 2
+		Publisher publisher = new Publisher(getBob().getAor());
+		getBob().customize(publisher);
+		SipServletRequest request = publisher.newPublish(getClass().getResourceAsStream("publish1.xml"), 60);
+		publisher.start(request); // 1
+		assertThat(publisher.waitForResponse(), isSuccess()); //2
 		
-		SubscribeSession presenceSession = new SubscribeSession(getAlicePhone(), "presence");
-		Request subscribe = presenceSession.newInitialSubscribe(100, getBobUri()); // 3
-		presenceSession.sendRequest(subscribe, Response.OK); // 4
+		Subscriber presence = new Subscriber("presence", getAlice().customize(new Dialog()));
+		SipServletResponse response = presence.startSubscription(getAlice().getAor(), getBob().getAor(), 100); //3
+    	assertThat(response, isSuccess());  //4
+    	
+    	SipServletRequest notify = presence.waitForNotify(); // 5
+    	notify.createResponse(SipServletResponse.SC_OK).send(); // 6
 
-		ServerTransaction tx = presenceSession.waitForNotify(); // 5
-		//System.out.println("3:\n" + tx.getRequest());
-		presenceSession.sendResponse(Response.OK, tx); // 6
-		Presence presence = getPresence(tx.getRequest());
-		assertEquals(Basic.OPEN, presence.getTupleArray()[0].getStatus().getBasic());
+		Presence presenceDoc = getPresence(notify);
+		assertEquals(Basic.OPEN, presenceDoc.getTupleArray()[0].getStatus().getBasic());
 		
-		
-		SubscribeSession winfoSession = new SubscribeSession(getBobPhone(), "presence.winfo"); // 7
-		subscribe = winfoSession.newInitialSubscribe(60, getBobUri());
-		winfoSession.sendRequest(subscribe, Response.OK); // 8
-		
-		tx = winfoSession.waitForNotify(); // 9
-		Request notify = tx.getRequest();
-		//System.out.println(notify);
-		winfoSession.sendResponse(Response.OK, tx); // 10 
-		SubscriptionStateHeader subState = (SubscriptionStateHeader) notify.getHeader(SubscriptionStateHeader.NAME);
-		assertEquals(SubscriptionStateHeader.ACTIVE.toLowerCase(), subState.getState().toLowerCase());
-		assertEquals(WatcherInfoEventPackage.NAME, ((EventHeader) notify.getHeader(EventHeader.NAME)).getEventType());
+		Subscriber winfo = new Subscriber("presence.winfo", getBob().customize(new Dialog()));
+		response = winfo.startSubscription(getBob().getAor(), getBob().getAor(), 60); //7
+    	assertThat(response, isSuccess()); // 8
+    	
+    	notify = winfo.waitForNotify(); //9
+    	notify.createResponse(SipServletResponse.SC_OK).send(); //10
+
 		Watcherinfo watcherinfo = getWatcherinfo(notify);
 		assertEquals(0, watcherinfo.getVersion().intValue());
 		assertEquals(Watcherinfo.State.FULL, watcherinfo.getState());
 		assertEquals(1, watcherinfo.getWatcherListArray().length);
 		WatcherList watcherList = watcherinfo.getWatcherListArray(0);
-		assertEquals(getBobUri(), watcherList.getResource());
+		assertEquals(getUri(getBob()), watcherList.getResource());
 		assertEquals(PresenceEventPackage.NAME, watcherList.getPackage());
 		assertEquals(1, watcherList.getWatcherArray().length);
 		Watcher watcher = watcherList.getWatcherArray(0);
 		assertEquals(Event.SUBSCRIBE, watcher.getEvent());
-		assertEquals(getAliceUri(), watcher.getStringValue());
+		assertEquals(getUri(getAlice()), watcher.getStringValue());
 		assertEquals(Status.ACTIVE, watcher.getStatus());
-		
 		
 		HttpClient httpClient = new HttpClient();
 		PutMethod put = new PutMethod(getHttpXcapUri() + BOB_PRES_RULES_URI); // 11
@@ -376,48 +365,43 @@ public class WatcherInfoTest extends UaTestCase
 		assertEquals(200, result); // 12
 		put.releaseConnection();
 		
-		tx = presenceSession.waitForNotify(); // 13
-		//System.out.println("11:\n" + tx.getRequest());
-		presenceSession.sendResponse(Response.OK, tx); // 14
-		presence = getPresence(tx.getRequest());
-		assertEquals(Basic.CLOSED, presence.getTupleArray()[0].getStatus().getBasic());
+		notify = presence.waitForNotify(); //13
+    	notify.createResponse(SipServletResponse.SC_OK).send(); //14
+
+		presenceDoc = getPresence(notify);
+		assertEquals(Basic.CLOSED, presenceDoc.getTupleArray()[0].getStatus().getBasic());
 		
-		tx = winfoSession.waitForNotify(); // 15
-		notify = tx.getRequest();
-		winfoSession.sendResponse(Response.OK, tx); // 16
-		System.out.println(notify);
-		subState = (SubscriptionStateHeader) notify.getHeader(SubscriptionStateHeader.NAME);
-		assertEquals(SubscriptionStateHeader.ACTIVE.toLowerCase(), subState.getState().toLowerCase());
-		assertEquals(WatcherInfoEventPackage.NAME, ((EventHeader) notify.getHeader(EventHeader.NAME)).getEventType());
+		notify = winfo.waitForNotify(); //15
+    	notify.createResponse(SipServletResponse.SC_OK).send(); //16
+
 		watcherinfo = getWatcherinfo(notify);
 		assertEquals(1, watcherinfo.getVersion().intValue());
 		assertEquals(Watcherinfo.State.FULL, watcherinfo.getState());
 		assertEquals(1, watcherinfo.getWatcherListArray().length);
 		watcherList = watcherinfo.getWatcherListArray(0);
-		assertEquals(getBobUri(), watcherList.getResource());
+		assertEquals(getUri(getBob()), watcherList.getResource());
 		assertEquals(PresenceEventPackage.NAME, watcherList.getPackage());
 		assertEquals(1, watcherList.getWatcherArray().length);
 		watcher = watcherList.getWatcherArray(0);
 		assertEquals(Event.SUBSCRIBE, watcher.getEvent());
-		assertEquals(getAliceUri(), watcher.getStringValue());
+		assertEquals(getUri(getAlice()), watcher.getStringValue());
 		assertEquals(Status.ACTIVE, watcher.getStatus());
-			
 		
-		subscribe = winfoSession.newSubsequentSubscribe(0); // 17
-		winfoSession.sendRequest(subscribe, Response.OK); // 18
-				
-		tx = winfoSession.waitForNotify(); // 19
-		winfoSession.sendResponse(Response.OK, tx); // 20
-		
-		
-		subscribe = presenceSession.newSubsequentSubscribe(0); // 21
-		presenceSession.sendRequest(subscribe, Response.OK); // 22
-				
-		tx = presenceSession.waitForNotify(); // 23
-		presenceSession.sendResponse(Response.OK, tx); // 24
-		
-		publish = publishSession.newUnpublish(); // 25
-		publishSession.sendRequest(publish, Response.OK); // 26
+		response = winfo.stopSubscription(); //17
+    	assertThat(response, isSuccess()); //18
+    	
+    	notify = winfo.waitForNotify(); // 19
+    	notify.createResponse(SipServletResponse.SC_OK).send(); // 20
+    	
+    	
+    	response = presence.stopSubscription(); //21
+    	assertThat(response, isSuccess()); //22
+    	
+    	notify = presence.waitForNotify(); // 23
+    	notify.createResponse(SipServletResponse.SC_OK).send(); // 24
+
+    	publisher.newUnPublish().send();
+    	assertThat(publisher.waitForResponse(), isSuccess());
 	}
 	
 	/**
@@ -470,45 +454,41 @@ public class WatcherInfoTest extends UaTestCase
 	 */
 	public void testWaitingState() throws Exception
 	{
-		PublishSession publishSession = new PublishSession(getAlicePhone());
-        Request publish = publishSession.newPublish(getClass().getResourceAsStream("publish1.xml"), 60); // 1
-        publishSession.sendRequest(publish, SipResponse.OK); // 2
-        
-        SubscribeSession presenceSession = new SubscribeSession(getBobPhone(), "presence");
-		Request subscribe = presenceSession.newInitialSubscribe(0, getAliceUri()); // 3
-		presenceSession.sendRequest(subscribe, Response.OK); // 4
+		Publisher publisher = new Publisher(getAlice().getAor());
+		getAlice().customize(publisher);
+		SipServletRequest request = publisher.newPublish(getClass().getResourceAsStream("publish1.xml"), 60);
+		publisher.start(request); // 1
+		assertThat(publisher.waitForResponse(), isSuccess()); //2
+		
+		Subscriber presence = new Subscriber("presence", getBob().customize(new Dialog()));
+		SipServletResponse response = presence.startSubscription(getBob().getAor(), getAlice().getAor(), 0); //3
+    	assertThat(response, isSuccess());  //4
+    	
+    	SipServletRequest notify = presence.waitForNotify(); // 5
+    	notify.createResponse(SipServletResponse.SC_OK).send(); // 6
+		
+		Presence presenceDoc = getPresence(notify);
+		assertEquals(Basic.CLOSED, presenceDoc.getTupleArray()[0].getStatus().getBasic());
+		
+		Subscriber winfo = new Subscriber("presence.winfo", getAlice().customize(new Dialog()));
+		response = winfo.startSubscription(getAlice().getAor(), getAlice().getAor(), 60); //7
+    	assertThat(response, isSuccess()); // 8
+    	
+    	notify = winfo.waitForNotify(); //9
+    	notify.createResponse(SipServletResponse.SC_OK).send(); //10
 
-		ServerTransaction tx = presenceSession.waitForNotify(); // 5
-		System.out.println("5:\n" + tx.getRequest());
-		presenceSession.sendResponse(Response.OK, tx); // 6
-		Presence presence = getPresence(tx.getRequest());
-		assertEquals(Basic.CLOSED, presence.getTupleArray()[0].getStatus().getBasic());
-		
-		
-		SubscribeSession winfoSession = new SubscribeSession(getAlicePhone(), "presence.winfo"); // 7
-		subscribe = winfoSession.newInitialSubscribe(60, getAliceUri());
-		winfoSession.sendRequest(subscribe, Response.OK); // 8
-		
-		tx = winfoSession.waitForNotify(); // 9
-		Request notify = tx.getRequest();
-		System.out.println("9:\n" +notify);
-		winfoSession.sendResponse(Response.OK, tx); // 10 
-		SubscriptionStateHeader subState = (SubscriptionStateHeader) notify.getHeader(SubscriptionStateHeader.NAME);
-		assertEquals(SubscriptionStateHeader.ACTIVE.toLowerCase(), subState.getState().toLowerCase());
-		assertEquals(WatcherInfoEventPackage.NAME, ((EventHeader) notify.getHeader(EventHeader.NAME)).getEventType());
 		Watcherinfo watcherinfo = getWatcherinfo(notify);
 		assertEquals(0, watcherinfo.getVersion().intValue());
 		assertEquals(Watcherinfo.State.FULL, watcherinfo.getState());
 		assertEquals(1, watcherinfo.getWatcherListArray().length);
 		WatcherList watcherList = watcherinfo.getWatcherListArray(0);
-		assertEquals(getAliceUri(), watcherList.getResource());
+		assertEquals(getUri(getAlice()), watcherList.getResource());
 		assertEquals(PresenceEventPackage.NAME, watcherList.getPackage());
 		assertEquals(1, watcherList.getWatcherArray().length);
 		Watcher watcher = watcherList.getWatcherArray(0);
 		assertEquals(Event.TIMEOUT, watcher.getEvent());
-		assertEquals(getBobUri(), watcher.getStringValue());
+		assertEquals(getUri(getBob()), watcher.getStringValue());
 		assertEquals(Status.WAITING, watcher.getStatus());	
-		
 		
 		HttpClient httpClient = new HttpClient();
 		PutMethod put = new PutMethod(getHttpXcapUri() + ALICE_PRES_RULES_URI); // 11
@@ -521,25 +501,23 @@ public class WatcherInfoTest extends UaTestCase
 		assertEquals(200, result); // 12
 		put.releaseConnection();
 		
-		presenceSession = new SubscribeSession(getBobPhone(), "presence");
-		subscribe = presenceSession.newInitialSubscribe(0, getAliceUri()); // 13
-		presenceSession.sendRequest(subscribe, Response.OK); // 14
+		presence = new Subscriber("presence", getBob().customize(new Dialog()));
+		response = presence.startSubscription(getBob().getAor(), getAlice().getAor(), 0); // 13
+    	assertThat(response, isSuccess());  //14
+    	
+    	notify = presence.waitForNotify(); // 15
+    	notify.createResponse(SipServletResponse.SC_OK).send(); // 16
 
-		tx = presenceSession.waitForNotify(); // 15
-		System.out.println("15:\n" + tx.getRequest());
-		presenceSession.sendResponse(Response.OK, tx); // 16
-		presence = getPresence(tx.getRequest());
-		assertEquals(Basic.OPEN, presence.getTupleArray()[0].getStatus().getBasic());
+		presenceDoc = getPresence(notify);
+		assertEquals(Basic.OPEN, presenceDoc.getTupleArray()[0].getStatus().getBasic());
 		
-		publish = publishSession.newUnpublish(); // 25
-		publishSession.sendRequest(publish, Response.OK); // 26
+		publisher.newUnPublish().send(); // 17
+    	assertThat(publisher.waitForResponse(), isSuccess()); //18
 	}
 		
-	private Watcherinfo getWatcherinfo(Request request)
+	private Watcherinfo getWatcherinfo(SipServletRequest request)
 	{
-		ContentTypeHeader contentType = (ContentTypeHeader) request.getHeader(ContentTypeHeader.NAME);
-		assertEquals("application", contentType.getContentType());
-		assertEquals("watcherinfo+xml", contentType.getContentSubType());
+		assertThat(request.getContentType(), is("application/watcherinfo+xml"));
 		try
 		{
 			return WatcherinfoDocument.Factory.parse(new ByteArrayInputStream(request.getRawContent())).getWatcherinfo();
@@ -550,11 +528,9 @@ public class WatcherInfoTest extends UaTestCase
 		}
 	}
 	
-	private Presence getPresence(Request request)
+	private Presence getPresence(SipServletRequest request)
 	{
-		ContentTypeHeader contentType = (ContentTypeHeader) request.getHeader(ContentTypeHeader.NAME);
-		assertEquals("application", contentType.getContentType());
-		assertEquals("pidf+xml", contentType.getContentSubType());
+		assertThat(request.getContentType(), is("application/pidf+xml"));
 		try
 		{
 			return PresenceDocument.Factory.parse(new ByteArrayInputStream(request.getRawContent())).getPresence();
@@ -566,12 +542,13 @@ public class WatcherInfoTest extends UaTestCase
 	}
 	
     public void testMinExpires() throws Exception
-    {       
-        SubscribeSession session = new SubscribeSession(getAlicePhone(), "presence.winfo");
-        Request request = session.newInitialSubscribe(1, getAliceUri());
-        Response response = session.sendRequest(request, SipResponse.INTERVAL_TOO_BRIEF);
-        MinExpiresHeader minExpiresHeader = (MinExpiresHeader) response.getHeader(MinExpiresHeader.NAME);
-        assertNotNull(minExpiresHeader);
+    {    
+    	SipServletRequest request = getAlice().createRequest(SipMethods.SUBSCRIBE, getAlice().getAor());
+    	request.setHeader(SipHeaders.EVENT, "presence.winfo");
+    	request.setExpires(1);
+    	SipServletResponse response = getAlice().sendSynchronous(request);
+    	assertThat(response, hasStatus(SipServletResponse.SC_INTERVAL_TOO_BRIEF));
+    	assertThat(response, hasHeader(SipHeaders.MIN_EXPIRES));
     }
     
 }

@@ -32,7 +32,6 @@ import javax.servlet.sip.annotation.SipServlet;
 
 import junit.framework.Assert;
 
-import org.cipango.sip.SipHeader;
 import org.cipango.tests.AbstractServlet;
 
 @SuppressWarnings("serial")
@@ -134,7 +133,7 @@ public class ProxyServlet extends AbstractServlet
 	public void testDns(SipServletResponse response) throws Throwable
 	{
 		assertThat(response.getStatus(), is(SipServletResponse.SC_ACCEPTED));
-		Iterator<String> it = response.getHeaders(SipHeader.VIA.asString());
+		Iterator<String> it = response.getHeaders("Via");
 		Assert.assertTrue(it.hasNext()); 
 		it.next();
 		Assert.assertFalse(it.hasNext()); 

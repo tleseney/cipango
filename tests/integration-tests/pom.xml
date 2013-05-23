@@ -12,7 +12,6 @@
 	
 	<properties>
 		<bundle-symbolic-name>${project.groupId}.integration</bundle-symbolic-name>
-		<logback.version>1.0.7</logback.version>
 	</properties>
 
 	<build>
@@ -127,6 +126,16 @@
 
 	<dependencies>
 		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>sip-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+	      <groupId>org.eclipse.jetty.orbit</groupId>
+	      <artifactId>javax.servlet</artifactId>
+	      <scope>provided</scope>
+	    </dependency>
+		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-client</artifactId>
 			<version>${jetty-version}</version>
@@ -140,13 +149,11 @@
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-core</artifactId>
-			<version>${logback.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
-			<version>${logback.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

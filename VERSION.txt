@@ -1,3 +1,22 @@
+cipango-3.0.0.M1 - 24 May 2013
+Bug
+    [CIPANGO-190] - for v1.0 Servlet application, SipSession.getInvalidateWhenReady is true by default
+    [CIPANGO-191] - UAC sessions can be invalidated too early if response is immediately received
+    [CIPANGO-192] - Unable to send response bigger than MTU
+    [CIPANGO-193] - Possible dead lock between session and transaction
+    [CIPANGO-196] - Request.getPoppedRoute() returns wrong route in case of double Record-Route
+    [CIPANGO-197] - When an URI is modified, it is not reflected in address.toString()
+    [CIPANGO-199] - SIP servlet are initialized before ServletContextListener if listener has been defined in web.xml
+    [CIPANGO-200] - Contact header is badly parsed if two contacts are set in same line
+    [CIPANGO-201] - Got NullPointerException on sipFactory.createAddress("*").toString()
+    [CIPANGO-202] - Wrong class loader is used when invoking sipServlets.doService()
+    [CIPANGO-203] - When registering a UA using UserAgent.register(), request is not send to outbound proxy
+Improvement
+    [CIPANGO-198] - Upgrade to Jetty 9.0.3.v20130506
+New Feature
+    [CIPANGO-194] - Add support to SIP WebSocket connector
+    [CIPANGO-129] - DNS client
+
 cipango-3.0.0.M0 - 07 January 2013
 
  + First release of the third version, hosted at github.

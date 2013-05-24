@@ -266,7 +266,8 @@ public class SipXmlProcessorTest
 		metaData.resolve(_context);	
 	}
 
-	@Test
+	
+	@Ignore // Ignore this test as it could impact other tests in specific configuration
 	public void testXmlXsd() throws Exception
 	{
 		//System.out.println(WebAppContext.class.getResource("/javax/servlet/resources/javaee_5.xsd"));

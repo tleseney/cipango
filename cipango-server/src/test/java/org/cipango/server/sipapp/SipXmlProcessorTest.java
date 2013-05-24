@@ -255,7 +255,8 @@ public class SipXmlProcessorTest
 		assertEquals("org.cipango.kaleo", _context.getName());	
 	}
 
-	@Test
+
+	@Ignore // Ignore this test as it could impact other tests in specific configuration
 	public void testValidateSip() throws Exception
 	{
 		System.setProperty("org.eclipse.jetty.xml.XmlParser.Validating", "true");
@@ -266,8 +267,7 @@ public class SipXmlProcessorTest
 		metaData.resolve(_context);	
 	}
 
-	
-	@Ignore // Ignore this test as it could impact other tests in specific configuration
+	@Test
 	public void testXmlXsd() throws Exception
 	{
 		//System.out.println(WebAppContext.class.getResource("/javax/servlet/resources/javaee_5.xsd"));

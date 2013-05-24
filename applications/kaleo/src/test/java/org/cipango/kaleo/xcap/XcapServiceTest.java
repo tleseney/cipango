@@ -7,18 +7,19 @@ import java.io.InputStream;
 
 import junit.framework.TestCase;
 
-import org.apache.log4j.Logger;
 import org.cipango.kaleo.xcap.dao.FileXcapDao;
 import org.cipango.kaleo.xcap.dao.XcapDao;
 import org.cipango.kaleo.xcap.dao.XmlResource;
 import org.cipango.kaleo.xcap.util.XcapUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Attr;
 
 public class XcapServiceTest extends TestCase {
 	/**
 	 * Logger for this class
 	 */
-	private static final Logger log = Logger.getLogger(XcapServiceTest.class);
+	private static final Logger log = LoggerFactory.getLogger(XcapServiceTest.class);
 
 	private XcapService _xcapService;
 	private File _xcapRoot;

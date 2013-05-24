@@ -42,9 +42,13 @@
 				<version>${project.version}</version>
 				<configuration>
 					<systemProperties>
+            <systemProperty>
+              <name>jetty.home</name>
+              <value>${project.build.directory}</value>
+            </systemProperty>
 						<systemProperty>
-							<name>log4j.configuration</name>
-							<value>file:${basedir}/resources/log4j.xml</value>
+							<name>logback.configurationFile</name>
+							<value>file:${basedir}/resources/logback.xml</value>
 						</systemProperty>
 					</systemProperties>
 					<stopKey>foo</stopKey>
@@ -98,17 +102,14 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>${slf4j.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-log4j12</artifactId>
-			<version>${slf4j.version}</version>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-core</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>log4j</groupId>
-			<artifactId>log4j</artifactId>
-			<version>${log4j.version}</version>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.xmlbeans</groupId>
@@ -181,12 +182,7 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-	
-	<properties>
-		<slf4j.version>1.6.1</slf4j.version>
-		<log4j.version>1.2.14</log4j.version>
-	</properties>
-	
+		
 	<profiles>
 		<profile>
 			<id>itest</id>

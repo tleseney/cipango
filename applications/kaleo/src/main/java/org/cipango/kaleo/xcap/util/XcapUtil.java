@@ -2,13 +2,14 @@ package org.cipango.kaleo.xcap.util;
 
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.log4j.Logger;
 import org.cipango.kaleo.xcap.XcapException;
 import org.iso_relax.verifier.Schema;
 import org.iso_relax.verifier.Verifier;
 import org.iso_relax.verifier.VerifierConfigurationException;
 import org.iso_relax.verifier.VerifierFactory;
 import org.iso_relax.verifier.VerifierHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.ErrorHandler;
@@ -20,7 +21,7 @@ public class XcapUtil
 	/**
 	 * Logger for this class
 	 */
-	protected static final Logger log = Logger.getLogger(XcapUtil.class);
+	protected static final Logger log = LoggerFactory.getLogger(XcapUtil.class);
 
 	private static VerifierFactory _factory;
 	
@@ -53,17 +54,17 @@ public class XcapUtil
 			{
 				public void error(SAXParseException saxParseEx)
 				{
-					log.error("Error during validation.", saxParseEx);
+					log.warn("Error during validation.", saxParseEx);
 				}
 
 				public void fatalError(SAXParseException saxParseEx)
 				{
-					log.fatal("Fatal error during validation.", saxParseEx);
+					log.warn("Fatal error during validation.", saxParseEx);
 				}
 
 				public void warning(SAXParseException saxParseEx)
 				{
-					log.warn(saxParseEx);
+					log.warn("Verifier error handler", saxParseEx);
 				}
 			});
 
@@ -110,17 +111,17 @@ public class XcapUtil
 		{
 			public void error(SAXParseException saxParseEx)
 			{
-				log.error("Error during validation.", saxParseEx);
+				log.warn("Error during validation.", saxParseEx);
 			}
 
 			public void fatalError(SAXParseException saxParseEx)
 			{
-				log.fatal("Fatal error during validation.", saxParseEx);
+				log.warn("Fatal error during validation.", saxParseEx);
 			}
 
 			public void warning(SAXParseException saxParseEx)
 			{
-				log.warn(saxParseEx);
+				log.warn("Warn during validation", saxParseEx);
 			}
 		});
 

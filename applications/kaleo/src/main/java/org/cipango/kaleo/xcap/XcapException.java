@@ -13,20 +13,25 @@
 // ========================================================================
 package org.cipango.kaleo.xcap;
 
-import org.apache.log4j.Logger;
+
 
 import java.io.IOException;
 
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.log4j.Level;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.Level;
+
+
 
 public class XcapException extends RuntimeException
 {
 	/**
 	 * Logger for this class
 	 */
-	private static final Logger log = Logger.getLogger(XcapException.class);
+	private static final Logger log = LoggerFactory.getLogger(XcapException.class);
 
 	public static final String SEPARATOR = "\n";
 	public static final String XCAP_ERROR_HEADER = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration>
+
+  <!-- documentation about logback appenders configuration can be found here:
+       http://logback.qos.ch/manual/appenders.html -->
+
+  <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <File>${jetty.home}/logs/kaleo.log</File>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <!-- daily rollover -->
+      <fileNamePattern>${jetty.home}/logs/kaleo.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <!-- keep 4 days' worth of history -->
+      <maxHistory>4</maxHistory>
+    </rollingPolicy>
+    
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{35} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender"> 
+    <encoder>
+      <Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</Pattern>
+    </encoder>
+  </appender>
+
+  <logger name="org.cipango.kaleo.xcap.XcapService">
+    <level value="INFO"/>
+  </logger>
+
+  <logger name="org.cipango.kaleo">
+    <level value="DEBUG"/>
+  </logger>
+		
+  <root>
+    <level value="INFO"/>
+    <appender-ref ref="STDOUT"/>
+    <appender-ref ref="file"/>
+  </root>
+  
+</configuration>

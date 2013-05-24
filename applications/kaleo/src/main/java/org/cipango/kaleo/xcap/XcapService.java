@@ -28,7 +28,6 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.log4j.Level;
 import org.cipango.kaleo.Constants;
 import org.cipango.kaleo.xcap.XcapResourceImpl.NodeType;
 import org.cipango.kaleo.xcap.dao.XcapDao;
@@ -36,15 +35,17 @@ import org.cipango.kaleo.xcap.dao.XmlResource;
 import org.cipango.kaleo.xcap.util.HexString;
 import org.cipango.kaleo.xcap.util.RequestUtil;
 import org.cipango.kaleo.xcap.util.XcapUtil;
+import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.iso_relax.verifier.VerifierConfigurationException;
 import org.jaxen.JaxenException;
-import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
+
+import ch.qos.logback.classic.Level;
 
 public class XcapService extends AbstractLifeCycle
 {

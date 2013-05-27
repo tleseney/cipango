@@ -130,6 +130,11 @@ public abstract class UaRunnable extends Thread
 		return (SipServletRequest) _dialog.getSession().getAttribute(
 				Dialog.INITIAL_REQUEST_ATTRIBUTE);
 	}
+
+	public Dialog getDialog()
+	{
+		return _dialog;
+	}
 	
 	public class InitialRequestHandler implements MessageHandler
 	{

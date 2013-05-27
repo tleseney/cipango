@@ -27,7 +27,9 @@ import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.client.Call;
 import org.cipango.client.Dialog;
+import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
+import org.cipango.client.Subscriber;
 import org.cipango.client.test.UaRunnable;
 import org.cipango.client.test.UasScript;
 import org.cipango.tests.UaTestCase;
@@ -846,6 +848,7 @@ public class InvalidateWhenReadyTest extends UaTestCase
 	 * Alice                         AS
 	 *   | SUBSCRIBE                  |
 	 *   |--------------------------->|
+	 *   | expires=0                  |
 	 *   |                        200 |
 	 *   |<---------------------------|
  	 *   |                     NOTIFY |
@@ -859,11 +862,11 @@ public class InvalidateWhenReadyTest extends UaTestCase
 	public void testSubscribe() throws Throwable 
 	{
 		Dialog dialog = _ua.customize(new Dialog());
-		SipServletRequest request = _ua.decorate(dialog.createInitialRequest(
+		SipServletRequest request = dialog.createInitialRequest(
 				SipMethods.SUBSCRIBE, _sipClient.getFactory().createURI(getFrom()),
-				_sipClient.getFactory().createURI(createEndpoint("bob").getUri())));
+				_sipClient.getFactory().createURI(createEndpoint("bob").getUri()));
 		request.addHeader("Event", "presence");
-		request.addHeader("Expires", "0");
+		request.setExpires(0);
 		dialog.start(request);
 		assertThat(dialog.waitForResponse(), isSuccess());
 		
@@ -872,5 +875,121 @@ public class InvalidateWhenReadyTest extends UaTestCase
 		_ua.createResponse(request, SipServletResponse.SC_OK).send();
 		
         checkForFailure();
+	}
+	
+	/**
+	 * <pre>
+	 * Alice                         AS
+	 *   | SUBSCRIBE                  |
+	 *   | expires=60                 |
+	 *   |--------------------------->|
+	 *   |                        200 |
+	 *   |<---------------------------|
+ 	 *   |                     NOTIFY |
+	 *   |<---------------------------|
+	 *   |                        200 |
+	 *   |--------------------------->|
+	 *   |                            | 
+	 *   | SUBSCRIBE                  |
+	 *   | expires=0                  |
+	 *   |--------------------------->|
+	 *   |                        200 |
+	 *   |<---------------------------|
+ 	 *   |                     NOTIFY |
+	 *   |<---------------------------|
+	 *   |                        200 |
+	 *   |--------------------------->|
+	 *   |                            |
+	 * </pre>
+	 */
+	@Test
+	public void testSubscribe2() throws Throwable 
+	{
+		Subscriber subscriber = new Subscriber("presence", _ua.customize(new Dialog()));
+		SipServletResponse response = subscriber.startSubscription(
+				_sipClient.getFactory().createAddress(getFrom()), 
+				_sipClient.getFactory().createAddress(createEndpoint("bob").getUri()), 
+				60);
+
+		assertThat(response, isSuccess());
+		
+		SipServletRequest request = subscriber.waitForNotify();
+		_ua.createResponse(request, SipServletResponse.SC_OK).send();
+		
+		response = subscriber.stopSubscription();
+		assertThat(response, isSuccess());
+		
+		request = subscriber.waitForNotify();
+		_ua.createResponse(request, SipServletResponse.SC_OK).send();
+		
+        checkForFailure();
+	}
+	
+	/**
+	 * <pre>
+	 * Alice                         AS
+	 *   | MESSAGE                    |
+	 *   |--------------------------->|
+	 *   |                        200 |
+	 *   |<---------------------------|
+	 *   |                  SUBSCRIBE |
+	 *   |                 expires=60 |
+	 *   |<---------------------------|
+	 *   | 200                        |
+	 *   |--------------------------->|
+ 	 *   |NOTIFY                      |
+	 *   |--------------------------->|
+	 *   |                        200 |
+	 *   |<---------------------------|	 
+	 *   |                  SUBSCRIBE |
+	 *   |                  expires=0 |
+	 *   |<---------------------------|
+	 *   | 200                        |
+	 *   |--------------------------->|
+ 	 *   |NOTIFY                      |
+	 *   |--------------------------->|
+	 *   |                        200 |
+	 *   |<---------------------------|
+	 *   |                            |
+	 * </pre>
+	 */
+	@Test
+	public void testUacSubscribe() throws Throwable 
+	{
+		UaRunnable call = new UaRunnable(_ua)
+		{
+			
+			@Override
+			public void doTest() throws Throwable
+			{
+				SipServletRequest request = waitForInitialRequest();
+				SipServletResponse response = _ua.createResponse(request, SipServletResponse.SC_OK);
+				response.setExpires(60);
+				response.send();
+				
+				Thread.sleep(20);
+				request = _dialog.createRequest(SipMethods.NOTIFY);
+				request.setHeader(SipHeaders.SUBSCRIPTION_STATE, "active;expires=60");
+				request.send();	
+				assertThat(_dialog.waitForFinalResponse(), isSuccess());
+				
+				request = _dialog.waitForRequest();
+				response = _ua.createResponse(request, SipServletResponse.SC_OK);
+				response.setExpires(0);
+				response.send();
+				
+				request =  _dialog.createRequest(SipMethods.NOTIFY);
+				request.setHeader(SipHeaders.SUBSCRIPTION_STATE, "terminated");
+				request.send();	
+				
+				assertThat(_dialog.waitForFinalResponse(), isSuccess());
+			}
+		};
+
+		call.start();
+		startUacScenario();
+		call.join(2000);
+		call.assertDone();
+		checkForFailure();
 	}
 }

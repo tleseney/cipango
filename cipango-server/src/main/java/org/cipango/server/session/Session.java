@@ -29,6 +29,7 @@ import java.util.Map;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.sip.Address;
+import javax.servlet.sip.Parameterable;
 import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipErrorEvent;
@@ -480,6 +481,24 @@ public class Session implements SipSessionIf, Dumpable
 		else if (request.isBye() && response.is2xx())
 		{
 			setState(State.TERMINATED);
+		}
+		else if (response.isNotify())
+		{
+			try
+			{
+				Parameterable p = request.getParameterableHeader(SipHeader.SUBSCRIPTION_STATE.asString());
+				if (p != null)
+				{
+					if ("terminated".equalsIgnoreCase(p.getValue()))
+						setState(State.TERMINATED);
+				}
+				else
+					LOG.debug("Missing mandatory Subscription-State header in NOTIFY");
+			}
+			catch (Exception e)
+			{
+				LOG.ignore(e);
+			}
 		}
 	}
 		

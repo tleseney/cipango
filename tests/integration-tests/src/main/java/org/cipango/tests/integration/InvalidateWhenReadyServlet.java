@@ -14,6 +14,7 @@
 package org.cipango.tests.integration;
 
 import static org.cipango.client.test.matcher.SipSessionMatchers.*;
+import static org.cipango.client.test.matcher.SipMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.servlet.sip.Parameterable;
 import javax.servlet.sip.Proxy;
 import javax.servlet.sip.SipApplicationSessionEvent;
 import javax.servlet.sip.SipApplicationSessionListener;
@@ -40,6 +42,8 @@ import javax.servlet.sip.URI;
 import javax.servlet.sip.annotation.SipListener;
 import javax.servlet.sip.annotation.SipServlet;
 
+import org.cipango.client.SipHeaders;
+import org.cipango.client.SipMethods;
 import org.cipango.tests.AbstractServlet;
 import org.cipango.tests.MainServlet;
 import org.slf4j.Logger;
@@ -125,7 +129,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		SipSession session = request.getSession();
 		assertThat(session, hasState(State.INITIAL));
 		request.createResponse(SipServletResponse.SC_OK).send();
-		assertThat(session, hasState(State.INITIAL));; // State is not changed on non-dialog created request
+		assertThat(session, hasState(State.INITIAL)); // State is not changed on non-dialog created request
 		Thread.sleep(200);
 		
 		request.getApplicationSession().invalidate();
@@ -616,11 +620,111 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		assertThat(session, hasState(State.INITIAL));
 		request.createResponse(SipServletResponse.SC_OK).send();
 		Thread.sleep(50);
-		session.createRequest("NOTIFY").send();
+		assertThat(session, hasState(State.CONFIRMED));
+		SipServletRequest notify = session.createRequest("NOTIFY");
+		notify.addHeader(SipHeaders.SUBSCRIPTION_STATE, "terminated");
+		notify.send();
 	}
 
 	public void testSubscribe(SipServletResponse response) throws Throwable
 	{
+		SipSession session = response.getSession();
+		assertTrue(session.isReadyToInvalidate());
+		assertTrue(session.getApplicationSession().isReadyToInvalidate());
+	}
+	
+	public void testSubscribe2(SipServletRequest request) throws Throwable
+	{
+		SipSession session = request.getSession();
+		assertFalse(session.isReadyToInvalidate());
+		assertFalse(session.getApplicationSession().isReadyToInvalidate());
+		
+		if (request.isInitial())
+			assertThat(session, hasState(State.INITIAL));
+		else
+			assertThat(session, hasState(State.CONFIRMED));
+		SipServletResponse response = request.createResponse(SipServletResponse.SC_OK);
+		response.setExpires(request.getExpires());
+		response.send();
+		Thread.sleep(50);
+
+		SipServletRequest notify = session.createRequest("NOTIFY");
+		if (request.getExpires() > 0)
+			notify.addHeader(SipHeaders.SUBSCRIPTION_STATE, "active;expires=" + request.getExpires());
+		else
+			notify.addHeader(SipHeaders.SUBSCRIPTION_STATE, "terminated");
+		notify.send();
+	}
+
+	public void testSubscribe2(SipServletResponse response) throws Throwable
+	{
+		SipSession session = response.getSession();
+		Parameterable p = response.getRequest().getParameterableHeader(SipHeaders.SUBSCRIPTION_STATE);
+		if ("terminated".equals(p.getValue()))
+		{
+			assertTrue(session.isReadyToInvalidate());
+			assertTrue(session.getApplicationSession().isReadyToInvalidate());
+		}
+		else
+		{
+			assertFalse(session.isReadyToInvalidate());
+			assertFalse(session.getApplicationSession().isReadyToInvalidate());
+		}
+	}
+	
+	public void testUacSubscribe(SipServletRequest request) throws Throwable
+	{
+		SipSession session = request.getSession();
+		if (SipMethods.REGISTER.equals(request.getMethod()))
+		{		
+			request.createResponse(SipServletResponse.SC_OK).send();
+			request.getApplicationSession().invalidate();
+			SipServletRequest subscribe = getSipFactory().createRequest(getSipFactory().createApplicationSession(),
+					SipMethods.SUBSCRIBE, request.getTo(), request.getFrom());
+			session = subscribe.getSession();
+			session.setHandler(getServletName());
+			subscribe.setRequestURI(request.getAddressHeader(SipHeaders.CONTACT).getURI());
+			subscribe.setExpires(60);
+			subscribe.setHeader(SipHeaders.EVENT, "presence");
+			subscribe.send();
+		} 
+		else if (SipMethods.NOTIFY.equals(request.getMethod()))
+		{
+			request.createResponse(SipServletResponse.SC_OK).send();
+			if (session.getAttribute("first") == null)
+			{
+				__logger.info("First NOTIFY");
+				session.setAttribute("first", "");
+				SipServletRequest subscribe = session.createRequest(SipMethods.SUBSCRIBE);
+				subscribe.setExpires(0);
+				subscribe.setHeader(SipHeaders.EVENT, "presence");
+				subscribe.send();
+				
+				assertFalse(session.isReadyToInvalidate());
+				assertFalse(session.getApplicationSession().isReadyToInvalidate());
+			}
+			else
+			{
+				__logger.info("Final NOTIFY");
+				assertTrue(session.isReadyToInvalidate());
+				assertTrue(session.getApplicationSession().isReadyToInvalidate());
+			}
+					
+		}
+		else
+			fail("Unexpected request: " + request.getMethod());
+	}
+
+	public void testUacSubscribe(SipServletResponse response) throws Throwable
+	{
+		SipSession session = response.getSession();
+		assertThat(response, isSuccess());
+		
+		if (session.getAttribute("first") == null)
+		{
+			assertFalse(session.isReadyToInvalidate());
+			assertFalse(session.getApplicationSession().isReadyToInvalidate());
+		}
 	}
 
 	

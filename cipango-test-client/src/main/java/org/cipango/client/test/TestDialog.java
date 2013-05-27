@@ -17,9 +17,11 @@ import static org.junit.Assert.*;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.servlet.sip.Address;
 import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
+import javax.servlet.sip.URI;
 
 import org.cipango.client.Dialog;
 import org.junit.Ignore;
@@ -83,5 +85,11 @@ public class TestDialog extends Dialog
 	public SipServletRequest createRequest(String method)
 	{
 		return decorate(super.createRequest(method));
+	}
+
+	@Override
+	public SipServletRequest createInitialRequest(String method, Address local, Address remote)
+	{
+		return decorate(super.createInitialRequest(method, local, remote));
 	}
 }

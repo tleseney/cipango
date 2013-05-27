@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.cipango</groupId>
     <artifactId>cipango-project</artifactId>
-    <version>3.0.0-SNAPSHOT</version>
+    <version>3.0.0.SNAPSHOT</version>
   </parent>
   <artifactId>cipango-distribution</artifactId>
   <name>Cipango :: Distribution Assemblies</name>

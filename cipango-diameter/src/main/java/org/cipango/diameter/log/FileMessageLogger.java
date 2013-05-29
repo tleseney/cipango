@@ -128,7 +128,7 @@ public class FileMessageLogger extends AbstractLifeCycle implements DiameterMess
 		this._filename = filename;
 	}
 	
-	@ManagedAttribute(name="Message log file name")
+	@ManagedAttribute("Message log file name")
     public String getFilename() 
     {
         return _filename;
@@ -142,7 +142,7 @@ public class FileMessageLogger extends AbstractLifeCycle implements DiameterMess
     	_append = append;
     }
     
-    @ManagedAttribute(name="Maximum day number that log files are saved")
+    @ManagedAttribute("Maximum day number that log files are saved")
     public int getRetainDays() {
     	return _retainDays;
     }

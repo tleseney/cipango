@@ -16,15 +16,13 @@ package org.cipango.diameter.log;
 import org.cipango.diameter.node.DiameterConnection;
 import org.cipango.diameter.node.DiameterMessage;
 import org.eclipse.jetty.util.ArrayUtil;
-import org.eclipse.jetty.util.MultiException;
+import org.eclipse.jetty.util.annotation.ManagedAttribute;
+import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.component.ContainerLifeCycle;
-import org.eclipse.jetty.util.component.LifeCycle;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.log.Logger;
 
+@ManagedObject
 public class MessageListenerCollection extends ContainerLifeCycle implements DiameterMessageListener
 {
-	private static final Logger LOG = Log.getLogger(MessageListenerCollection.class);
 	
 	private DiameterMessageListener[] _listeners;
 	
@@ -40,6 +38,7 @@ public class MessageListenerCollection extends ContainerLifeCycle implements Dia
 			_listeners[i].messageSent(message, connection);
 	}
 
+	@ManagedAttribute(readonly=true)
 	public DiameterMessageListener[] getMessageListeners()
 	{
 		return _listeners;
@@ -47,33 +46,8 @@ public class MessageListenerCollection extends ContainerLifeCycle implements Dia
 
 	public void setMessageListeners(DiameterMessageListener[] loggers)
 	{
-		DiameterMessageListener[] oldLoggers = _listeners == null ? null : _listeners.clone();
+		updateBean(_listeners, loggers);
 		_listeners = loggers;
-
-		MultiException mex = new MultiException();
-		for (int i = 0; oldLoggers != null && i < oldLoggers.length; i++)
-		{
-			if (oldLoggers[i] != null)
-			{
-				try
-				{
-					if (oldLoggers[i] instanceof LifeCycle)
-					{
-						LifeCycle lifeCycle = (LifeCycle) oldLoggers[i];
-						if (lifeCycle.isStarted())
-							lifeCycle.stop();
-					}
-				}
-				catch (Throwable e)
-				{
-					mex.add(e);
-				}
-			}
-		}
-		if (isStarted())
-			try { doStart(); } catch (Throwable e) { mex.add(e); }
-		
-		mex.ifExceptionThrowRuntime();
 	}
 	
 	public void addMessageListener(DiameterMessageListener accessLog)
@@ -89,41 +63,4 @@ public class MessageListenerCollection extends ContainerLifeCycle implements Dia
             setMessageListeners((DiameterMessageListener[])ArrayUtil.removeFromArray(loggers, accessLog));
     }
 
-	@Override
-	protected void doStart() throws Exception
-	{
-		for (int i = 0; _listeners != null && i < _listeners.length; i++)
-		{
-			try
-			{
-				if (_listeners[i] instanceof LifeCycle)
-					((LifeCycle) _listeners[i]).start();
-			}
-			catch (Exception e)
-			{
-				LOG.warn(e);
-			}
-		}
-		super.doStart();
-	}
-
-	@Override
-	protected void doStop()
-	{
-		for (int i = 0; _listeners != null && i < _listeners.length; i++)
-		{
-			try
-			{
-				if (_listeners[i] instanceof LifeCycle)
-					((LifeCycle) _listeners[i]).stop();
-			}
-			catch (Exception e)
-			{
-				LOG.warn(e);
-			}
-
-		}
-	}
-
-	
 }

@@ -79,8 +79,13 @@ public abstract class AbstractDiameterConnector extends ContainerLifeCycle imple
 		open();
 		
 		_byteBufferPool = new ArrayByteBufferPool(256, 512, 65536);
+			
 		
 		super.doStart();
+		
+		// Add listener as node bean to ensure that listener is exposed by JMX
+		if (_listener != null)
+			_node.addBean(_listener);
 				
 		synchronized (this)
 		{

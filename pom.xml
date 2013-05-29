@@ -169,6 +169,7 @@
     <module>cipango-console</module>
     <module>cipango-deploy</module>
     <module>cipango-dar</module>
+    <module>cipango-diameter</module>
     <module>cipango-dns</module>
     <module>cipango-client</module>
     <module>cipango-test-client</module>
@@ -177,10 +178,6 @@
     <module>cipango-maven-plugin</module>
     <module>tests</module>
     <module>applications</module>
-<!--
-    <module>cipango-diameter</module>
-    <module>cipango-embedded</module>
--->
   </modules>
 
   <dependencyManagement>

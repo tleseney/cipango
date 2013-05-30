@@ -11,7 +11,7 @@
 				<ul class="nav">
 					#foreach( $page in $menu.getPages() )
 						#if ($menu.isPageEnabled($page))
-							#if ($page.getPages())
+							#if ($page.getPages() && !$page.getPages().isEmpty())
 								#if ($menu.isCurrentPage($page))
 									<li class="dropdown active">
 								#else

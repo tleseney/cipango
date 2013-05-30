@@ -30,7 +30,9 @@ import org.cipango.server.sipapp.SipXmlConfiguration;
 import org.eclipse.jetty.maven.plugin.AbstractJettyMojo;
 import org.eclipse.jetty.maven.plugin.JettyWebAppContext;
 import org.eclipse.jetty.util.ArrayUtil;
+import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.webapp.Configuration;
+import org.eclipse.jetty.xml.XmlConfiguration;
 
 
 public abstract class AbstractCipangoMojo extends AbstractJettyMojo
@@ -160,6 +162,21 @@ public abstract class AbstractCipangoMojo extends AbstractJettyMojo
 		}
 		
 		return true;
+	}
+
+	@Override
+	public void applyJettyXml() throws Exception
+	{
+		super.applyJettyXml();
+		
+		SipServer sipServer2 = server.getBean(SipServer.class);
+		if (sipServer2 != sipServer && sipServer2 != null)
+		{
+			getLog().debug("Sip server has changed");
+			sipServer = sipServer2;
+			if (sipApp != null)
+				sipApp.setServer(sipServer);
+		}
 	}
 
 	@Override

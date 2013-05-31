@@ -42,8 +42,6 @@ import javax.servlet.sip.URI;
 import javax.servlet.sip.annotation.SipListener;
 import javax.servlet.sip.annotation.SipServlet;
 
-import org.cipango.client.SipHeaders;
-import org.cipango.client.SipMethods;
 import org.cipango.tests.AbstractServlet;
 import org.cipango.tests.MainServlet;
 import org.slf4j.Logger;
@@ -622,7 +620,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		Thread.sleep(50);
 		assertThat(session, hasState(State.CONFIRMED));
 		SipServletRequest notify = session.createRequest("NOTIFY");
-		notify.addHeader(SipHeaders.SUBSCRIPTION_STATE, "terminated");
+		notify.addHeader("Subscription-State", "terminated");
 		notify.send();
 	}
 
@@ -650,16 +648,16 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 
 		SipServletRequest notify = session.createRequest("NOTIFY");
 		if (request.getExpires() > 0)
-			notify.addHeader(SipHeaders.SUBSCRIPTION_STATE, "active;expires=" + request.getExpires());
+			notify.addHeader("Subscription-State", "active;expires=" + request.getExpires());
 		else
-			notify.addHeader(SipHeaders.SUBSCRIPTION_STATE, "terminated");
+			notify.addHeader("Subscription-State", "terminated");
 		notify.send();
 	}
 
 	public void testSubscribe2(SipServletResponse response) throws Throwable
 	{
 		SipSession session = response.getSession();
-		Parameterable p = response.getRequest().getParameterableHeader(SipHeaders.SUBSCRIPTION_STATE);
+		Parameterable p = response.getRequest().getParameterableHeader("Subscription-State");
 		if ("terminated".equals(p.getValue()))
 		{
 			assertTrue(session.isReadyToInvalidate());
@@ -675,29 +673,29 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 	public void testUacSubscribe(SipServletRequest request) throws Throwable
 	{
 		SipSession session = request.getSession();
-		if (SipMethods.REGISTER.equals(request.getMethod()))
+		if ("REGISTER".equals(request.getMethod()))
 		{		
 			request.createResponse(SipServletResponse.SC_OK).send();
 			request.getApplicationSession().invalidate();
 			SipServletRequest subscribe = getSipFactory().createRequest(getSipFactory().createApplicationSession(),
-					SipMethods.SUBSCRIBE, request.getTo(), request.getFrom());
+					"SUBSCRIBE", request.getTo(), request.getFrom());
 			session = subscribe.getSession();
 			session.setHandler(getServletName());
-			subscribe.setRequestURI(request.getAddressHeader(SipHeaders.CONTACT).getURI());
+			subscribe.setRequestURI(request.getAddressHeader("Contact").getURI());
 			subscribe.setExpires(60);
-			subscribe.setHeader(SipHeaders.EVENT, "presence");
+			subscribe.setHeader("Event", "presence");
 			subscribe.send();
 		} 
-		else if (SipMethods.NOTIFY.equals(request.getMethod()))
+		else if ("NOTIFY".equals(request.getMethod()))
 		{
 			request.createResponse(SipServletResponse.SC_OK).send();
 			if (session.getAttribute("first") == null)
 			{
 				__logger.info("First NOTIFY");
 				session.setAttribute("first", "");
-				SipServletRequest subscribe = session.createRequest(SipMethods.SUBSCRIBE);
+				SipServletRequest subscribe = session.createRequest("SUBSCRIBE");
 				subscribe.setExpires(0);
-				subscribe.setHeader(SipHeaders.EVENT, "presence");
+				subscribe.setHeader("Event", "presence");
 				subscribe.send();
 				
 				assertFalse(session.isReadyToInvalidate());

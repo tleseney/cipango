@@ -14,6 +14,7 @@
 package org.cipango.plugin;
 
 import java.io.File;
+import java.util.Arrays;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -30,9 +31,8 @@ import org.cipango.server.sipapp.SipXmlConfiguration;
 import org.eclipse.jetty.maven.plugin.AbstractJettyMojo;
 import org.eclipse.jetty.maven.plugin.JettyWebAppContext;
 import org.eclipse.jetty.util.ArrayUtil;
-import org.eclipse.jetty.util.resource.Resource;
+import org.eclipse.jetty.util.Loader;
 import org.eclipse.jetty.webapp.Configuration;
-import org.eclipse.jetty.xml.XmlConfiguration;
 
 
 public abstract class AbstractCipangoMojo extends AbstractJettyMojo
@@ -92,11 +92,25 @@ public abstract class AbstractCipangoMojo extends AbstractJettyMojo
      */
     protected SipAppContext sipApp;
     
+    
+    /**
+     * Configuration classes to add to default Jetty configuration classes.
+     * If not set, <code>org.cipango.server.sipapp.SipXmlConfiguration</code> and
+     *  <code>org.cipango.plugin.MavenAnnotationConfiguration</code> are used.
+     * @parameter
+     */
+    protected String[] extraConfigurationClasses;
         
     /**
      * A wrapper for the Server object
      */
     private SipServer sipServer = new SipServer();
+    
+    /**
+     * Add SIP connectors if none set.
+     * @parameter default-value="true"
+     */
+    protected boolean addDefaultConnectors;
                 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException
@@ -111,10 +125,12 @@ public abstract class AbstractCipangoMojo extends AbstractJettyMojo
 		super.finishConfigurationBeforeStart();
 		sipServer.setServer(server);
 		sipServer.setHandler(sipApp);
-        sipServer.setConnectors(sipConnectors);
+		if (sipConnectors != null && sipConnectors.length > 0)
+			sipServer.setConnectors(sipConnectors);
+		
         SipConnector[] connectors = sipServer.getConnectors();
 
-        if (connectors == null|| connectors.length == 0)
+        if (addDefaultConnectors && (connectors == null|| connectors.length == 0))
         {
             //if a SystemProperty -Dsip.port=<portnum> has been supplied, use that as the default port
         	String portnum = System.getProperty(SIP_PORT_PROPERTY, null);
@@ -132,13 +148,18 @@ public abstract class AbstractCipangoMojo extends AbstractJettyMojo
     		sipConnectors[0].setPort(port);
     		sipConnectors[1].setPort(port);
 
+
+        	getLog().debug("No SIP connectors defined add connectors: " + Arrays.asList(sipConnectors));
         	sipServer.setConnectors(sipConnectors);
         }
         
-        for (SipConnector connector : sipServer.getConnectors())
-        	if (connector instanceof MavenSipConnector && ((MavenSipConnector) connector).getServer() == null)
-        		((MavenSipConnector) connector).setServer(sipServer);
-        
+        if (sipServer.getConnectors() != null)
+        {
+	        for (SipConnector connector : sipServer.getConnectors())
+	        	if (connector instanceof MavenSipConnector && ((MavenSipConnector) connector).getServer() == null)
+	        		((MavenSipConnector) connector).setServer(sipServer);
+        }
+	        
 		if (messageLog == null)
 		{
             FileMessageLog log = new FileMessageLog();
@@ -147,7 +168,7 @@ public abstract class AbstractCipangoMojo extends AbstractJettyMojo
 		}
         if (sipServer.getAccessLog() == null)
         	sipServer.setAccessLog(messageLog);  
-        
+                
 	}
 	
 	private boolean isSipConfigSet()
@@ -173,6 +194,7 @@ public abstract class AbstractCipangoMojo extends AbstractJettyMojo
 		if (sipServer2 != sipServer && sipServer2 != null)
 		{
 			getLog().debug("Sip server has changed");
+			sipServer.removeBeans();
 			sipServer = sipServer2;
 			if (sipApp != null)
 				sipApp.setServer(sipServer);
@@ -189,14 +211,25 @@ public abstract class AbstractCipangoMojo extends AbstractJettyMojo
 		sipApp.setWebAppContext(webApp, true);
 		sipApp.setServer(sipServer);
 		
-		if (!isSipConfigSet())
+		if (extraConfigurationClasses != null && extraConfigurationClasses.length > 0)
+		{
+			for (String className : extraConfigurationClasses)
+			{
+				@SuppressWarnings("unchecked")
+				Class<Configuration> clazz = (Class<Configuration>) Loader.loadClass(getClass(), className);
+				webApp.setConfigurations(ArrayUtil.addToArray(webApp.getConfigurations(), clazz.newInstance(), Configuration.class));
+			}
+		}
+		else if (!isSipConfigSet())
 		{
 			webApp.setConfigurations(ArrayUtil.addToArray(webApp.getConfigurations(), new SipXmlConfiguration(), Configuration.class));
 			if (annotationsEnabled)
 				webApp.setConfigurations(ArrayUtil.addToArray(webApp.getConfigurations(), new MavenAnnotationConfiguration(), Configuration.class));
 		}
+	
 		
 		super.configureWebApplication();
+		
 		
 		if (sipDefaultXml != null)
             sipApp.setDefaultsDescriptor(sipDefaultXml.getCanonicalPath());
@@ -209,6 +242,6 @@ public abstract class AbstractCipangoMojo extends AbstractJettyMojo
 //        getLog().info("Sip overrides = "+(webApp.getOverrideSipDescriptor()==null?" none":webApp.getOverrideSipDescriptor()));
 
 	}
-    
+   
     
 }

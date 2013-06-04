@@ -598,7 +598,10 @@ public class SipAppContext extends SipHandlerWrapper
 			oldClassLoader = currentThread.getContextClassLoader();
 			currentThread.setContextClassLoader(getClassLoader());
 		}
-		ApplicationSessionScope scope = applicationSession.getSessionManager().openScope(applicationSession);
+		ApplicationSessionScope scope = null;
+		
+		if (applicationSession != null)
+			scope = applicationSession.getSessionManager().openScope(applicationSession);
 		try
 		{
 			for (EventListener l :listeners)
@@ -615,7 +618,8 @@ public class SipAppContext extends SipHandlerWrapper
 		}
 		finally
 		{
-			scope.close();
+			if (scope != null)
+				scope.close();
 			if (getClassLoader() != null)
 				currentThread.setContextClassLoader(oldClassLoader);
 		}

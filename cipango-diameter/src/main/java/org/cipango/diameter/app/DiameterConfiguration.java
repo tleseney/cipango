@@ -35,7 +35,7 @@ public class DiameterConfiguration extends AbstractConfiguration
         } 
 				
 		DiameterFactoryImpl factory = new DiameterFactoryImpl();
-		Node node = (Node) context.getServer().getAttribute(Node.class.getName());
+		Node node = context.getServer().getBean(Node.class);
 		factory.setNode(node);
 		factory.setAppContext(context.getBean(SipAppContext.class));
 		
@@ -48,7 +48,7 @@ public class DiameterConfiguration extends AbstractConfiguration
 	@Override
 	public void deconfigure(org.eclipse.jetty.webapp.WebAppContext context) throws Exception
 	{
-		Node node = (Node) context.getServer().getAttribute(Node.class.getName());
+		Node node = context.getServer().getBean(Node.class);
 		((DiameterContext) node.getHandler()).removeListeners(context);
 	}
 

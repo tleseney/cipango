@@ -80,11 +80,6 @@
       </New>
     </Arg>
   </Call>
-
-  <Call name="setAttribute">
-    <Arg>org.cipango.diameter.node.Node</Arg>
-    <Arg><Ref id="node"/></Arg>
-  </Call>
   
   <!-- =========================================================== -->
   <!-- Apply plusConfig to all webapps for this Server             -->

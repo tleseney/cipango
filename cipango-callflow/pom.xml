@@ -71,5 +71,11 @@
       <groupId>commons-jexl</groupId>
       <artifactId>commons-jexl</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.cipango</groupId>
+      <artifactId>cipango-diameter</artifactId>
+      <version>${project.version}</version>
+      <optional>true</optional>
+    </dependency>
   </dependencies>
 </project>

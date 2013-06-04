@@ -136,13 +136,12 @@ public abstract class JmxConnection
 			while (it.hasNext())
 			{
 				MBeanServer server = it.next();
-				for (int j = 0; j < server.getDomains().length; j++)
+				if (_mbsc == null)
+					_mbsc = server;
+				if (server.isRegistered(JettyManager.SERVER) || server.isRegistered(SipManager.SERVER))
 				{
-					if (server.isRegistered(JettyManager.SERVER))
-					{
-						_mbsc = server;
-						break;
-					}
+					_mbsc = server;
+					break;
 				}
 			}
 			_logger.debug("Use MBeanServerConnection {}", _mbsc, null);

@@ -150,7 +150,7 @@ public class StatisticGraph
 
 	protected long getSessions(MBeanServerConnection mbsc) throws AttributeNotFoundException, InstanceNotFoundException, MBeanException, ReflectionException, IOException
 	{
-		ObjectName[] contexts =  (ObjectName[]) _connection.getMbsc().getAttribute(SipManager.HANDLER_COLLECTION, "sipContexts");
+		ObjectName[] contexts =  new SipManager(mbsc).getContexts();
 
 		
 		if (hasContextsChanged(contexts))

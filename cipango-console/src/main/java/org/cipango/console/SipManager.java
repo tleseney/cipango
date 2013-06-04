@@ -21,10 +21,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 
+import javax.management.AttributeNotFoundException;
+import javax.management.InstanceNotFoundException;
 import javax.management.JMException;
 import javax.management.MBeanAttributeInfo;
+import javax.management.MBeanException;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
+import javax.management.ReflectionException;
 import javax.servlet.http.HttpServletRequest;
 
 import org.cipango.console.data.ConsoleLogger;
@@ -191,9 +195,21 @@ public class SipManager extends Manager
 		return sessionManagers;
 	}
 	
+	public ObjectName[] getContexts() throws AttributeNotFoundException, InstanceNotFoundException, MBeanException, ReflectionException, IOException
+	{
+		if (_mbsc.isRegistered(HANDLER_COLLECTION))
+			return (ObjectName[]) _mbsc.getAttribute(SipManager.HANDLER_COLLECTION, "sipContexts");
+		
+		// When SipAppContext is directly set as SipServer handler. Happens when using cipango maven plugin 
+		ObjectName handler = (ObjectName) _mbsc.getAttribute(SERVER, "handler");
+		if (_mbsc.isInstanceOf(handler, "org.cipango.server.sipapp.SipAppContext"))
+			return new ObjectName[] { handler};
+		return (ObjectName[]) _mbsc.getAttribute(handler, "sipContexts");
+	}
+	
 	public Table getAppSessionStats(String key) throws Exception
 	{
-		ObjectName[] contexts =  (ObjectName[]) _mbsc.getAttribute(SipManager.HANDLER_COLLECTION, "sipContexts");
+		ObjectName[] contexts =  getContexts();
 		ObjectName[] sessionManagers = new ObjectName[contexts.length];
 		for (int i = 0; i < contexts.length; i++)
 		{

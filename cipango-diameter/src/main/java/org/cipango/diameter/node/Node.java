@@ -194,22 +194,13 @@ public class Node extends ContainerLifeCycle implements DiameterHandler, Dumpabl
 		_sessionManager.setNode(this);
 		addBean(_sessionManager);
 		
-		if (_connectors != null)
-		{
-			for (int i = 0; i < _connectors.length; i++)
-			{
-				_connectors[i].start();
-			}
-		}
-		
 		_scheduler = new ScheduledThreadPoolExecutor(1);
 		
 		if (_router == null)
-			_router = new DefaultRouter();
-		
-		if (_router instanceof LifeCycle)
-			((LifeCycle) _router).start();
-		
+			setDiameterRouter(new DefaultRouter());
+			
+		super.doStart();
+	
 		synchronized (this)
 		{
 			if (_peers != null)
@@ -228,8 +219,6 @@ public class Node extends ContainerLifeCycle implements DiameterHandler, Dumpabl
 				}
 			}
 		}	
-		
-		super.doStart();
 		
 		_scheduler.scheduleAtFixedRate(new WatchdogTimeout(), 5000, 5000, TimeUnit.MILLISECONDS);
 		LOG.info("Started {}", this);
@@ -662,10 +651,9 @@ public class Node extends ContainerLifeCycle implements DiameterHandler, Dumpabl
 		List<Object> l = new ArrayList<Object>();
 		l.add("Realm=" + _realm);
 		l.add("ProductName=" + _productName);
-		l.add(_router);
-		l.add(_sessionManager);
+		l.add("Supported applications=" + _supportedApplications);
 		
-		ContainerLifeCycle.dump(out,indent,l, Arrays.asList(_peers), Arrays.asList(_connectors), _supportedApplications);
+		dumpBeans(out,indent,l);
 	}
 	
 	class ConnectPeerTimeout implements Runnable

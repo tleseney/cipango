@@ -46,7 +46,7 @@ public class MessageListenerCollection extends ContainerLifeCycle implements Dia
 
 	public void setMessageListeners(DiameterMessageListener[] loggers)
 	{
-		updateBean(_listeners, loggers);
+		updateBeans(_listeners, loggers);
 		_listeners = loggers;
 	}
 	

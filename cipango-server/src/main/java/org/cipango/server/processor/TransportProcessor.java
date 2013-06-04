@@ -73,10 +73,13 @@ public class TransportProcessor extends SipProcessorWrapper
 			setBlackList(new EmptyBlackList());
 		
 		List<Transport> transports = new ArrayList<Transport>();
-		for (SipConnector connector : getServer().getConnectors())
+		if (getServer().getConnectors() != null)
 		{
-			if (!transports.contains(connector.getTransport()))
-				transports.add(connector.getTransport());
+			for (SipConnector connector : getServer().getConnectors())
+			{
+				if (!transports.contains(connector.getTransport()))
+					transports.add(connector.getTransport());
+			}
 		}
 		_dnsResolver.setEnableTransports(transports);
 		

@@ -171,6 +171,7 @@
     <module>cipango-dar</module>
     <module>cipango-diameter</module>
     <module>cipango-dns</module>
+    <module>cipango-embedded</module>
     <module>cipango-client</module>
     <module>cipango-test-client</module>
     <module>cipango-websocket</module>

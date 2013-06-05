@@ -67,15 +67,10 @@ public abstract class AbstractCipangoMojo extends AbstractJettyMojo
      * of the default for the sipapp. Optional.
      *
      * @parameter
+     * @deprecated use sipapp.defaultDescriptor
      */
     protected File sipDefaultXml;
     
-    /**
-     * A sip.xml file to be applied AFTER the webapp's sip.xml file. Useful for
-     * applying different build profiles, eg test, production etc. Optional.
-     * @parameter
-     */
-    protected File overrideSipXml;
     
     /**
      * Allow to disable annotations parsing.
@@ -233,13 +228,9 @@ public abstract class AbstractCipangoMojo extends AbstractJettyMojo
 		
 		if (sipDefaultXml != null)
             sipApp.setDefaultsDescriptor(sipDefaultXml.getCanonicalPath());
-// FIXME
-		//        if (overrideSipXml != null)
-//        	sipApp.setOverrideSipDescriptor(overrideSipXml.getCanonicalPath());
-//        sipApp.setAnnotationsEnabled(annotationsEnabled);
         
         getLog().info("Sip defaults = "+(sipApp.getDefaultsDescriptor()==null?" cipango default":sipApp.getDefaultsDescriptor()));
-//        getLog().info("Sip overrides = "+(webApp.getOverrideSipDescriptor()==null?" none":webApp.getOverrideSipDescriptor()));
+        getLog().info("Sip overrides = "+(sipApp.getOverrideDescriptors()==null?" none":sipApp.getOverrideDescriptors()));
 
 	}
    

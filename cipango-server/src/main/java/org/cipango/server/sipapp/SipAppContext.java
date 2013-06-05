@@ -648,7 +648,28 @@ public class SipAppContext extends SipHandlerWrapper
 	{
 		_defaultsDescriptor = defaultsDescriptor;
 	}
+	
+	 /**
+     * The override descriptor is a sip.xml format file that is applied to the context after the standard WEB-INF/sip.xml
+     * @return Returns the Override Descriptor.
+     */
+    public String getOverrideDescriptor()
+    {
+        if (_overrideDescriptors.size()!=1)
+            return null;
+        return _overrideDescriptors.get(0);
+    }
 
+    /**
+     * The override descriptor is a sip.xml format file that is applied to the context after the standard WEB-INF/sip.xml
+     * @param overrideDescriptor The overrideDescritpor to set.
+     */
+    public void setOverrideDescriptor(String overrideDescriptor)
+    {
+        _overrideDescriptors.clear();
+        _overrideDescriptors.add(overrideDescriptor);
+    }
+	
 	public List<String> getOverrideDescriptors()
 	{
 		return _overrideDescriptors;

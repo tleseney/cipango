@@ -52,5 +52,9 @@
         <Arg name="contexts"><Ref id="Contexts" /></Arg>
       </New>
     </Set>
+    
+    <Call class="org.cipango.server.log.event.Events" name="setDispatcher">
+      <Arg><New class="org.cipango.server.log.event.LogEventDispatcher"/></Arg>
+    </Call>
   </New>
 </Configure>

@@ -25,6 +25,7 @@ import javax.servlet.sip.URI;
 
 import org.cipango.server.dns.Hop;
 import org.cipango.server.log.AccessLog;
+import org.cipango.server.log.event.Events;
 import org.cipango.server.nio.UdpConnector;
 import org.cipango.server.processor.TransportProcessor;
 import org.cipango.server.transaction.RetryableTransactionManager;
@@ -138,10 +139,13 @@ public class SipServer extends ContainerLifeCycle
 		}
 				
 		mex.ifExceptionThrow();
+		
+		Events.fire(Events.START, "Cipango " + __version + " started");
 	}
 	
 	protected void doStop() throws Exception
 	{
+		Events.fire(Events.STOP, "Stopping Cipango " + __version);
 		MultiException mex = new MultiException();
 		
 		_handler.stop();

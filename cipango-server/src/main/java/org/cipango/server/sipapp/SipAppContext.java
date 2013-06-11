@@ -61,6 +61,7 @@ import org.cipango.server.SipMessage;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipServer;
 import org.cipango.server.handler.SipHandlerWrapper;
+import org.cipango.server.log.event.Events;
 import org.cipango.server.security.AuthInfoImpl;
 import org.cipango.server.security.ConstraintSecurityHandler;
 import org.cipango.server.security.SipSecurityHandler;
@@ -238,9 +239,9 @@ public class SipAppContext extends SipHandlerWrapper
 				if (exception == null)
 					exception = _context.getUnavailableException();
 
-//				Events.fire(Events.DEPLOY_FAIL,
-//						 "Unable to deploy application " + getName()
-//						 + ": " + exception);
+				Events.fire(Events.DEPLOY_FAIL,
+						 "Unable to deploy application " + getName()
+						 + ": " + exception);
 			}
 			
 		}

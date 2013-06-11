@@ -45,6 +45,7 @@ import javax.servlet.sip.SipServlet;
 import javax.servlet.sip.SipServletContextEvent;
 import javax.servlet.sip.SipServletListener;
 import javax.servlet.sip.SipServletRequest;
+import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipSession;
 import javax.servlet.sip.SipSessionAttributeListener;
 import javax.servlet.sip.SipSessionListener;
@@ -78,6 +79,7 @@ import org.cipango.server.session.scoped.ScopedTimer;
 import org.cipango.server.util.ReadOnlySipURI;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.ParameterableImpl;
+import org.cipango.sip.SipHeader;
 import org.cipango.sip.SipMethod;
 import org.cipango.sip.SipURIImpl;
 import org.cipango.sip.URIFactory;
@@ -152,6 +154,7 @@ public class SipAppContext extends SipHandlerWrapper
     
     private String _id;
     private ServerListener _serverListener;
+    private Throwable _unavailableException;
     
     public static SipAppContext getCurrentContext()
     {
@@ -207,28 +210,39 @@ public class SipAppContext extends SipHandlerWrapper
 					for (SipServletHolder holder : getServletHandler().getServlets())
 						decorator.decorateServletHolder(holder);
 			}
-	
-			if (_context != null && !_context.isAvailable())
-			{
-				if (_name == null)
-					setName(getDefaultName());
-				// Events.fire(Events.DEPLOY_FAIL,
-				// "Unable to deploy application " + getName()
-				// + ": " + _context.getUnavailableException().getMessage());
-			}
-			else 
-			{
-				if (getServer().isStarted())
-					serverStarted();
-			}
-			
-			
+		}
+		catch (Throwable e)
+		{
+			if (_name == null)
+				setName(getDefaultName());
+			LOG.warn("Failed to start SipAppContext {}: {}", getName(), e);
+			_unavailableException = e;
+			if (_context != null)
+				_context.setAvailable(false);
+			throw e;
 		}
 		finally
 		{
 			__context.set(oldContext);
 			if (currentThread != null && oldClassLoader != null)
 				currentThread.setContextClassLoader(oldClassLoader);
+			
+			if (isAvailable())
+			{
+				if (getServer().isStarted())
+					serverStarted();
+			}
+			else
+			{
+				Throwable exception = _unavailableException;
+				if (exception == null)
+					exception = _context.getUnavailableException();
+
+//				Events.fire(Events.DEPLOY_FAIL,
+//						 "Unable to deploy application " + getName()
+//						 + ": " + exception);
+			}
+			
 		}
 	}
 	
@@ -239,6 +253,7 @@ public class SipAppContext extends SipHandlerWrapper
 		if (getServer() != null && _serverListener != null)
 			getServer().removeLifeCycleListener(_serverListener);
 		_serverListener = null;
+		_unavailableException = null;
 	}
 	
 	private void relinkHandlers()
@@ -386,8 +401,7 @@ public class SipAppContext extends SipHandlerWrapper
 							}
 							catch (Exception e)
 							{
-								LOG.warn("Failed to start SipAppContext " + getName(), e);
-								_context.setAvailable(false);
+								throw new RuntimeException(e);
 							}
 							
 						}
@@ -443,6 +457,14 @@ public class SipAppContext extends SipHandlerWrapper
 	@Override
 	public void handle(SipMessage message) throws IOException, ServletException
 	{
+		if (!isAvailable() && message instanceof SipServletRequest)
+		{
+			SipServletResponse response = ((SipServletRequest) message).createResponse(SipServletResponse.SC_SERVICE_UNAVAILABLE);
+			response.addHeader(SipHeader.REASON.asString(), "Application " + getName() + " unavailable");
+			response.send();
+			return;
+		}
+		
 		ClassLoader oldClassLoader = null;
 		Thread currentThread = null;
 		
@@ -763,7 +785,18 @@ public class SipAppContext extends SipHandlerWrapper
 		return _errorListeners;
 	}
 	
+	@ManagedAttribute
+	public Throwable getUnavailableException()
+	{
+		return _unavailableException;
+	}
 
+	@ManagedAttribute
+	public boolean isAvailable()
+	{
+		return _unavailableException == null && (_context == null || _context.isAvailable());
+	}
+	
 	@Override
 	public void setServer(SipServer server)
 	{
@@ -1027,5 +1060,6 @@ public class SipAppContext extends SipHandlerWrapper
 	{
 		void decorateServletHolder(SipServletHolder servlet) throws ServletException;
 	}
+
 
 }

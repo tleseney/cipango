@@ -40,7 +40,7 @@ public class MenuImpl implements Menu
 		SYSTEM_PROPERTIES = SERVER.add(new PageImpl("system-properties.vm", "System Properties")),
 		
 		CONFIG = PAGES.add(new PageImpl("Configuration")),
-		CONFIG_SIP = CONFIG.add(new PageImpl("configuration-sip.vm", "SIP Configuration", "SIP")
+		CONFIG_SIP = CONFIG.add(new PageImpl("configuration/sip.vm", "SIP Configuration", "SIP")
 		{
 			@Override
 			public boolean isEnabled(MBeanServerConnection c) throws IOException
@@ -48,8 +48,8 @@ public class MenuImpl implements Menu
 				return c.isRegistered(SipManager.SERVER);
 			}
 		}),
-		CONFIG_HTTP = CONFIG.add(new PageImpl("configuration-http.vm", "HTTP Configuration", "HTTP")),
-		CONFIG_DIAMETER = CONFIG.add(new PageImpl("configuration-diameter.vm", "Diameter Configuration", "Diameter")
+		CONFIG_HTTP = CONFIG.add(new PageImpl("configuration/http.vm", "HTTP Configuration", "HTTP")),
+		CONFIG_DIAMETER = CONFIG.add(new PageImpl("configuration/diameter.vm", "Diameter Configuration", "Diameter")
 		{
 			@Override
 			public boolean isEnabled(MBeanServerConnection c) throws IOException
@@ -57,7 +57,7 @@ public class MenuImpl implements Menu
 				return c.isRegistered(DiameterManager.NODE);
 			}
 		}),
-		CONFIG_SNMP = CONFIG.add(new PageImpl("configuration-snmp.vm", "SNMP Configuration", "SNMP")
+		CONFIG_SNMP = CONFIG.add(new PageImpl("configuration/snmp.vm", "SNMP Configuration", "SNMP")
 		{
 			@Override
 			public boolean isEnabled(MBeanServerConnection c) throws IOException
@@ -92,8 +92,8 @@ public class MenuImpl implements Menu
 		}),
 		
 		STATISTICS = PAGES.add(new PageImpl("Statistics")),
-		STATISTICS_SIP = STATISTICS.add(new PageImpl("statistics-sip.vm", "SIP Statistics", "SIP")),
-		STATISTICS_HTTP = STATISTICS.add(new PageImpl("statistics-http.vm", "HTTP Statistics", "HTTP")
+		STATISTICS_SIP = STATISTICS.add(new PageImpl("statistics/sip.vm", "SIP Statistics", "SIP")),
+		STATISTICS_HTTP = STATISTICS.add(new PageImpl("statistics/http.vm", "HTTP Statistics", "HTTP")
 		{
 			@Override
 			public boolean isEnabled(MBeanServerConnection c) throws IOException
@@ -102,7 +102,7 @@ public class MenuImpl implements Menu
 				return false;
 			}
 		}),
-		STATISTICS_DIAMETER = STATISTICS.add(new PageImpl("statistics-diameter.vm", "Diameter Statistics", "Diameter")
+		STATISTICS_DIAMETER = STATISTICS.add(new PageImpl("statistics/diameter.vm", "Diameter Statistics", "Diameter")
 		{
 			@Override
 			public boolean isEnabled(MBeanServerConnection c) throws IOException
@@ -110,10 +110,10 @@ public class MenuImpl implements Menu
 				return c.isRegistered(DiameterManager.NODE);
 			}
 		}),
-		STATISTICS_GRAPH = STATISTICS.add(new PageImpl("statistics-graph.vm", "Statistics graphs", "Graphs")),
+		STATISTICS_GRAPH = STATISTICS.add(new PageImpl("statistics/graph.vm", "Statistics graphs", "Graphs")),
 		
 		LOGS = PAGES.add(new PageImpl("Logs")),
-		SIP_LOGS = LOGS.add(new PageImpl("logs-sip.vm", "SIP Logs", "SIP"){
+		SIP_LOGS = LOGS.add(new PageImpl("logs/sip.vm", "SIP Logs", "SIP"){
 			@Override
 			public boolean isEnabled(MBeanServerConnection c) throws IOException
 			{
@@ -121,7 +121,7 @@ public class MenuImpl implements Menu
 							|| c.isRegistered(SipManager.FILE_MESSAGE_LOG);
 			}
 		}),
-		HTTP_LOGS = LOGS.add(new PageImpl("logs-http.vm", "HTTP Logs", "HTTP")
+		HTTP_LOGS = LOGS.add(new PageImpl("logs/http.vm", "HTTP Logs", "HTTP")
 		{
 			@Override
 			public boolean isEnabled(MBeanServerConnection c) throws IOException
@@ -129,7 +129,7 @@ public class MenuImpl implements Menu
 				return c.isRegistered(JettyManager.HTTP_LOG);
 			}
 		}),
-		DIAMETER_LOGS = LOGS.add(new PageImpl("logs-diameter.vm", "Diameter Logs", "Diameter")
+		DIAMETER_LOGS = LOGS.add(new PageImpl("logs/diameter.vm", "Diameter Logs", "Diameter")
 		{
 			@Override
 			public boolean isEnabled(MBeanServerConnection c) throws IOException
@@ -137,8 +137,8 @@ public class MenuImpl implements Menu
 				return c.isRegistered(DiameterManager.NODE);
 			}
 		}),
-		CALLS = LOGS.add(new PageImpl("logs-sessions.vm", "Sessions")),
-		SYSTEM_LOGS = LOGS.add(new PageImpl("logs-systems.vm", "System logs")
+		CALLS = LOGS.add(new PageImpl("logs/sessions.vm", "Sessions")),
+		SYSTEM_LOGS = LOGS.add(new PageImpl("logs/systems.vm", "System logs")
 		{
 			@Override
 			public boolean isEnabled(MBeanServerConnection c) throws IOException
@@ -194,7 +194,7 @@ public class MenuImpl implements Menu
 	
 	public String getTitle()
 	{
-		return _currentPage.getTitle();
+		return _currentPage == null ? "Cipango console" : _currentPage.getTitle();
 	}
 		
 	public String getHtmlTitle()
@@ -213,7 +213,7 @@ public class MenuImpl implements Menu
 	
 	public boolean isCurrentPage(PageImpl page)
 	{
-		return page == _currentPage || page == _currentPage.getFather();
+		return _currentPage != null && (page == _currentPage || page == _currentPage.getFather());
 	}
 	
 	public List<PageImpl> getPages()

@@ -31,6 +31,7 @@ import org.eclipse.jetty.util.log.Logger;
 
 public class VelocityConsoleServlet extends VelocityLayoutServlet
 {
+	private static final long serialVersionUID = 1L;
 
 	private Logger _logger = Log.getLogger(VelocityConsoleServlet.class);
 	
@@ -126,9 +127,8 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 		}
 		
 		String command = request.getServletPath();
-		int index = command.lastIndexOf('/');
-		if (index != -1)
-			command = command.substring(index + 1);
+		if (command.startsWith("/"))
+			command = command.substring(1);
 
 		Menu menu = getMenuFactory().getMenu(command, connection.getMbsc());
 		request.setAttribute(Attributes.MENU, menu);
@@ -146,7 +146,7 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 					action.setAjaxContent(request, response);
 				}
 				else
-					response.sendRedirect(command);
+					response.sendRedirect(request.getRequestURI());
 
 				return;
 			} 
@@ -188,7 +188,6 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 				if (action.getParameter().equalsIgnoreCase(param))
 					return action;
 		}
-		
 		_logger.warn("No action found for parameter {} and page {}", param, page.getName());
 		return null;
 	}

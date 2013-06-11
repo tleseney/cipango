@@ -47,7 +47,9 @@
 <h2>Servlets</h2>
 #foreach ($context in $applicationManager.getSipMappings())
 	<h3>$context.name</h3>
-	#if ($context.mappings)
+  #if (!$context.available)
+    <div class="alert alert-error">This application is <b>not</b> available.</div>
+	#elseif ($context.mappings)
 		#table($context.mappings)
 	#elseif ($context.mainServlet)
 		Main servlet is $context.mainServlet

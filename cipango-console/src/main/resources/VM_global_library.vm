@@ -60,7 +60,7 @@
 ###                         Print graph                                    ####
 #macro( printGraph $title $type)
 	<h3>$title</h3>
-	<img src="statistics/${type}.png?time=$time"/>
+	<img src="${type}.png?time=$time"/>
 	<br/>
 #end
 

@@ -24,14 +24,18 @@ import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
 
 import org.cipango.server.dns.Hop;
+import org.cipango.server.handler.SipContextHandlerCollection;
 import org.cipango.server.log.AccessLog;
 import org.cipango.server.log.event.Events;
 import org.cipango.server.nio.UdpConnector;
 import org.cipango.server.processor.TransportProcessor;
+import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.server.transaction.RetryableTransactionManager;
 import org.cipango.server.transaction.TransactionManager;
 import org.cipango.sip.Via;
+import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.MultiException;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
@@ -484,6 +488,18 @@ public class SipServer extends ContainerLifeCycle
 	{
 		_messagesReceived.set(0);
 		_messagesSent.set(0);
+		getTransactionManager().statsReset();
+		if (_handler instanceof SipContextHandlerCollection)
+		{
+			SipAppContext[] handlers = ((SipContextHandlerCollection) _handler).getSipContexts();
+			if (handlers != null)
+			{
+				for (SipAppContext context : handlers)
+					context.getSessionHandler().getSessionManager().statsReset();
+			}
+		}
+		else if (_handler instanceof SipAppContext)
+			((SipAppContext) _handler).getSessionHandler().getSessionManager().statsReset();
 	}
 	
 	public void setServer(Server server)

@@ -6,7 +6,7 @@
 				<span class="icon-bar"></span>
 				<span class="icon-bar"></span>
 			</a>
-			<a class="brand" href="about.vm">Cipango</a>
+			<a class="brand" href="$request.contextPath/about.vm">Cipango</a>
 			<div class="nav-collapse">
 				<ul class="nav">
 					#foreach( $page in $menu.getPages() )
@@ -21,7 +21,7 @@
 									<ul class="dropdown-menu">
 										#foreach( $subPage in $page.getPages() )
 											#if ($menu.isPageEnabled($subPage))
-												<li class=""><a href="$subPage.getName()">$subPage.getMenuTitle()</a></li>
+												<li class=""><a href="$request.contextPath/$subPage.getName()">$subPage.getMenuTitle()</a></li>
 											#end
 										#end
 									</ul>
@@ -32,7 +32,7 @@
 								#else
 									<li>
 								#end
-									<a href="$page.getName()">$page.getMenuTitle()</a>
+									<a href="$request.contextPath/$page.getName()">$page.getMenuTitle()</a>
 								</li>
 							#end
 						#end
@@ -56,7 +56,7 @@
 						<li class="divider-vertical"></li>
 						<li><a href="#">Logged in as $request.getUserPrincipal().getName()</a></li>
 						<li class="divider-vertical"></li>
-						<li><a href="login.vm?logout=true" title="Log Out">Log Out</a></li>
+						<li><a href="$request.contextPath/login.vm?logout=true" title="Log Out">Log Out</a></li>
 					#end
 				</ul>
 			</div>

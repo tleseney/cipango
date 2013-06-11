@@ -76,7 +76,7 @@ public class SipManager extends Manager
 		}		
 	});
 	
-	public static final Action START_GRAPH = Action.add(new Action(MenuImpl.STATISTICS_SIP, "start-graph")
+	public static final Action START_GRAPH = Action.add(new Action(MenuImpl.STATISTICS_GRAPH, "start")
 	{
 		@Override
 		public void doProcess(HttpServletRequest request, MBeanServerConnection mbsc) throws Exception
@@ -85,7 +85,7 @@ public class SipManager extends Manager
 		}
 	});
 	
-	public static final Action STOP_GRAPH = Action.add(new Action(MenuImpl.STATISTICS_SIP, "stop-graph")
+	public static final Action STOP_GRAPH = Action.add(new Action(MenuImpl.STATISTICS_GRAPH, "stop")
 	{
 		@Override
 		public void doProcess(HttpServletRequest request, MBeanServerConnection mbsc) throws Exception
@@ -100,7 +100,7 @@ public class SipManager extends Manager
 		public void doProcess(HttpServletRequest request, MBeanServerConnection mbsc) throws Exception
 		{
 			getStatisticGraph(request).reset();
-			mbsc.invoke(JettyManager.SERVER, "allStatsReset", null, null);
+			mbsc.invoke(SipManager.SERVER, "statsReset", null, null);
 		}	
 	});
 	

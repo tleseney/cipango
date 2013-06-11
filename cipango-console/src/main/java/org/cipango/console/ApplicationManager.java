@@ -240,17 +240,23 @@ public class ApplicationManager extends Manager
 		for (ObjectName objectName : sipContexts)
 		{
 			Context context = new Context((String) _mbsc.getAttribute(objectName, "name"));
+			
+			context.setAvailable((boolean) _mbsc.getAttribute(objectName, "available"));
 
 			ObjectName servletHandler = (ObjectName) _mbsc.getAttribute(objectName, "servletHandler");
-			ObjectName[] sipServletMappings = (ObjectName[]) _mbsc.getAttribute(servletHandler, "servletMappings");
-	
-			if (sipServletMappings != null && sipServletMappings.length != 0)
-				context.setMappings(new Table(_mbsc, sipServletMappings, "mappings"));
-			else
+			ObjectName[] sipServletMappings = null;
+			if (servletHandler != null)
 			{
-				ObjectName mainServlet = (ObjectName) _mbsc.getAttribute(servletHandler, "mainServlet");
-				if (mainServlet != null)
-					context.setMainServlet((String) _mbsc.getAttribute(mainServlet, "name"));
+				sipServletMappings = (ObjectName[]) _mbsc.getAttribute(servletHandler, "servletMappings");
+	
+				if (sipServletMappings != null && sipServletMappings.length != 0)
+					context.setMappings(new Table(_mbsc, sipServletMappings, "mappings"));
+				else
+				{
+					ObjectName mainServlet = (ObjectName) _mbsc.getAttribute(servletHandler, "mainServlet");
+					if (mainServlet != null)
+						context.setMainServlet((String) _mbsc.getAttribute(mainServlet, "name"));
+				}
 			}
 			l.add(context);
 		}
@@ -373,6 +379,7 @@ public class ApplicationManager extends Manager
 		private String _name;
 		private Table _mappings;
 		private String _mainServlet;
+		private boolean _available;
 		
 		public Context(String name)
 		{
@@ -402,6 +409,16 @@ public class ApplicationManager extends Manager
 		public void setMainServlet(String mainServlet)
 		{
 			_mainServlet = mainServlet;
+		}
+
+		public boolean isAvailable()
+		{
+			return _available;
+		}
+
+		public void setAvailable(boolean available)
+		{
+			_available = available;
 		}		
 	}
 

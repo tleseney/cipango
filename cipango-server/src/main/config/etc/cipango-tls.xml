@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!DOCTYPE Configure PUBLIC "-//Jetty//Configure//EN" "http://www.eclipse.org/jetty/configure.dtd">
+
+<!-- =============================================================== -->
+<!-- Configure TLS for the Cipango Server                            -->
+<!-- This configuration must be used in conjunction with jetty.xml   -->
+<!-- and cipango.xml and jetty-ssl.xml.                              -->
+<!-- =============================================================== -->
+<Configure class="org.cipango.server.SipServer" id="SipServer">
+
+    <Call name="addConnector">
+      <Arg>
+        <New class="org.cipango.server.nio.TlsChannelConnector">
+          <Arg name="sipServer"><Ref id="SipServer"/></Arg>
+          <Arg name="sslContextFactory"><Ref refid="sslContextFactory"/></Arg>
+          <Set name="port"><Property default="5061" name="sips.port"/></Set>
+          <Set name="host"><Property name="sip.host"/></Set>
+        </New>
+      </Arg>
+    </Call>
+
+</Configure>

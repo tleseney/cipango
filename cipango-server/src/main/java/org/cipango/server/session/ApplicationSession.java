@@ -70,7 +70,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 	private final long _created;
 	private long _accessed;
 	
-	private int _timeoutMs = 30000;
+	private long _timeoutMs = 30000;
 	
 	private boolean _valid = true;
 	
@@ -109,10 +109,15 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 	
 	public ApplicationSession(SessionManager sessionManager, String id)
 	{
+		this(sessionManager, id, System.currentTimeMillis(), 0);
+	}
+	
+	public ApplicationSession(SessionManager sessionManager, String id, long created, long access)
+	{
 		_sessionManager = sessionManager;
 		
-		_created = System.currentTimeMillis();
-		_accessed = 0;
+		_created = created;
+		_accessed = access;
 		
 		_id = id;
 		
@@ -263,7 +268,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 		}
 	}
 	
-	public int getTimeoutMs()
+	public long getTimeoutMs()
 	{
 		return _timeoutMs;
 	}

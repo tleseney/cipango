@@ -45,13 +45,17 @@ public class SessionHandler extends SipHandlerWrapper
 	public static final String APP_ID = "appid";
 	private static final int MAX_TRY_LOCK_TIME = 64 * TransactionImpl.__T1 / 1000; // 32 seconds
 	private static final Logger LOG = Log.getLogger(SessionHandler.class);
-	private final SessionManager _sessionManager;
+	private SessionManager _sessionManager;
     private Method _sipApplicationKeyMethod;
 	
 	public SessionHandler()
 	{
-		_sessionManager = new SessionManager();
-		addBean(_sessionManager);
+		this(new SessionManager());
+	}
+	
+	public SessionHandler(SessionManager sessionManager)
+	{
+		setSessionManager(sessionManager);
 	}
 	
 	
@@ -60,6 +64,14 @@ public class SessionHandler extends SipHandlerWrapper
 	{
 		_sessionManager.setSipAppContext(SipAppContext.getCurrentContext());
 		super.doStart();
+	}
+	
+	public void setSessionManager(SessionManager sessionManager)
+	{
+		if (isStarted())
+	        throw new IllegalStateException();
+		updateBean(_sessionManager, sessionManager);
+		_sessionManager = sessionManager;
 	}
 	
 	public void handle(SipMessage message) throws IOException, ServletException 

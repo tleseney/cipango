@@ -158,11 +158,7 @@ public class SessionManager extends AbstractLifeCycle
 	
 	public ApplicationSession createApplicationSession()
 	{
-		String id = _sessionIdManager.newId();
-
-		ApplicationSession appSession = new ApplicationSession(this, id);
-		addApplicationSession(appSession);
-		return appSession;
+		return createApplicationSession(_sessionIdManager.newId());
 	}
 	
 	public ApplicationSession createApplicationSession(String id)

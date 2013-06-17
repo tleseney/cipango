@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Configure PUBLIC "-//Jetty//Configure//EN" "http://www.eclipse.org/jetty/configure.dtd">
+
+<Configure id="SipServer" class="org.cipango.server.SipServer">
+
+  <Ref id="SipAppProvider">
+    <Set name="sessionManagerClass">org.cipango.replication.InfinispanSessionManager</Set>
+  </Ref>
+
+  <New class="org.infinispan.manager.DefaultCacheManager">
+    <Arg><Property name="jetty.home" default="." />/etc/infinispan.xml</Arg>
+    <Get id="cache" name="cache">
+      <Call name="start"/>
+    </Get>
+  </New>
+  
+  <New class="org.infinispan.tree.TreeCacheFactory">
+    <Call id="treeCache" name="createTreeCache">
+      <Arg><Ref id="cache"/></Arg>
+    </Call>
+  </New>
+  
+  <Call name="addBean">
+    <Arg><Ref id="treeCache"/></Arg>
+  </Call>
+  
+
+</Configure>

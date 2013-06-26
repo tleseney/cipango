@@ -188,6 +188,11 @@ public class SessionManager extends AbstractLifeCycle
 		return appSession;
 	}
 	
+	protected ConcurrentHashMap<String, ApplicationSession> getAppSessions()
+	{
+		return _appSessions;
+	}
+	
 	public ApplicationSession getApplicationSession(String id)
 	{
 		return _appSessions.get(id);

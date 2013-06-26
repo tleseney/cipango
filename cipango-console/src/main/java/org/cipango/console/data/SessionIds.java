@@ -24,10 +24,10 @@ public class SessionIds
 	private List<String> _sessionIds;
 	
 	@SuppressWarnings("unchecked")
-	public SessionIds(MBeanServerConnection mbsc, ObjectName sessionManager) throws Exception
+	public SessionIds(MBeanServerConnection mbsc, ObjectName sessionManager, String attributeName) throws Exception
 	{
 		_sessionManager = sessionManager;
-		_sessionIds = (List<String>) mbsc.getAttribute(_sessionManager, "applicationSessionIds");
+		_sessionIds = (List<String>) mbsc.getAttribute(_sessionManager, attributeName);
 	}
 
 	public ObjectName getSessionManager()

@@ -138,6 +138,7 @@ public class MenuImpl implements Menu
 			}
 		}),
 		CALLS = LOGS.add(new PageImpl("logs/sessions.vm", "Sessions")),
+		REPLICATED_SESSION = LOGS.add(new PageImpl("logs/replicated-sessions.vm", "Replicated sessions")),
 		SYSTEM_LOGS = LOGS.add(new PageImpl("logs/systems.vm", "System logs")
 		{
 			@Override

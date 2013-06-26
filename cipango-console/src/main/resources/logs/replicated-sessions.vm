@@ -1,0 +1,33 @@
+#set ($appIds = $sipManager.getApplicationIds())
+<h2>List of replicated SIP Application sessions</h2>
+
+<table class="table table-striped">
+  <tr>
+    <th>Application name</th>
+    <th>Application session Id</th>
+  </tr>
+  #foreach ($appId in $appIds)
+    <tr>
+      <td>$appId.Name</td>
+      <td>
+        #set ($ids = $appId.getSessionIds())
+        IDs $math.min(1, $ids.size()) to $math.min($ids.size(), 100)  for a total of $ids.size()
+        <br/>
+        #foreach ($id in $ids)
+          <a href="?id=$esc.url($id)&sesssionManager=$esc.url($appId.getSessionManager())">$id</a>
+          #if( $foreach.count > 100 )
+            #break
+          #end
+        #end
+      </td>
+    </tr>
+  #end
+</table>
+
+
+#set ($id = $request.getParameter("id"))
+#set ($sessionManager = $request.getParameter("sesssionManager"))
+#if ($id && $sessionManager)
+	<h2>SIP Application session with ID $id</h2>
+	<pre>$esc.html($sipManager.getSipApplicationSession($id, $sessionManager, true))</pre>
+#end

@@ -15,7 +15,7 @@ package org.cipango.tests.integration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.cipango.tests.matcher.SipMatchers.*;
+import static org.cipango.client.test.matcher.SipMatchers.*;
 
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;

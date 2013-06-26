@@ -49,9 +49,7 @@ public class ReplicatedAppSession extends ApplicationSession implements Serializ
 	
 	private final static Logger __log = Log.getLogger(ReplicatedAppSession.class);
 	
-	private MarshalledValue _serializeAttributes;
-	
-	
+	private byte[] _serializeAttributes;	
 
 	public ReplicatedAppSession(SessionManager sessionManager, String id)
 	{
@@ -61,7 +59,7 @@ public class ReplicatedAppSession extends ApplicationSession implements Serializ
 	public ReplicatedAppSession(SessionManager sessionManager, String id, Map<String, Object> data)
 	{
 		super(sessionManager, id, (Long) data.get(CREATED),  (Long) data.get(ACCESSED));
-		_serializeAttributes = (MarshalledValue) data.get(ATTRIBUTES);
+		_serializeAttributes = (byte[]) data.get(ATTRIBUTES);
 		_invalidateWhenReady = getBoolean(data, INVALIDATE_WHEN_READY, false);
 		setExpires((int) (((Long) data.get(TIMEOUT))/60000));
 
@@ -102,13 +100,13 @@ public class ReplicatedAppSession extends ApplicationSession implements Serializ
 		return derived;
 	}
 	
-	public Map<String, Object> getData()
+	public Map<String, Object> getData() throws IOException
 	{
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put(CREATED, getCreationTime());
 		data.put(ACCESSED, getLastAccessedTime());
 		if( _attributes != null && !_attributes.isEmpty())
-			data.put(ATTRIBUTES, new MarshalledValue(_attributes, false, null));
+			data.put(ATTRIBUTES, Serializer.serialize(_attributes));
 		data.put(TIMEOUT, getTimeoutMs());
 		
 		if (_invalidateWhenReady)
@@ -126,15 +124,26 @@ public class ReplicatedAppSession extends ApplicationSession implements Serializ
 	}
 	
 	@SuppressWarnings("unchecked")
-	public Map<String, Object> getSerializeAttributes() throws IOException, ClassNotFoundException
+	public void deserializeIfNeeded()
 	{
-		return (Map<String, Object>) (_serializeAttributes == null ? null : _serializeAttributes.get());
-	}
-	
-	public void setAttributes(Map<String, Object> attributes)
-	{
-		_serializeAttributes = null;
-		_attributes = attributes;
+		if (_serializeAttributes != null)
+		{
+			try
+			{
+				ProxyAppSession.setSessionManager(getSessionManager());
+				_attributes = (Map<String, Object>) Serializer.deserialize(_serializeAttributes);
+				_serializeAttributes = null;
+				
+				for (Session session : _sessions)
+					((ReplicatedSession) session).deserializeIfNeeded();
+				
+				ProxyAppSession.setSessionManager(null);
+			}
+			catch (Exception e)
+			{
+				__log.warn("Failed to deserialize attributes", e);
+			}
+		}
 	}
 	
 	private Object writeReplace() throws ObjectStreamException
@@ -195,7 +204,7 @@ public class ReplicatedAppSession extends ApplicationSession implements Serializ
 	{
 		private static final long serialVersionUID = 1L;
 		
-		private static ThreadLocal<SessionManager> _sessionManager = new ThreadLocal<>();
+		private static ThreadLocal<SessionManager> __sessionManager = new ThreadLocal<>();
 		private String _id; 
 		
 		public ProxyAppSession()
@@ -209,7 +218,7 @@ public class ReplicatedAppSession extends ApplicationSession implements Serializ
 		
 		private Object readResolve() throws ObjectStreamException 
 		{
-			SessionManager sessionManager = _sessionManager.get();
+			SessionManager sessionManager = __sessionManager.get();
 			if (sessionManager == null)
 			{
 				__log.warn("Could not session manager in local thread");
@@ -220,6 +229,16 @@ public class ReplicatedAppSession extends ApplicationSession implements Serializ
 			if (applicationSession == null)
 				__log.warn("Could not session with ID " + _id);
 			return applicationSession;
+		}
+
+		public static void setSessionManager(SessionManager sessionManager)
+		{
+			__sessionManager.set(sessionManager);
+		}
+
+		public static SessionManager getSessionManager()
+		{
+			return __sessionManager.get();
 		}
 	}
 }

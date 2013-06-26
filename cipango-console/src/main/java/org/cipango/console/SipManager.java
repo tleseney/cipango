@@ -320,18 +320,28 @@ public class SipManager extends Manager
 		ObjectName[] sessionManagers = getSessionManagers();
 		List<SessionIds> sessionIds = new ArrayList<SessionIds>(sessionManagers.length);
 		for (ObjectName sessionManager : sessionManagers)
-			sessionIds.add(new SessionIds(_mbsc, sessionManager));
+			sessionIds.add(new SessionIds(_mbsc, sessionManager, "applicationSessionIds"));
 		return sessionIds;
 	}
 	
-	public String getSipApplicationSession(String id, String objectName) throws Exception
+	public List<SessionIds> getReplicatedApplicationIds() throws Exception
+	{
+		ObjectName[] sessionManagers = getSessionManagers();
+		List<SessionIds> sessionIds = new ArrayList<SessionIds>(sessionManagers.length);
+		for (ObjectName sessionManager : sessionManagers)
+			if (sessionManager.getDomain().contains("replication"))
+				sessionIds.add(new SessionIds(_mbsc, sessionManager, "replicatedAppSessionIds"));
+		return sessionIds;
+	}
+	
+	public String getSipApplicationSession(String id, String objectName, boolean replicated) throws Exception
 	{
 		ObjectName sessionManager = new ObjectName(objectName);
 		if (!_mbsc.isRegistered(sessionManager))
 			return "The application with name " + sessionManager.getKeyProperty("context") + " is no more registered";
 		
 		return (String) _mbsc.invoke(sessionManager, 
-				"viewApplicationSession",
+				replicated ? "viewReplicatedSession" : "viewApplicationSession",
 				new Object[] { id }, 
 				new String[] { "java.lang.String" });
 	}

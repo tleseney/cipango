@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2007-2008 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("serial")
-@javax.servlet.sip.annotation.SipServlet (name = "MainServlet", applicationName = "cipango-servlet-test")
+@javax.servlet.sip.annotation.SipServlet (name = "MainServlet")
 public class MainServlet extends SipServletTestCase
 {
 	private final Logger _logger = LoggerFactory.getLogger(MainServlet.class);

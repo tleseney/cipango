@@ -795,7 +795,7 @@ public class SipAppContext extends SipHandlerWrapper
 	@ManagedAttribute
 	public boolean isAvailable()
 	{
-		return _unavailableException == null && (_context == null || _context.isAvailable());
+		return _unavailableException == null && (_context == null || (_context.isStarted() && _context.isAvailable()));
 	}
 	
 	@Override

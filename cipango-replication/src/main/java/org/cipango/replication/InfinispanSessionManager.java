@@ -20,18 +20,19 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.servlet.sip.SipSession.State;
 
 import org.cipango.server.session.ApplicationSession;
 import org.cipango.server.session.ApplicationSession.Timer;
 import org.cipango.server.session.SessionManager;
+import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.annotation.ManagedOperation;
 import org.eclipse.jetty.util.annotation.Name;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
-import org.infinispan.marshall.MarshalledValue;
 import org.infinispan.tree.Fqn;
 import org.infinispan.tree.Node;
 import org.infinispan.tree.TreeCache;
@@ -41,7 +42,7 @@ public class InfinispanSessionManager extends SessionManager
 {
 	public static final String SESSIONS = "sipSessions";
 	public static final String TIMERS = "timers";
-
+	
 	private final static Logger __log = Log.getLogger(InfinispanSessionManager.class);
 	private TreeCache<String, Object> _treeCache;
 	private Fqn _baseFqn;
@@ -53,25 +54,110 @@ public class InfinispanSessionManager extends SessionManager
 		super.doStart();
 		
 		_treeCache = getSipAppContext().getServer().getBean(TreeCache.class);
-
+		
 		if (_treeCache == null)
 			throw new NullPointerException("Tree cache is null");
-	
+		
 		_treeCache.start();
 		
 		if (getSipAppContext().getContextId() != null)
 			_baseFqn = Fqn.fromElements(getSipAppContext().getContextId(), "appSessions");
 		else
 			_baseFqn = Fqn.fromElements("appSessions");
+		
+		List<ReplicatedAppSession> calls = loadCalls();
+		synchronized (this)
+		{
+			ConcurrentHashMap<String, ApplicationSession> sessions = getAppSessions();
+			for (ReplicatedAppSession session : calls)
+				sessions.put(session.getId(), session);
+			
+		}
 	}
-
+	
+	protected List<ReplicatedAppSession> loadCalls()
+	{
+		List<ReplicatedAppSession> calls = new ArrayList<ReplicatedAppSession>();
+		
+		Node<String, Object> root = _treeCache.getNode(_baseFqn);
+		if (root == null)
+			return calls;
+		
+		ReplicatedAppSession session;
+		Set<Node<String, Object>> children = root.getChildren();
+		if (children != null)
+		{
+			for (Node<String, Object> node : children)
+			{
+				session = loadCall(node);
+				if (session != null)
+					calls.add(session);
+			}
+		}
+		return calls;
+		
+	}
+	
+	protected ReplicatedAppSession loadCall(Node<String, Object> node)
+	{
+		String id = node.getFqn().getLastElementAsString();
+		
+		
+		try
+		{
+			ReplicatedAppSession appSession = new ReplicatedAppSession(this, id, node.getData());
+			
+			if (appSession.getExpirationTime() == Long.MIN_VALUE)
+			{
+				__log.warn("Application session " + appSession + " is not added as it is expired");
+				_treeCache.removeNode(node.getFqn());
+				return null;
+			}
+			
+			Node<String, Object> sessionsNode = node.getChild(SESSIONS);
+			if (sessionsNode != null)
+			{
+				
+				for (Node<String, Object> sessionNode : sessionsNode.getChildren())
+				{
+					ReplicatedSession session = new ReplicatedSession(appSession, sessionNode.getFqn()
+							.getLastElementAsString(), sessionNode.getData());
+					appSession.addSession(session);
+				}
+			}
+			
+			Node<String, Object> timersNode = node.getChild(TIMERS);
+			if (timersNode != null)
+			{
+				for (Node<String, Object> timerNode : timersNode.getChildren())
+					appSession.newTimer(timerNode.getData(), timerNode.getFqn().getLastElementAsString());
+			}
+			
+			return appSession;
+			
+		}
+		catch (Throwable e)
+		{
+			__log.warn("Failed to load application session with id " + id, e);
+			try
+			{
+				_treeCache.removeNode(node.getFqn());
+			}
+			catch (Exception e2)
+			{
+				__log.ignore(e2);
+			}
+			return null;
+		}
+	}
+	
 	@Override
 	protected void doStop() throws Exception
 	{
 		super.doStop();
 		_treeCache.stop();
 	}
-
+	
 	@Override
 	protected void saveSession(ApplicationSession applicationSession)
 	{
@@ -81,35 +167,40 @@ public class InfinispanSessionManager extends SessionManager
 			ReplicatedAppSession appSession = (ReplicatedAppSession) applicationSession;
 			Fqn appSessionFqn = Fqn.fromRelativeElements(_baseFqn, applicationSession.getId());
 			
-			boolean hasConfirmedSession = putSessions(appSession, Fqn.fromRelativeElements(appSessionFqn, SESSIONS));	
+			boolean hasConfirmedSession = putSessions(appSession,
+					Fqn.fromRelativeElements(appSessionFqn, SESSIONS));
 			if (hasConfirmedSession)
 			{
 				appSession.notifyActivationListener(false);
-				_treeCache.put(appSessionFqn, appSession.getData());	
+				_treeCache.put(appSessionFqn, appSession.getData());
 				putTimers(appSession, Fqn.fromElements(appSessionFqn, TIMERS));
 			}
 			
 			if (__log.isDebugEnabled())
 				__log.debug("Successfully store call {} in replicated cache", applicationSession.getId());
-			//S__log.warn(">>>>>>>>>>>>>>>>Call:"+ hasConfirmedSession+ "\n" + viewApplicationSession(applicationSession.getId()));
-			__log.warn(">>>>>>>>>>>>>>>>Replicated Call:"+ hasConfirmedSession+ "\n" + viewReplicatedSession(applicationSession.getId()));
+			
+			if (hasConfirmedSession)
+				__log.warn(">>>>>>>>>>>>>>>>Replicated session:\n"
+					+ viewReplicatedSession(applicationSession.getId()));
 		}
 		catch (Exception e)
 		{
 			__log.warn("Failed to store call " + applicationSession.getId() + " in replicated cache: " + e, e);
 		}
 	}
-
+	
 	@SuppressWarnings({ "rawtypes" })
 	private boolean putSessions(ReplicatedAppSession appSession, Fqn sessionsFqn) throws Exception
 	{
 		boolean hasConfirmedSession = false;
 		Node<String, Object> node = _treeCache.getNode(sessionsFqn);
-		List<Node<String, Object>> toRemove;
+		List<Fqn> toRemove = new ArrayList<>();
 		if (node != null && node.getChildren() != null)
-			toRemove = new ArrayList<>(node.getChildren());
-		else
-			toRemove = new ArrayList<>();
+		{
+			for (Node<String, Object> child : node.getChildren())
+				toRemove.add(child.getFqn());
+		}
+		
 		
 		Iterator it = appSession.getSessions("sip");
 		while (it.hasNext())
@@ -118,29 +209,31 @@ public class InfinispanSessionManager extends SessionManager
 			if (session.getState() == State.CONFIRMED)
 			{
 				Fqn sessionFqn = Fqn.fromRelativeElements(sessionsFqn, session.getId());
-				session.notifyActivationListener(false);	
+				session.notifyActivationListener(false);
 				_treeCache.put(sessionFqn, session.getData());
-				toRemove.remove(session.getId());
+				toRemove.remove(sessionFqn);
 				hasConfirmedSession = true;
 			}
 		}
 		
-		Iterator<Node<String, Object>> it2 = toRemove.iterator();
+		Iterator<Fqn> it2 = toRemove.iterator();
 		while (it2.hasNext())
-			_treeCache.removeNode(it2.next().getFqn());
+			_treeCache.removeNode(it2.next());
 		
 		return hasConfirmedSession;
 	}
 	
-	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@SuppressWarnings({ "rawtypes" })
 	private void putTimers(ReplicatedAppSession appSession, Fqn timersFqn) throws Exception
 	{
-		Node node = _treeCache.getNode(timersFqn);
-		List<Node<String, Object>> toRemove;
+		Node<String, Object> node = _treeCache.getNode(timersFqn);
+		List<Fqn> toRemove = new ArrayList<>();
 		if (node != null && node.getChildren() != null)
-			toRemove = new ArrayList<>(node.getChildren());
-		else
-			toRemove = new ArrayList<>();
+		{
+			for (Node<String, Object> child : node.getChildren())
+				toRemove.add(child.getFqn());
+		}
+		
 		Iterator it = appSession.getTimers().iterator();
 		while (it.hasNext())
 		{
@@ -149,23 +242,23 @@ public class InfinispanSessionManager extends SessionManager
 			{
 				Fqn timerFqn = Fqn.fromElements(timersFqn, timer.getId());
 				_treeCache.put(timerFqn, appSession.getTimerData(timer));
-				toRemove.remove(timer.getId());
+				toRemove.remove(timerFqn);
 			}
 		}
 		
-		Iterator<Node<String, Object>> it2 = toRemove.iterator();
+		Iterator<Fqn> it2 = toRemove.iterator();
 		while (it2.hasNext())
-			_treeCache.removeNode(it2.next().getFqn());
+			_treeCache.removeNode(it2.next());
 	}
 	
-	@ManagedOperation(value="Returns a set containing the IDs of replicated application sessions", impact="INFO")
+	@ManagedAttribute(value = "Returns a set containing the IDs of replicated application sessions")
 	public Set<Object> getReplicatedAppSessionIds() throws Exception
 	{
 		return _treeCache.getNode(_baseFqn).getChildrenNames();
-	} 
+	}
 	
-	@ManagedOperation(value="View data save in cache for application session with id sessionId", impact="INFO")
-	public String viewReplicatedSession(@Name("sessionId")String sessionId) throws Exception
+	@ManagedOperation(value = "View data save in cache for application session with id sessionId", impact = "INFO")
+	public String viewReplicatedSession(@Name("sessionId") String sessionId) throws Exception
 	{
 		int index = 1;
 		StringBuilder sb = new StringBuilder();
@@ -185,17 +278,17 @@ public class InfinispanSessionManager extends SessionManager
 		try
 		{
 			Thread.currentThread().setContextClassLoader(getSipAppContext().getClassLoader());
-
+			
 			print(sb, node, index);
-//			Iterator<Node<String, Object>> it = node.getChildren().iterator();
-//			while (it.hasNext())
-//			{
-//				Node<String, Object> appSession = it.next();
-//				sb.append("\t+ ").append(node.getFqn().getLastElement()).append("\n");
-//				index++;
-//								
-//				print(sb, appSession, index);
-//			}
+			// Iterator<Node<String, Object>> it = node.getChildren().iterator();
+			// while (it.hasNext())
+			// {
+			// Node<String, Object> appSession = it.next();
+			// sb.append("\t+ ").append(node.getFqn().getLastElement()).append("\n");
+			// index++;
+			//
+			// print(sb, appSession, index);
+			// }
 		}
 		finally
 		{
@@ -204,30 +297,29 @@ public class InfinispanSessionManager extends SessionManager
 		return sb.toString();
 	}
 	
-	
 	private void print(StringBuilder sb, Node<String, Object> node, int index) throws Exception
 	{
 		for (Entry<String, Object> entry : node.getData().entrySet())
-		{	
+		{
 			String key = entry.getKey();
 			Object value = entry.getValue();
-
+			
 			for (int i = 0; i < index; i++)
 				sb.append('\t');
 			sb.append("- ").append(key).append(": ");
-			if (value instanceof MarshalledValue)
+			if (value instanceof byte[])
 			{
-				MarshalledValue m = (MarshalledValue) value;
+				byte[] b = (byte[]) value;
 				try
 				{
-					sb.append(m.get());
+					sb.append(Serializer.deserialize(b));
 				}
-				catch (Throwable e) 
+				catch (Throwable e)
 				{
 					sb.append("FAILED TO DESERIALIZE NODE with key ").append(key);
 					sb.append(": ").append(e.getMessage());
 				}
-				//sb.append(" (size: ").append(m.getRaw().size()).append(" bytes)");
+				sb.append(" (size: ").append(b.length).append(" bytes)");
 			}
 			else if (value instanceof String[])
 				sb.append(Arrays.asList((String[]) value));
@@ -237,17 +329,17 @@ public class InfinispanSessionManager extends SessionManager
 				if ("created".equals(key) || "accessed".equals(key) || "expirationTime".equals(key))
 					sb.append(" (").append(new Date((Long) value)).append(")");
 			}
-			sb.append('\n');	
+			sb.append('\n');
 		}
 		
 		if (node.getChildren() != null)
 		{
 			for (Node<String, Object> node2 : node.getChildren())
-			{	
+			{
 				for (int i = 0; i < index; i++)
 					sb.append('\t');
 				sb.append("+ [").append(node2.getFqn().getLastElement()).append("]\n");
-	
+				
 				for (Node<String, Object> node3 : node2.getChildren())
 				{
 					for (int i = 0; i < index + 1; i++)
@@ -260,15 +352,13 @@ public class InfinispanSessionManager extends SessionManager
 		}
 	}
 	
-	
-	
 	@Override
 	public void removeApplicationSession(ApplicationSession session)
 	{
 		// TODO Auto-generated method stub
 		super.removeApplicationSession(session);
 	}
-
+	
 	@Override
 	public ApplicationSession createApplicationSession(String id)
 	{
@@ -277,5 +367,13 @@ public class InfinispanSessionManager extends SessionManager
 		return appSession;
 	}
 
+	@Override
+	public ApplicationSession getApplicationSession(String id)
+	{
+		ApplicationSession session = super.getApplicationSession(id);
+		if (session != null && session instanceof ReplicatedAppSession)
+			((ReplicatedAppSession) session).deserializeIfNeeded();
+		return session;
+	}
 	
 }

@@ -13,7 +13,11 @@
 // ========================================================================
 package org.cipango.replication;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.ObjectStreamException;
+import java.io.Serializable;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -22,21 +26,26 @@ import java.util.Map;
 
 import javax.servlet.sip.Address;
 import javax.servlet.sip.ServletParseException;
+import javax.servlet.sip.SipSession;
 import javax.servlet.sip.SipSessionActivationListener;
 import javax.servlet.sip.SipSessionEvent;
 import javax.servlet.sip.UAMode;
 import javax.servlet.sip.URI;
 import javax.servlet.sip.ar.SipApplicationRoutingRegion;
 
+import org.cipango.replication.ReplicatedAppSession.ProxyAppSession;
 import org.cipango.server.SipRequest;
 import org.cipango.server.servlet.SipServletHandler;
 import org.cipango.server.session.ApplicationSession;
 import org.cipango.server.session.Session;
+import org.cipango.server.session.SessionManager;
+import org.cipango.server.sipapp.SipAppContext;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.URIFactory;
-import org.infinispan.marshall.MarshalledValue;
+import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.log.Logger;
 
-public class ReplicatedSession extends Session
+public class ReplicatedSession extends Session implements Serializable
 {
 	
 	public static final String CREATED = "created";
@@ -61,7 +70,9 @@ public class ReplicatedSession extends Session
 	public static final String SUBSCRIBER_URI = "subscriberUri";
 	public static final String REGION = "region";
 	
-	private MarshalledValue _serializeAttributes;
+	private final static Logger __log = Log.getLogger(ReplicatedSession.class);
+	
+	private byte[] _serializeAttributes;
 	
 	public ReplicatedSession(ApplicationSession applicationSession, String id, SipRequest request)
 	{
@@ -78,7 +89,7 @@ public class ReplicatedSession extends Session
 		super(id, other);
 	}
 	
-	public ReplicatedSession(ApplicationSession appSession, String id, Map<String, Object> data) throws ServletParseException, ParseException
+	public ReplicatedSession(ApplicationSession appSession, String id, Map<String, Object> data) throws ServletParseException, ParseException, ClassNotFoundException, IOException
 	{
 		super(appSession, 
 				id,
@@ -99,16 +110,16 @@ public class ReplicatedSession extends Session
 		else
 			_role = role;
 		
-		_serializeAttributes = (MarshalledValue) data.get(ATTRIBUTES);
+		_serializeAttributes = (byte[]) data.get(ATTRIBUTES);
 		String handlerName = (String) data.get(HANDLER_NAME);
 		SipServletHandler sipServletHandler = (SipServletHandler) appSession.getContext().getServletHandler();
 		setHandler(sipServletHandler.getHolder(handlerName));
 		setInvalidateWhenReady(getValue(data, INVALIDATE_WHEN_READY, false));
 		_linkedSessionId = (String) data.get(LINK_SESSION_ID);
 		_subscriberURI = getUri(data.get(SUBSCRIBER_URI));
-		MarshalledValue value = (MarshalledValue) data.get(REGION);
+		byte[] value = (byte[]) data.get(REGION);
 		if (value != null)
-			_region = (SipApplicationRoutingRegion) value.get();
+			_region = (SipApplicationRoutingRegion) Serializer.deserialize(value);
 		else
 			_region = SipApplicationRoutingRegion.NEUTRAL_REGION;
 	}
@@ -131,7 +142,7 @@ public class ReplicatedSession extends Session
 
 		data.put(CALL_ID, getCallId());
 		if( _attributes != null)
-			data.put(ATTRIBUTES, new MarshalledValue(_attributes, false, null));
+			data.put(ATTRIBUTES, Serializer.serialize(_attributes));
 		data.put(HANDLER_NAME, getHandler().getName());
 		
 		if (getInvalidateWhenReady())
@@ -141,7 +152,7 @@ public class ReplicatedSession extends Session
 		if (_subscriberURI != null)
 			data.put(SUBSCRIBER_URI, _subscriberURI.toString());
 		if (_region != null && _region != SipApplicationRoutingRegion.NEUTRAL_REGION)
-			data.put(REGION, new MarshalledValue(_region, false, null)); // SipApplicationRoutingRegion is serializable
+			data.put(REGION, Serializer.serialize(_region)); // SipApplicationRoutingRegion is serializable
 		return data;
 	}
 	
@@ -193,7 +204,35 @@ public class ReplicatedSession extends Session
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
+	public void deserializeIfNeeded() throws ClassNotFoundException, IOException
+	{
+		if (_serializeAttributes != null)
+		{
+			_attributes = (Map<String, Object>) Serializer.deserialize(_serializeAttributes);
+			_serializeAttributes = null;
+		}
+	}
 	
+	
+	private Object writeReplace() throws ObjectStreamException
+	{
+		return new ProxySession(getApplicationSession().getId(), getId());
+	}
+	
+	
+	public static void main(String[] a) throws Exception
+	{
+		SipAppContext context = new SipAppContext();
+		SessionManager sessionManager = context.getSessionHandler().getSessionManager();
+		sessionManager.setSipAppContext(context);
+		ReplicatedAppSession session = new ReplicatedAppSession(context.getSessionHandler().getSessionManager(), "123");
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		ObjectOutputStream oos = new ObjectOutputStream(os);
+		oos.writeObject(Serializer.serialize(session));
+		System.out.println(new String(os.toByteArray()));
+	}
+		
 	public class ReplicatedDialogInfo extends DialogInfo 
 	{
 		public void putData(Map<String, Object> data) throws ServletParseException, ParseException 
@@ -228,4 +267,47 @@ public class ReplicatedSession extends Session
 			data.put(REMOTE_RSEQ, _remoteRSeq);
 		}
 	}
+
+
+	public static class ProxySession implements Serializable
+	{
+		private static final long serialVersionUID = 1L;
+		
+		private String _appSessionId; 
+		private String _id; 
+		
+		public ProxySession()
+		{
+		}
+		
+		public ProxySession(String appSessionId, String id)
+		{
+			_appSessionId = appSessionId;
+			_id = id;
+		}
+		
+		private Object readResolve() throws ObjectStreamException 
+		{
+			SessionManager sessionManager = ProxyAppSession.getSessionManager();
+			if (sessionManager == null)
+			{
+				__log.warn("Could not session manager in local thread");
+				return null;
+			}
+			
+			ApplicationSession applicationSession = sessionManager.getApplicationSession(_appSessionId);
+			if (applicationSession == null)
+			{
+				__log.warn("Could not application session with ID " + _appSessionId);
+				return null;
+			}
+			SipSession session = applicationSession.getSipSession(_id);
+			if (session == null)
+				__log.warn("Could not application session with ID " + _id);
+			return session;
+		}
+
+		
+	}
+
 }

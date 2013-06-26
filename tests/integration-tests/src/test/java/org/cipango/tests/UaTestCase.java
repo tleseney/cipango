@@ -13,7 +13,7 @@
 // ========================================================================
 package org.cipango.tests;
 
-import static org.cipango.tests.matcher.SipMatchers.isSuccess;
+import static org.cipango.client.test.matcher.SipMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.ByteArrayOutputStream;

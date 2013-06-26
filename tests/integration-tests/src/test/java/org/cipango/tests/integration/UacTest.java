@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2010-2012 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,7 +13,8 @@
 // ========================================================================
 package org.cipango.tests.integration;
 
-import static org.cipango.tests.matcher.SipMatchers.isSuccess;
+
+import static org.cipango.client.test.matcher.SipMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;

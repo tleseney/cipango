@@ -13,7 +13,7 @@
 // ========================================================================
 package org.cipango.tests.integration;
 
-import static org.cipango.tests.matcher.SipMatchers.hasStatus;
+import static org.cipango.client.test.matcher.SipMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import javax.servlet.sip.SipServletResponse;

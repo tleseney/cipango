@@ -120,10 +120,13 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 	
 	protected void doCancel(String[] protocol, int[] reasonCode, String[] reasonText)
 	{
+	      // To prevent starting new (sequential branches) after canceling request, we need to clear list of not started branches.
+	      _targets.clear();
         for (Branch branch : _branches)
         {
         	branch.cancel(protocol, reasonCode, reasonText);
         }
+        
 	}
 	
 	/**
@@ -698,7 +701,7 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
          */
         public void cancel(String[] protocol, int[] reasonCode, String[] reasonText)
         {
-        	if (!_ctx.isCompleted())
+        	if (_ctx != null && !_ctx.isCompleted())
         	{
 	        	stopTimerC();
 	        	stopBranchTimeout();

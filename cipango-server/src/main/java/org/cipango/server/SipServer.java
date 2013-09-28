@@ -239,7 +239,7 @@ public class SipServer extends ContainerLifeCycle
 				}
 				catch (Exception e)
 				{
-					LOG.warn("Failed to handle message", e);
+					LOG.warn("Failed to handle message: " + message, e);
 					// TODO 500
 				}
 			}

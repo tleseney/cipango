@@ -43,6 +43,7 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 	private static final Logger LOG = Log.getLogger(Rfc3263DnsResolver.class);
 	
 	private DnsService _dnsService;
+	private boolean _useNaptr = true;
 	private final List<String> _enableNaptrTransports = new ArrayList<String>();
 	private final List<Transport> _enableTransports = new ArrayList<Transport>();
 
@@ -88,13 +89,16 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 			// target is not a numeric IP address, the client SHOULD perform a NAPTR
 			// query for the domain in the URI.
 			List<Record> records = null;
-			try
+			if (_useNaptr)
 			{
-				records = _dnsService.lookup(new NaptrRecord(hop.getHost()));
-			}
-			catch (IOException e)
-			{
-				LOG.debug("Could not get NAPTR records for name {}, SRV resolution will be done.", hop.getHost());
+  			try
+  			{
+  				records = _dnsService.lookup(new NaptrRecord(hop.getHost()));
+  			}
+  			catch (IOException e)
+  			{
+  				LOG.debug("Could not get NAPTR records for name {}, SRV resolution will be done.", hop.getHost());
+  			}
 			}
 			
 			if (records != null && !records.isEmpty())
@@ -267,7 +271,20 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 		_dnsService = dnsService;
 	}
 
-
+	@ManagedAttribute("Use NAPTR")
+  public boolean getUseNaptr()
+  {
+    return _useNaptr;
+  }
+	/**
+	 * Relaxes RFC3263: When environment is known to do not have NAPTR records as optimization NAPTR lookup can be skipped.
+	 * @param useNaptr
+	 */
+  public void setUseNaptr(boolean useNaptr)
+  {
+    updateBean(_useNaptr, useNaptr);
+    _useNaptr = useNaptr;
+  }
 
 
 

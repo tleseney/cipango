@@ -241,7 +241,7 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 	}
 	
 	/**
-	 * For priority/weight resolution we need to do more then just sorting SRVs by priority/weight.
+	 * For priority/weight resolution we need to do more than just sorting SRVs by priority/weight.
 	 * Specifically: Among records with the same priority we need to randomly choose record according to weight.
 	 * 
 	 * Note: method is protected, to make it possible to apply different sorting methods to SRV in subclasses
@@ -289,7 +289,7 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 	      if (w < 0)
 	      {
 	        // The first record which leads to strictly negative number should be the one selected.
-	        // Example: 2 records, each has weight 1. Then totalWeight would be 2 and random w can be either 0 or 1.
+	        // Example: 2 records, each has weight 1. Than totalWeight would be 2 and random w can be either 0 or 1.
 	        // in case w==0 the first record should be returned, in case w==1 the second.
 	        result.add(r);
 	        i.remove();

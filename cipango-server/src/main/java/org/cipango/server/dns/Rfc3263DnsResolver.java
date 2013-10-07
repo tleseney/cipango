@@ -23,6 +23,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.Random;
+import java.util.Iterator; 
 
 import org.cipango.dns.DnsService;
 import org.cipango.dns.Name;
@@ -46,6 +48,7 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 	private boolean _useNaptr = true;
 	private final List<String> _enableNaptrTransports = new ArrayList<String>();
 	private final List<Transport> _enableTransports = new ArrayList<Transport>();
+	private final Random _random = new Random();
 
 	public Rfc3263DnsResolver()
 	{
@@ -199,19 +202,19 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 		return resolveSrv(srvName, transport);
 	}
 	
-	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private List<Hop> resolveSrv(Name srvName, Transport transport)
 	{
-		SortedSet<SrvRecord> records;
+		Collection<SrvRecord> records;
 		try
 		{
-			records = new TreeSet(_dnsService.lookup(new SrvRecord(srvName)));
+			records = sortSrv(_dnsService.lookup(new SrvRecord(srvName)));
 		}
 		catch (Exception e1)
 		{
 			LOG.debug("Could not get SRV record for name {}", srvName);
 			return null;
 		}
+		
 		
 		List<Hop> hops = new ArrayList<Hop>();
 		for (SrvRecord record : records)
@@ -235,6 +238,67 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 			}
 		}
 		return hops;
+	}
+	
+	/**
+	 * For priority/weight resolution we need to do more then just sorting SRVs by priority/weight.
+	 * Specifically: Among records with the same priority we need to randomly choose record according to weight.
+	 * 
+	 * Note: method is protected, to make it possible to apply different sorting methods to SRV in subclasses
+	 * (e.g. methods which account for deployment site network topology, for example favoring records pointing to 
+	 * "nearby" servers).
+	 * 
+	 * @param original
+	 * @return
+	 */
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	protected Collection<SrvRecord> sortSrv(List<Record> original)
+	{
+	  List<SrvRecord> list = new ArrayList(original);
+	  
+	  Collections.sort(list);
+	  // At this point we have sorted list by priority, weight (and hash code).
+	  // Now we need to randomize result according to weights within the same priority.
+	  
+	  ArrayList<SrvRecord> result = new ArrayList<SrvRecord>(list.size());
+	  while (!list.isEmpty())
+	  {
+	    // Get total weight for all (remaining) top-priority records.
+	    final int priority = list.get(0).getPriority();
+	    int totalWeight = 0;
+	    int count = 0;
+	    for (SrvRecord r : list)
+	    {
+	      if (r.getPriority() != priority) break;
+	      totalWeight += r.getWeight();
+	      count++;
+	    }
+	    if (count == 1)
+	    {
+	      // Optimization: if there is only one top-priority record left, don't need to generate random numbers.
+	      result.add(list.remove(0));
+	      continue;
+	    }
+	    // select random number between 0 (inclusive) and totalWeight (exclusive):
+	    int w = _random.nextInt(totalWeight);
+	    // Now find the record which was selected by random number:
+	    for (final Iterator<SrvRecord> i = list.iterator(); i.hasNext();)
+	    {
+	      final SrvRecord r = i.next(); // It's guaranteed that r has top priority.
+	      w -= r.getWeight();
+	      if (w < 0)
+	      {
+	        // The first record which leads to strictly negative number should be the one selected.
+	        // Example: 2 records, each has weight 1. Then totalWeight would be 2 and random w can be either 0 or 1.
+	        // in case w==0 the first record should be returned, in case w==1 the second.
+	        result.add(r);
+	        i.remove();
+	        break;
+	      }
+	    }
+	    // Keep looping until we have any SRV records left.
+	  }
+	  return result;
 	}
 
 	public List<String> getEnableNaptrTransports()

@@ -31,6 +31,7 @@ public abstract class TransactionImpl implements Transaction
 	{ 
 		/** INVITE request retransmit, for UDP only */ A, 
 		/** INVITE transaction timeout */ B, 
+		/** Proxy INVITE transaction timeout */ C,
 		/** Wait time for response retransmits */ D, 
 		/** non-INVITE request retransmit interval UDP only*/ E, 
 		/**  non-INVITE transaction timeout timer */ F,
@@ -47,11 +48,14 @@ public abstract class TransactionImpl implements Transaction
 	public static final int DEFAULT_T1 = 500;
 	public static final int DEFAULT_T2 = 4000;
 	public static final int DEFAULT_T4 = 5000;
+	public static final int DEFAULT_TC = 181000; // should be strictly more than 3min
 	public static final int DEFAULT_TD = 32000;
+	
 		
 	public static int __T1 = DEFAULT_T1;
 	public static int __T2 = DEFAULT_T2;
 	public static int __T4 = DEFAULT_T4;
+	public static int __TC = DEFAULT_TC;
 	public static int __TD = DEFAULT_TD;	
 	
 	protected State _state = State.UNDEFINED;

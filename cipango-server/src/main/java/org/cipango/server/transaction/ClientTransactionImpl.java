@@ -172,6 +172,7 @@ public class ClientTransactionImpl extends TransactionImpl implements ClientTran
 			finally
 			{
 				startTimer(Timer.B, 64L*__T1);
+				startTimer(Timer.C, __TC);
 			}
 			if (!isTransportReliable())
 				startTimer(Timer.A, _aDelay);
@@ -206,12 +207,14 @@ public class ClientTransactionImpl extends TransactionImpl implements ClientTran
 			switch (_state) 
             {
 			case CALLING:
-				cancelTimer(Timer.A); cancelTimer(Timer.B);
+				cancelTimer(Timer.A); cancelTimer(Timer.B); cancelTimer(Timer.C);
 				if (status < 200) 
                 {
 					setState(State.PROCEEDING);
 					if (_pendingCancel != null)
 						doCancel(_pendingCancel);
+					else
+					  startTimer(Timer.C, __TC);
 				} 
                 else if (200 <= status && status < 300) 
                 {
@@ -231,7 +234,13 @@ public class ClientTransactionImpl extends TransactionImpl implements ClientTran
 				break;
 				
 			case PROCEEDING:
-				if (200 <= status && status < 300) 
+			  cancelTimer(Timer.C);
+			  if (status < 200) 
+			  {
+			    // Provisional responses should restart timer C.
+			    startTimer(Timer.C, __TC);
+			  }
+			  else if (200 <= status && status < 300) 
                 {
 					setState(State.ACCEPTED);
 					startTimer(Timer.M, 64L*__T1);
@@ -378,6 +387,36 @@ public class ClientTransactionImpl extends TransactionImpl implements ClientTran
 			_aDelay = _aDelay * 2;
 			startTimer(Timer.A, _aDelay);
 			break;
+    case C:
+      // RFC3261, Section 16.8
+      switch (_state)
+      {
+      case PROCEEDING:
+        // We should generate CANCEL (we had received provisional responses before):
+        try
+        {
+          _request.createCancel().send();
+        }
+        catch (Exception e)
+        {
+          LOG.debug("Failed to process timer C timeout, cannot send cancel for " + _request, e);
+        }
+        // If timer C should fire ... or terminate the client transaction.
+        // So let's terminate it here. If we haven't received INVITE response in 3min, there is good chance
+        // that we wouldn't receive 487 as well.
+        cancelTimer(Timer.A); cancelTimer(Timer.B);
+        terminate();
+        return;
+      case CALLING:
+        // In this case (no any response received) we want to behave like timer B below.
+        break;
+      default:
+        LOG.info("Timer C fired in unknown state {}, cancel it", getState());
+        cancelTimer(Timer.C);
+        return;
+      }
+      // No break. E.g. if we haven't received any provisional response, timerC should behave as timerB 
+
 		case B:
 			cancelTimer(Timer.A);
 			SipResponse responseB = create408();
@@ -386,6 +425,7 @@ public class ClientTransactionImpl extends TransactionImpl implements ClientTran
                 _listener.handleResponse(responseB);
 			terminate();
             break;
+    
         case D:
             terminate();
             break;

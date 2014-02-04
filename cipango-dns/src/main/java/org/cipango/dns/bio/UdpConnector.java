@@ -150,7 +150,7 @@ public class UdpConnector extends AbstractConnector
 		{
 			ByteBuffer buffer = ByteBuffer.allocate(MAX_PACKET_SIZE);
 			message.encode(buffer);
-			DatagramPacket packet = new DatagramPacket(buffer.array(), buffer.capacity(), _remoteAddr, _remotePort);
+			DatagramPacket packet = new DatagramPacket(buffer.array(), buffer.position(), _remoteAddr, _remotePort);
 			
 			synchronized (_queries)
 			{

@@ -39,7 +39,7 @@ import org.junit.Test;
 public class DnsServiceTest
 {
 	private DnsService _dnsService;
-	public static final String  IPV4_ADDR = "46.105.46.188";
+	public static final String  IPV4_ADDR = "213.186.33.5";
 	public static final String  IPV6_ADDR = "2001:41d0:2:7a93::1";
 	
 	@Before
@@ -170,7 +170,7 @@ public class DnsServiceTest
 		List<Record> records = _dnsService.lookup(new PtrRecord(InetAddress.getByName(IPV4_ADDR)));
 		assertEquals(1, records.size());
 		PtrRecord ptr = (PtrRecord) records.get(0);
-		assertEquals("46-105-46-188.ovh.net", ptr.getPrtdName().toString());
+		assertEquals("redirect.ovh.net", ptr.getPrtdName().toString());
 		//System.out.println(records);
 	}
 	
@@ -197,7 +197,7 @@ public class DnsServiceTest
 		resolvers[0] = badResolver;
 		resolvers[1] = _dnsService.getResolvers()[0];
 		_dnsService.setResolvers(resolvers);
-		InetAddress[] addr = _dnsService.lookupAllHostAddr("www.cipango.org");
+		InetAddress[] addr = _dnsService.lookupAllHostAddr("jira.cipango.org");
 		assertNotNull(addr);
 		assertEquals(1, addr.length);
 		assertEquals(IPV4_ADDR, addr[0].getHostAddress());
@@ -269,6 +269,7 @@ public class DnsServiceTest
 				catch (Exception e) 
 				{
 					_exceptions.add(e);
+					e.printStackTrace();
 				}
 			}
 			synchronized (this)

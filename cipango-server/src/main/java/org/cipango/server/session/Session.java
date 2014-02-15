@@ -1146,9 +1146,14 @@ public class Session implements SipSessionIf, Dumpable
 					derived = _applicationSession.createDerivedSession(Session.this);
 					if (_linkedSessionId != null)
 					{
-						Session linkDerived = _applicationSession.createDerivedSession(getLinkedSession());
-						linkDerived.setLinkedSession(derived);
-						derived.setLinkedSession(linkDerived);
+					  Session linkedSession = getLinkedSession();
+					  // It's possible for _linkedSessionId != null, but linkedSession == null (linked session invalidated?).
+					  if (linkedSession != null)
+					  {
+					    Session linkDerived = _applicationSession.createDerivedSession(linkedSession);
+					    linkDerived.setLinkedSession(derived);
+					    derived.setLinkedSession(linkDerived);
+					  }
 					}
 				}
 				derived._dialog.handleResponse(response);

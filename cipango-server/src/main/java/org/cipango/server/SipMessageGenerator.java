@@ -9,6 +9,7 @@ public class SipMessageGenerator extends SipGenerator
 {
 	public void generateMessage(ByteBuffer buffer, SipMessage message) throws MessageTooLongException
 	{
+	  final int savedPos = buffer.position();
 		try
 		{
 			if (message instanceof SipResponse)
@@ -34,7 +35,7 @@ public class SipMessageGenerator extends SipGenerator
 		}
 		catch (BufferOverflowException e)
 		{
-			throw new MessageTooLongException(e);
+			throw new MessageTooLongException("Failed to fit SIP message in the ByteBuffer: poistion at the beginning=" + savedPos + ", capacity=" + buffer.capacity() ,e);
 		}
 	}
 }

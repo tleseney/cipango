@@ -33,6 +33,7 @@ import javax.servlet.sip.TooManyHopsException;
 import javax.servlet.sip.URI;
 import javax.servlet.sip.ar.SipApplicationRoutingDirective;
 
+import org.cipango.server.log.AccessLog;
 import org.cipango.server.session.ApplicationSession;
 import org.cipango.server.session.Session;
 import org.cipango.server.session.SessionHandler;
@@ -44,6 +45,7 @@ import org.cipango.server.transaction.ClientTransactionListener;
 import org.cipango.server.transaction.ServerTransaction;
 import org.cipango.server.transaction.ServerTransactionListener;
 import org.cipango.server.transaction.Transaction;
+import org.cipango.server.transaction.ClientTransactionImpl.TimeoutConnection;
 import org.cipango.sip.AddressImpl;
 import org.cipango.sip.ParameterableImpl;
 import org.cipango.sip.SipGrammar;
@@ -125,6 +127,23 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
         for (Branch branch : _branches)
         {
         	branch.cancel(protocol, reasonCode, reasonText);
+        }
+        // Special case: we got CANCEL *before* proxy is started (asynchronous processing of requests for example)
+        if (!_started && _tx.getState() == org.cipango.server.transaction.Transaction.State.PROCEEDING)
+        {
+           // Actually we need to generate and process "request cancelled" response.
+          try
+          {
+            SipResponse cancelled =(SipResponse) _tx.getRequest().createResponse(SipServletResponse.SC_REQUEST_TERMINATED);
+            cancelled.send();
+            // Yes, we have transaction object right there, but we need to pick "to" tag, so we will go long way instead.
+            // _tx.send(cancelled);
+          }
+          catch (Exception e)
+          {
+            LOG.info("Cannot send cancelled response", e);
+          }
+          
         }
         
 	}

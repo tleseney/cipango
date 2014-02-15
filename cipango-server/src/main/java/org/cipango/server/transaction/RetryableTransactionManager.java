@@ -201,6 +201,12 @@ public class RetryableTransactionManager extends TransactionManager
 		protected boolean retry(SipResponse response, Reason reason)
 		{
 			ListIterator<Hop> hops = getRequest().getHops();
+			if (hops == null)
+			{
+			  // There is a chance that if transaction cancelled/timed out we may get null hops
+			  LOG.debug("Could not retry to send request on session {} as hops are null", this);
+	      return false;
+			}
 			
 			if (hops.hasPrevious())
 			{

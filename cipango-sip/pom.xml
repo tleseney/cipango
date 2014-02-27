@@ -28,6 +28,7 @@
             <goals>
               <goal>manifest</goal>
             </goals>
+            <phase>package</phase>
           </execution>
         </executions>
       </plugin>

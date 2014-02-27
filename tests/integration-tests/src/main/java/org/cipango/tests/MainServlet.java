@@ -24,7 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("serial")
-@javax.servlet.sip.annotation.SipServlet (name = "MainServlet", applicationName = "cipango-servlet-test")
+@javax.servlet.sip.annotation.SipServlet (name = "MainServlet")
 public class MainServlet extends SipServletTestCase
 {
 	private final Logger _logger = LoggerFactory.getLogger(MainServlet.class);

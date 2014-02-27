@@ -70,7 +70,7 @@ public class QuestionSection extends AbstractList<Record>
 		{
 			Name name = getMessage().getCompression().decodeName(buffer);
 			Type type = Type.getType(BufferUtil.get16(buffer));
-			DnsClass clazz = DnsClass.getClass(BufferUtil.get16(buffer));
+			DnsClass clazz = new DnsClass(BufferUtil.get16(buffer));
 			
 			Record record = type.newRecord();
 			record.setDnsClass(clazz);

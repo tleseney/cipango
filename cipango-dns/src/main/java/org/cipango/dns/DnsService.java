@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
-import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,6 +47,7 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 	private Name[] _searchList;
 	private Resolver[] _resolvers;
 	private DnsConnector[] _connectors;
+	private DnsConnector _tcpConnector;
 	private boolean _preferIpv6 = false;
 	
 	private Map<Name, InetAddress[]> _staticHostsByName = new HashMap<Name, InetAddress[]>();
@@ -175,14 +175,14 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 
 	public DnsMessage resolve(DnsMessage query) throws IOException
 	{
-		SocketTimeoutException e = null;
+		IOException e = null;
 		for (Resolver resolver : _resolvers)
 		{
 			try
 			{
 				return resolver.resolve(query);
 			}
-			catch (SocketTimeoutException e1)
+			catch (IOException e1)
 			{
 				e = e1;
 			}
@@ -209,6 +209,10 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 			return null;
 		return _connectors[0];
 	}
+	
+	public DnsConnector getTcpConnector() {
+		return _tcpConnector;
+	}
 
 	@ManagedAttribute(value="Resolvers", readonly=true)
 	public Resolver[] getResolvers()
@@ -225,15 +229,29 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 	public void setConnectors(DnsConnector[] connectors)
 	{
 		updateBeans(_connectors, connectors);
+		_tcpConnector = null;
+		if (connectors != null)
+		{
+			for (int i = 0; i < connectors.length; i++)
+				if (connectors[i].isTcp())
+				{
+					_tcpConnector = connectors[i];
+					break;
+				}
+		}
 		_connectors = connectors;
 	}
 
 	public void setResolvers(Resolver[] resolvers)
 	{
 		updateBeans(_resolvers, resolvers);
-		for (int i = 0; i < resolvers.length; i++)
-			resolvers[i].setDnsClient(this);
+		if (resolvers != null) 
+		{
+			for (int i = 0; i < resolvers.length; i++)
+				resolvers[i].setDnsClient(this);
+		}
 		_resolvers = resolvers;
+		
 	}
 	
 	protected void addEtcHosts()

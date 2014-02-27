@@ -19,39 +19,39 @@ import java.nio.ByteBuffer;
 import org.cipango.dns.util.BufferUtil;
 
 
-public enum DnsClass
+public class DnsClass
 {
 
 	/**
 	 * the Internet
 	 */
-	IN(1),
+	public static DnsClass IN = new DnsClass(1);
 	/**
 	 * the CSNET class (Obsolete - used only for examples in some obsolete RFCs)
 	 * @deprecated
 	 */
-	CS(2),
+	public static DnsClass CS = new DnsClass(2);
 	/**
 	 * the CHAOS class
 	 */
-	CH(3),
+	public static DnsClass CH = new DnsClass(3);
 	/**
 	 *  Hesiod [Dyer 87]
 	 */
-	HS(4),
+	public static DnsClass HS = new DnsClass(4);
 	/** 
 	 * Special value used in dynamic update messages 
 	 */
-	NONE(254),
+	public static DnsClass NONE = new DnsClass(254);
 	/** 
 	 * Matches any class 
 	 */
-	ANY(255);
+	public static DnsClass ANY = new DnsClass(255);
 
 
 	private int _value;
 
-	private DnsClass(int value)
+	public DnsClass(int value)
 	{
 		_value = value;
 	}
@@ -66,11 +66,24 @@ public enum DnsClass
 		BufferUtil.put16(b, _value);
 	}
 	
-	public static DnsClass getClass(int value) throws IOException
+	@Override
+	public int hashCode()
 	{
-		for (DnsClass t : DnsClass.values())
-			if (t.getValue() == value)
-				return t;
-		throw new IOException("Could not found DNS class with value: " + value);
+		return _value;
+	}
+
+	@Override
+	public boolean equals(Object obj)
+	{
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		DnsClass other = (DnsClass) obj;
+		if (_value != other._value)
+			return false;
+		return true;
 	}
 }

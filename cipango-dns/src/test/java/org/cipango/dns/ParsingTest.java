@@ -243,8 +243,16 @@ public class ParsingTest
 		assertEquals("SIP+D2U", naptrRecord.getService());
 		assertEquals("", naptrRecord.getRegexp());
 		assertEquals("_sip._udp.cipango.org", naptrRecord.getReplacement().toString());
+	}
+	
+	@Test
+	public void testParsingAnyResponse() throws Exception
+	{		
+		DnsMessage message = getMessage("/responseAny.dat");
+		assertEquals(ResponseCode.NO_ERROR, message.getHeaderSection().getResponseCode());
 		
-		
+		System.out.println(message);
+
 	}
 	
 	public byte[] getRawMessage(String name) throws Exception

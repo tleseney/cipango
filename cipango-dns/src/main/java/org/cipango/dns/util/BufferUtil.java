@@ -82,4 +82,19 @@ public abstract class BufferUtil
 		else
 			return buffer;
 	}
+	
+	public static int check16(String field, int value) {
+		if (value < 0 || value > 0xFFFF)
+			throw new IllegalArgumentException("Invalid value: " + value + 
+							   " for field " + field + ": must be an unsigned 16 bit");
+		return value;
+	}
+	
+	public static int check8(String field, int value) {
+		if (value < 0 || value > 0xFF)
+			throw new IllegalArgumentException("Invalid value: " + value + 
+							   " for field " + field + ": must be an unsigned 8 bit");
+		return value;
+	}
+		
 }

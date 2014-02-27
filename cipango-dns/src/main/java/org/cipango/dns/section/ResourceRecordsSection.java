@@ -82,7 +82,7 @@ public class ResourceRecordsSection extends AbstractList<Record>
 		{
 			Name name = getMessage().getCompression().decodeName(buffer);
 			Type type = Type.getType(BufferUtil.get16(buffer));
-			DnsClass clazz = DnsClass.getClass(BufferUtil.get16(buffer));
+			DnsClass clazz = new DnsClass(BufferUtil.get16(buffer));
 			
 			Record record = type.newRecord();
 			record.setName(name);
@@ -107,6 +107,15 @@ public class ResourceRecordsSection extends AbstractList<Record>
 	public Record get(int index)
 	{
 		return _records.get(index);
+	}
+	
+	@SuppressWarnings("unchecked")
+	public <T extends Record> T get(Class<T> clazz)
+	{
+		for (Record record : _records)
+			if (clazz.isAssignableFrom(record.getClass()))
+				return (T) record;
+		return null;
 	}
 
 	public DnsMessage getMessage()

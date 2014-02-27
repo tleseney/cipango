@@ -84,7 +84,7 @@ public class Lookup
 			DnsMessage query = new DnsMessage(record);
 			DnsMessage answer = _dnsClient.resolve(query);
 			incrementIteration();
-			
+						
 			ResponseCode responseCode = answer.getHeaderSection().getResponseCode();
 			if (responseCode == ResponseCode.NAME_ERROR)
 			{

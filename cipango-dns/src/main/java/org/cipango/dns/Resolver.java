@@ -18,8 +18,11 @@ import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 
+import org.cipango.dns.record.OptRecord;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
+import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.log.Logger;
 
 @ManagedObject("DNS resolver")
 public class Resolver
@@ -27,30 +30,58 @@ public class Resolver
 	public static final int DEFAULT_PORT = 53;
 	public static final int DEFAULT_TIMEOUT = 1000;
 	
+	private static final Logger LOG = Log.getLogger(Resolver.class);
 	private DnsClient _dnsClient;
 	private InetAddress _host;
 	private int _port = DEFAULT_PORT;
 	private long _timeout = DEFAULT_TIMEOUT;
 	private int _attemps = 2;
 	
+	private OptRecord _queryOpt;
+		
+	public Resolver() {
+	}
+	
+	public Resolver(String host) throws UnknownHostException {
+		setHost(host);
+	}
 	
 	
 	public DnsMessage resolve(DnsMessage query) throws IOException
 	{
-		DnsConnection c = _dnsClient.getDefaultConnector().newConnection(_host, _port);
-		long timeout = _timeout;
+		DnsConnection c = _dnsClient.getDefaultConnector().getConnection(_host, _port);
+		
+		if (_queryOpt != null && query.getAdditionalSection().get(OptRecord.class) == null)
+			query.getAdditionalSection().add(_queryOpt); // TODO clone
+		
+		int timeout = (int) _timeout;
 		for (int i = 0; i < _attemps; i++)
 		{
 			c.send(query);
-			long end = System.currentTimeMillis() + timeout;
 			DnsMessage answer;
 			
-			answer = c.waitAnswer(query, (int) (end - System.currentTimeMillis()));
+			answer = c.waitAnswer(query, timeout);
 			if (answer != null)
+			{
+				if (answer.getHeaderSection().isTruncated() && !_dnsClient.getDefaultConnector().isTcp())
+				{
+					DnsConnector tcpConnector =  _dnsClient.getTcpConnector();
+					if (tcpConnector == null)
+						LOG.debug("Ignore truncated flag as there is no TCP connector");
+					else {
+						c = tcpConnector.getConnection(_host, _port);
+						c.send(query);
+						answer = c.waitAnswer(query, timeout);
+						if (answer == null)
+							throw new SocketTimeoutException("No response received for query " + query.getQuestionSection());
+						return answer;
+					}
+				}
 				return answer;
+			}
 			timeout *= 2;
 		}
-		throw new SocketTimeoutException();
+		throw new SocketTimeoutException("No response received for query " + query.getQuestionSection());
 		
 	}
 
@@ -117,6 +148,16 @@ public class Resolver
 	public String toString()
 	{
 		return getClass().getSimpleName() + "@" + _host.getHostAddress() + ":" + _port;
+	}
+
+	public OptRecord getQueryOpt()
+	{
+		return _queryOpt;
+	}
+
+	public void setQueryOpt(OptRecord queryOpt)
+	{
+		_queryOpt = queryOpt;
 	}
 
 

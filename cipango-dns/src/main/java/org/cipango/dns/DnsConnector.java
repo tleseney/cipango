@@ -14,6 +14,7 @@
 
 package org.cipango.dns;
 
+import java.io.IOException;
 import java.net.InetAddress;
 
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
@@ -26,12 +27,9 @@ public interface DnsConnector
 	void setHost(String host);
 	@ManagedAttribute(value="Host", readonly=true)
 	String getHost();
+		
+	DnsConnection getConnection(InetAddress host, int port) throws IOException;
 	
-	void setPort(int port);
-
-	@ManagedAttribute(value="Port", readonly=true)
-	int getPort();
-	
-	DnsConnection newConnection(InetAddress host, int port);
+	boolean isTcp();
 		
 }

@@ -532,9 +532,13 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 		SipResponse response = new SipResponse(cancel ,SipServletResponse.SC_OK, null);
 		((ServerTransaction) cancel.getTransaction()).send(response);
 
+		
         cancel();
         try 
         {
+        	if (!_started) // case no request has not been proxied
+    			_tx.getRequest().createResponse(SipServletResponse.SC_REQUEST_TERMINATED).send();
+    		
             cancel.appSession().getContext().handle(cancel);
         } 
         catch (Exception e)

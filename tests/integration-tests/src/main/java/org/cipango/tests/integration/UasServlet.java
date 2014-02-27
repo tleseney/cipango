@@ -25,12 +25,18 @@ import org.cipango.tests.AbstractServlet;
 public class UasServlet extends AbstractServlet
 {
 
+	public void testLateInvite200NoRinging(SipServletRequest request) throws Throwable
+	{
+		testLateInvite200(request);
+	}
+	
 	public void testLateInvite200(SipServletRequest request) throws Throwable
 	{
 		String method = request.getMethod();
 		if ("INVITE".equals(method))
 		{
-			request.createResponse(SipServletResponse.SC_RINGING).send();
+			if ("true".equals(request.getTo().getURI().getParameter("ringing")))
+				request.createResponse(SipServletResponse.SC_RINGING).send();
 			Thread.sleep(1000);
 			request.createResponse(SipServletResponse.SC_OK).send();
 		}
@@ -69,5 +75,10 @@ public class UasServlet extends AbstractServlet
 		}
 		response.setContent(sb.toString(), "text/plain");
 		response.send();
+	}
+	
+	public void testEarlyCancel(SipServletRequest request) throws Exception
+	{
+		//System.out.println("testEarlyCancel: Received " + request.getMethod());
 	}
 }

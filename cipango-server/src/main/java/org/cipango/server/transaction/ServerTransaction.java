@@ -19,6 +19,8 @@ import java.io.IOException;
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipRequest;
 import org.cipango.server.SipResponse;
+import org.cipango.server.session.Session;
+import org.cipango.server.session.scoped.ScopedServerTransactionListener;
 import org.cipango.sip.SipHeader;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
@@ -105,10 +107,19 @@ public class ServerTransaction extends TransactionImpl
 	
 	public void cancel(SipRequest cancel) throws IOException
 	{
-		if (_listener == null)
-			LOG.warn("No transaction listener set on {}. Could not handle:\n{}", this, cancel);
-		else
-			_listener.handleCancel(this, cancel);
+		if (_listener == null) { // Case CANCEL received before session mode choose
+    		Session session = _request.session();
+    		if (session == null) {
+    			LOG.warn("No transaction listener set on {}. Could not handle:\n{}", this, cancel);
+    			return;
+    		}
+    		
+        	if (session.getUa() == null)
+    			session.setUAS();
+			setListener(new ScopedServerTransactionListener(session, session.getUa()));
+    	}
+		
+		_listener.handleCancel(this, cancel);
 	}
 	
 	/**

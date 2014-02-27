@@ -294,4 +294,32 @@ public class ProxyTest extends UaTestCase
 		
 		checkForFailure();
 	}
+	
+	/**
+	 * Test if a CANCEL is received when servlet is in proxy mode but has not proxy any request.
+	 * <pre>
+	 * Alice                         AS
+	 *   | INVITE                     |
+	 *   |--------------------------->|
+	 *   |                        100 |
+	 *   |<---------------------------|
+	 *   | CANCEL                     |
+	 *   |--------------------------->|
+ 	 *   |                 200/CANCEL |
+	 *   |<---------------------------|
+	 *   |                 487/INVITE |
+	 *   |<---------------------------|
+	 *   |                        ACK |
+	 *   |--------------------------->|
+	 * </pre>
+	 */
+	@Test
+	public void testEarlyCancel() throws Exception
+	{
+		Call call = _ua.createCall(_ua.getFactory().createURI(getTo()));
+		call.createCancel().send();
+        assertThat(call.waitForResponse(), hasStatus(SipServletResponse.SC_REQUEST_TERMINATED));        
+        // CANCEL response is filtered by container
+        checkForFailure();
+	}
 }

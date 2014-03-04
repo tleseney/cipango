@@ -23,7 +23,7 @@
             <goals>
               <goal>manifest</goal>
             </goals>
-            <phase>package</phase>
+            <phase>process-classes</phase>
           </execution>
         </executions>
       </plugin>

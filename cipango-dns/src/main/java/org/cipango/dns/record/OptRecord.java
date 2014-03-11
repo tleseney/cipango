@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import org.cipango.dns.Compression;
-import org.cipango.dns.DnsClass;
 import org.cipango.dns.Type;
 import org.cipango.dns.util.BufferUtil;
 
@@ -52,7 +51,7 @@ public class OptRecord extends Record
 	 */
 	public OptRecord(int maxPayloadSize, int extendedRcode, int version, int z)
 	{
-		setDnsClass(new DnsClass(BufferUtil.check16("max payload size", maxPayloadSize)));
+		setDnsClass(BufferUtil.check16("max payload size", maxPayloadSize));
 		BufferUtil.check8("Extended RCODE", extendedRcode);
 		BufferUtil.check8("Version", version);
 		BufferUtil.check16("z", z);
@@ -65,7 +64,7 @@ public class OptRecord extends Record
 	}
 	
 	public int getMaxPayloadSize() {
-		return getDnsClass().getValue();
+		return getDnsClass();
 	}
 	
 	public int getExtendedRCode() {

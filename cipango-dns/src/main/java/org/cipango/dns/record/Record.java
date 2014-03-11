@@ -28,7 +28,7 @@ public abstract class Record
 {	
 	private int _ttl;
 	private Name _name;
-	private DnsClass _class = DnsClass.IN;
+	private int _class = DnsClass.IN;
 	
 	public abstract Type getType();
 	
@@ -72,13 +72,13 @@ public abstract class Record
 	}
 
 
-	public DnsClass getDnsClass()
+	public int getDnsClass()
 	{
 		return _class;
 	}
 
 
-	public void setDnsClass(DnsClass clazz)
+	public void setDnsClass(int clazz)
 	{
 		_class = clazz;
 	}
@@ -105,7 +105,7 @@ public abstract class Record
 		if (!_name.equals(record.getName()))
 			return false;
 		
-		if (!_class.equals(record.getDnsClass()))
+		if (_class != record.getDnsClass())
 			return false;
 		
 		return doEquals(record);

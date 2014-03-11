@@ -20,7 +20,6 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.cipango.dns.DnsClass;
 import org.cipango.dns.DnsMessage;
 import org.cipango.dns.Name;
 import org.cipango.dns.Type;
@@ -59,7 +58,7 @@ public class QuestionSection extends AbstractList<Record>
 		{
 			getMessage().getCompression().encodeName(record.getName(), buffer);
 			record.getType().encode(buffer);
-			record.getDnsClass().encode(buffer);
+			BufferUtil.put16(buffer, record.getDnsClass());
 		}
 	}
 
@@ -70,7 +69,7 @@ public class QuestionSection extends AbstractList<Record>
 		{
 			Name name = getMessage().getCompression().decodeName(buffer);
 			Type type = Type.getType(BufferUtil.get16(buffer));
-			DnsClass clazz = new DnsClass(BufferUtil.get16(buffer));
+			int clazz = BufferUtil.get16(buffer);
 			
 			Record record = type.newRecord();
 			record.setDnsClass(clazz);

@@ -36,6 +36,7 @@ public class NameTest
 		assertEquals(new Name("cipango.org"), new Name("cipango.org"));
 		assertEquals(new Name("org"), new Name("org"));
 		assertFalse(new Name("cipango.org").equals(new Name("cipango")));
+		assertEquals(new Name("cipango.org"), new Name("Cipango.ORG"));
 	}
 	
 	@Test (expected = IllegalArgumentException.class)

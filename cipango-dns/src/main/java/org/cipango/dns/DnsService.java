@@ -22,10 +22,13 @@ import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
 
+import org.cipango.dns.bio.TcpConnector;
 import org.cipango.dns.bio.UdpConnector;
 import org.cipango.dns.record.ARecord;
 import org.cipango.dns.record.AaaaRecord;
@@ -36,8 +39,10 @@ import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.component.ContainerLifeCycle;
+import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 @ManagedObject("DNS Service")
 public class DnsService extends ContainerLifeCycle implements DnsClient
@@ -52,10 +57,19 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 	
 	private Map<Name, InetAddress[]> _staticHostsByName = new HashMap<Name, InetAddress[]>();
 	private Map<Name, String> _staticHostsByAddr = new HashMap<Name, String>();
+	
+	private Executor _executor;
 
+	@SuppressWarnings("restriction")
 	@Override
 	protected void doStart() throws Exception
 	{
+		if (_executor == null) {
+			QueuedThreadPool executor = new QueuedThreadPool(10, 1, 2000);
+			executor.setName("qtp-dns");
+			setExecutor(executor);
+		}
+		
 		if (_resolvers == null || _resolvers.length == 0)
 		{
 			sun.net.dns.ResolverConfiguration resolverConfiguration = sun.net.dns.ResolverConfiguration
@@ -77,7 +91,13 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 		}
 
 		if (_connectors == null || _connectors.length == 0)
-			addConnector(new UdpConnector());
+		{
+			setConnectors(new DnsConnector[] { new UdpConnector(), new TcpConnector() });
+		}
+		
+		for (DnsConnector connector : _connectors)
+			if (connector.getExecutor() == null)
+				connector.setExecutor(_executor);
 
 		if (_searchList == null)
 		{
@@ -95,6 +115,18 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 		addEtcHosts();
 		
 		super.doStart();
+	}
+	
+	@Override
+	protected void doStop() throws Exception
+	{
+		if (_connectors != null)
+		{
+			for (int i = 0; i < _connectors.length; i++)
+				if (_connectors[i] instanceof LifeCycle)
+					((LifeCycle) _connectors[i]).stop();
+		}
+		super.doStop();
 	}
 	
 	public InetAddress[] lookupAllHostAddr(String host) throws UnknownHostException
@@ -233,11 +265,15 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 		if (connectors != null)
 		{
 			for (int i = 0; i < connectors.length; i++)
+			{
+				if (connectors[i].getExecutor() == null)
+					connectors[i].setExecutor(_executor);
 				if (connectors[i].isTcp())
 				{
 					_tcpConnector = connectors[i];
 					break;
 				}
+			}
 		}
 		_connectors = connectors;
 	}
@@ -357,6 +393,17 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 	public void setPreferIpv6(boolean preferIpv6)
 	{
 		_preferIpv6 = preferIpv6;
+	}
+
+	public Executor getExecutor()
+	{
+		return _executor;
+	}
+
+	public void setExecutor(Executor executor)
+	{
+		updateBean(_executor, executor);
+		_executor = executor;
 	}
 
 }

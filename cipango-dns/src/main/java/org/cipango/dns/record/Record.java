@@ -105,7 +105,7 @@ public abstract class Record
 		if (!_name.equals(record.getName()))
 			return false;
 		
-		if (_class != record.getDnsClass())
+		if (!_class.equals(record.getDnsClass()))
 			return false;
 		
 		return doEquals(record);

@@ -16,6 +16,7 @@ package org.cipango.dns;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.concurrent.Executor;
 
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
@@ -31,5 +32,9 @@ public interface DnsConnector
 	DnsConnection getConnection(InetAddress host, int port) throws IOException;
 	
 	boolean isTcp();
+	
+	Executor getExecutor();
+
+	void setExecutor(Executor executor);
 		
 }

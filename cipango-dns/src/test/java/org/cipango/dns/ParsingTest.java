@@ -251,7 +251,7 @@ public class ParsingTest
 		DnsMessage message = getMessage("/responseAny.dat");
 		assertEquals(ResponseCode.NO_ERROR, message.getHeaderSection().getResponseCode());
 		
-		System.out.println(message);
+		//System.out.println(message);
 
 	}
 	

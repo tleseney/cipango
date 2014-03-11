@@ -19,6 +19,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.RejectedExecutionException;
 
 import org.cipango.dns.AbstractConnector;
 import org.cipango.dns.DnsConnection;
@@ -53,11 +54,13 @@ public class UdpConnector extends AbstractConnector
 	@Override
 	protected void doStop() throws Exception
 	{
-		super.doStop();
 		if (_socket != null)
 			_socket.close();
 		_socket = null;
+		if (_acceptor != null)
+			_acceptor.close();
 		_acceptor = null;
+		super.doStop();
 	}
 	
 	public DnsConnection getConnection(InetAddress host, int port)
@@ -74,7 +77,7 @@ public class UdpConnector extends AbstractConnector
 
 			LOG.debug("Create the new datagram socket {} for DNS connector", _socket.getLocalSocketAddress());
 			_acceptor = new Acceptor();
-			new Thread(_acceptor, "DNS acceptor").start();
+			_acceptor.dispatch();
 			
 		}
 		return _socket;
@@ -136,6 +139,19 @@ public class UdpConnector extends AbstractConnector
 				_datagramSocket.close();
 			_datagramSocket = null;
 		}
+		
+		public void dispatch()
+        {
+			try
+			{
+				getExecutor().execute(this);
+			}
+			catch (RejectedExecutionException e)
+            {
+                LOG.warn("dispatch failed for {}", this);
+                close();
+            }
+        }
 		
 	}
 

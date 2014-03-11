@@ -21,6 +21,7 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.RejectedExecutionException;
 
 import org.cipango.dns.AbstractConnector;
 import org.cipango.dns.DnsConnection;
@@ -55,22 +56,36 @@ public class TcpConnector extends AbstractConnector
         _currentPort = _minPort - 1;
 	}
 	
-	public DnsConnection getConnection(InetAddress host, int port) throws IOException
+	@Override
+	protected void doStop() throws Exception
 	{
-		synchronized (_connections) // TODO check blocked
+		synchronized (_connections)
 		{
-			Connection cnx = _connections.get(key(host, port));
-			if (cnx == null || !cnx.isOpen()) 
-			{
-				cnx = new Connection(host, port);
-				_connections.put(key(host, port), cnx);
-				new Thread(cnx, "DNS TCP acceptor").start(); //TODO use thread pool
-			}
-			return cnx;
+			for (Connection connection : _connections.values())
+				connection.close();
 		}
+		super.doStop();
 	}
 	
-	protected DnsConnection newConnection(InetAddress host, int port) throws IOException {
+	public DnsConnection getConnection(InetAddress host, int port) throws IOException
+	{
+		Connection cnx = null;
+				
+		synchronized (_connections) // TODO check blocked
+		{
+			cnx = _connections.get(key(host, port));
+			if (cnx == null || !cnx.isOpen()) 
+			{
+				cnx = newConnection(host, port);
+				_connections.put(key(host, port), cnx);
+				cnx.dispatch();
+			}
+		}
+
+		return cnx;
+	}
+	
+	protected Connection newConnection(InetAddress host, int port) throws IOException {
 		return new Connection(host, port);
 	}
 	
@@ -140,6 +155,7 @@ public class TcpConnector extends AbstractConnector
 		    			else
 		    				testedPort++;
 		    			socket = new Socket();
+		    			socket.setReuseAddress(false);
 		    		    socket.bind(new InetSocketAddress(getHostAddr(), testedPort)); 
 		    		    _currentPort = testedPort;
 		    		    break;
@@ -215,7 +231,20 @@ public class TcpConnector extends AbstractConnector
 			return _socket != null && !_socket.isClosed();
 		}
 		
-		private void close()
+		public void dispatch() throws IOException
+        {
+			try
+			{
+				getExecutor().execute(this);
+			}
+			catch (RejectedExecutionException e)
+            {
+                LOG.warn("dispatch failed for {}", this);
+                close();
+            }
+        }
+		
+		public void close()
 		{
 			try {
     			if (_socket != null && !_socket.isClosed())

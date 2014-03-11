@@ -13,7 +13,6 @@
 // ========================================================================
 package org.cipango.dns;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.*;
 
 import java.net.DatagramSocket;
@@ -47,12 +46,16 @@ import org.junit.runners.Parameterized.Parameters;
 public class DnsServiceTest
 {
 	private DnsService _dnsService;
+	private Class<DnsConnector> _connectorClass;
 	public static final String  IPV4_ADDR = "213.186.33.5";
 	public static final String  IPV6_ADDR = "2001:41d0:2:7a93::1";
+	
 	
 	@Before
 	public void setUp() throws Exception
 	{
+		_dnsService = new DnsService();
+		_dnsService.addConnector(_connectorClass.newInstance());
 		_dnsService.start();
 	}
 	
@@ -62,10 +65,10 @@ public class DnsServiceTest
 		{
 			return Arrays.asList(new Object[][] {
 					{
-						new UdpConnector()
+						UdpConnector.class
 					},
 					{
-						new TcpConnector()
+						TcpConnector.class
 					} });
 		}
 		catch (MissingResourceException e)
@@ -80,9 +83,8 @@ public class DnsServiceTest
 		_dnsService.stop();
 	}
 	
-	public DnsServiceTest(DnsConnector connector) {
-		_dnsService = new DnsService();
-		_dnsService.addConnector(connector);
+	public DnsServiceTest(Class<DnsConnector> connectorClass) throws Exception {
+		_connectorClass = connectorClass;
 	}
 	
 	
@@ -122,15 +124,17 @@ public class DnsServiceTest
 		testBigRequest("truncated flag and fallback to TCP");
 	}
 	
-	private void setLocalPorts(int min, int max) 
+	private void setLocalPorts(int min, int delta) 
 	{
 		DnsConnector connector = _dnsService.getDefaultConnector();
 		if (connector instanceof UdpConnector)
 			((UdpConnector) connector).setPort(min);
 		else 
 		{
-			((TcpConnector) connector).setMinPort(min);
-			((TcpConnector) connector).setMaxPort(max);
+			TcpConnector tcpConnector = (TcpConnector) connector;
+			// Use delta to prevent exception due to BindException if test is run multiple times
+			tcpConnector.setMinPort(new Random().nextInt(delta) + min);
+			tcpConnector.setMaxPort(tcpConnector.getMinPort() + delta);
 		}
 	}
 	
@@ -138,7 +142,7 @@ public class DnsServiceTest
 	public void testNewConnection() throws Exception
 	{
 		AbstractConnector connector = (AbstractConnector) _dnsService.getDefaultConnector();
-		setLocalPorts(10053, 10056);
+		setLocalPorts(10053, 10);
 		connector.setTimeout(1100);
 		InetAddress[] addr = _dnsService.lookupAllHostAddr("jira.cipango.org");
 		assertNotNull(addr);
@@ -168,13 +172,14 @@ public class DnsServiceTest
 	@Test
 	public void testConcurrent() throws Exception
 	{
-		setLocalPorts(10053, 10056);
-		_dnsService.getResolvers()[0].setTimeout(4000); // In TCP, 
-		Load[] loads = new Load[4];
+		setLocalPorts(10053, 50);
+		// In TCP, with some server there could be more latency with some DNS servers
+		_dnsService.getResolvers()[0].setTimeout(4000); 
+		Load[] loads = new Load[5];
 		Random random = new Random(); // Use random to prevent cache
 		for (int i = 0; i < loads.length; i++)
 		{
-			loads[i] = new Load("test" + random.nextInt() + ".cipango.org", 10);
+			loads[i] = new Load("test" + random.nextInt() + ".cipango.org", 4);
 			new Thread(loads[i]).start();
 		}
 	

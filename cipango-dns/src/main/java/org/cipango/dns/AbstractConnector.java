@@ -17,17 +17,29 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
+import org.eclipse.jetty.util.thread.ExecutorThreadPool;
 
 public abstract class AbstractConnector extends AbstractLifeCycle implements DnsConnector
 {
 	private static final Logger LOG = Log.getLogger(AbstractConnector.class);
 	private InetAddress _host;
-	private int _port;
+	private int _timeout = Resolver.DEFAULT_TIMEOUT * 10;
 	protected Map<Integer, MsgContainer> _queries = new HashMap<Integer, MsgContainer>();
+	private Executor _executor;
+	
+	@Override
+	protected void doStart() throws Exception
+	{
+		super.doStart();
+		if (_executor == null)
+			setExecutor(new ExecutorThreadPool(1, 10, 2000));
+	}
 	
 	public String getHost()
 	{
@@ -52,17 +64,78 @@ public abstract class AbstractConnector extends AbstractLifeCycle implements Dns
 			LOG.debug(e);
 		}
 	}
-
-	public int getPort()
+	
+	public int getTimeout()
 	{
-		return _port;
+		return _timeout;
 	}
 
-	public void setPort(int port)
+	public void setTimeout(int timeout)
 	{
-		if (port < 0 || port > 65536)
-			throw new IllegalArgumentException("Invalid port: " + port);
-		_port = port;
+		_timeout = timeout;
+	}
+	
+	protected void addQuery(DnsMessage query) 
+	{
+		synchronized (_queries)
+		{
+			if (!_queries.containsKey(query.getHeaderSection().getId()))
+				_queries.put(query.getHeaderSection().getId(), new MsgContainer(query));
+			else
+			{
+				int id = ThreadLocalRandom.current().nextInt() & 0xFFFF;
+				LOG.warn("ID {} is already in use. Change ID to {}",  query.getHeaderSection().getId(), id);
+				query.getHeaderSection().setId(id);
+				addQuery(query);
+			}
+		}
+	}
+	
+	protected void updateQueryOnAnswer(DnsMessage answer) 
+	{
+		MsgContainer msgContainer;
+		synchronized (_queries)
+		{
+			msgContainer = _queries.get(answer.getHeaderSection().getId());
+		}
+		
+		if (msgContainer != null)
+		{
+			synchronized (msgContainer.getQuery())
+			{
+				msgContainer.setAnswer(answer);
+				msgContainer.getQuery().notify();
+			}
+		}
+		else
+			LOG.warn("Drop DNS {}, as can not found a query with same ID", answer);
+	}
+	
+	protected DnsMessage waitAnswer(DnsMessage request, int timeout)
+	{
+		synchronized (request)
+		{
+			try { request.wait(timeout); } catch (InterruptedException e) {}				
+		}
+		MsgContainer messages;
+		synchronized (_queries)
+		{
+
+			messages = _queries.remove(request.getHeaderSection().getId());
+		}
+		if (messages == null)
+			return null;
+		return messages.getAnswer();
+	}
+	
+	public Executor getExecutor()
+	{
+		return _executor;
+	}
+
+	public void setExecutor(Executor executor)
+	{
+		_executor = executor;
 	}
 
 	public static class MsgContainer
@@ -90,4 +163,5 @@ public abstract class AbstractConnector extends AbstractLifeCycle implements Dns
 			return _query;
 		}
 	}
+
 }

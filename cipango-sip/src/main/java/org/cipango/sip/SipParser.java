@@ -352,6 +352,8 @@ public class SipParser
 											try
 											{
 												scanner.readQuoted();
+												if (scanner.eof())
+													returnFromParse |= _handler.parsedHeader(_header, _headerString, scanner.sliceFromMark());
 											}
 											catch (ParseException e)
 											{

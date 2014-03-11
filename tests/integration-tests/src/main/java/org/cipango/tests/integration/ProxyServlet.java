@@ -139,6 +139,12 @@ public class ProxyServlet extends AbstractServlet
 		Assert.assertFalse(it.hasNext()); 
 	}
 	
+	public void testEarlyCancel(SipServletRequest request) throws Exception
+	{
+		if ("INVITE".equals(request.getMethod()))
+			request.getProxy();
+	}
+	
 		
 	class ProxyDiameterRunnable implements Serializable, Runnable
 	{

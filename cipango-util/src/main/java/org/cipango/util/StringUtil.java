@@ -56,6 +56,7 @@ public class StringUtil extends org.eclipse.jetty.util.StringUtil
 	
 	public static final String ALPHA = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	public static final String DIGITS = "0123456789";
+	public static final String HEX_DIGITS = DIGITS + "abcdefABCDEF";
 	public static final String HNV_UNRESERVED = "[]/?:+$"; 
 	public static final String LWS = " \r\n\t";
 	public static final String MARK = "-_.!~*'()";

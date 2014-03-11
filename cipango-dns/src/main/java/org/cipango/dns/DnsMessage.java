@@ -15,8 +15,10 @@ package org.cipango.dns;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
+import org.cipango.dns.bio.UdpConnector;
+import org.cipango.dns.record.OptRecord;
 import org.cipango.dns.record.Record;
 import org.cipango.dns.section.HeaderSection;
 import org.cipango.dns.section.HeaderSection.OpCode;
@@ -41,7 +43,6 @@ import org.cipango.dns.section.ResourceRecordsSection;
  */
 public class DnsMessage
 {
-	private static Random __random = new Random();
 	
 	private HeaderSection _headerSection = new HeaderSection(this);
 	private QuestionSection _questionSection = new QuestionSection(this);
@@ -56,7 +57,7 @@ public class DnsMessage
 	
 	public DnsMessage(Record record)
 	{
-		_headerSection.setId(__random.nextInt() & 0xFFFF);
+		_headerSection.setId(ThreadLocalRandom.current().nextInt() & 0xFFFF);
 		_headerSection.setOpCode(OpCode.QUERY);
 		_questionSection.add(record);
 	}
@@ -114,6 +115,13 @@ public class DnsMessage
 	public ResourceRecordsSection getAdditionalSection()
 	{
 		return _additionalSection;
+	}
+	
+	public int getMaxUdpSize() {
+		OptRecord record = _additionalSection.get(OptRecord.class);
+		if (record != null)
+			return record.getMaxPayloadSize();
+		return UdpConnector.DEFAULT_MAX_PACKET_SIZE;
 	}
 
 	public String toString()

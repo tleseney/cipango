@@ -19,6 +19,9 @@ import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.fail;
 
+import java.text.ParseException;
+
+import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.TelURL;
 
 import org.junit.Test;
@@ -39,8 +42,20 @@ public class TelURLTest
 		assertEquals("atlanta.com", url.getPhoneContext());
 		try	{ url.setPhoneNumber("+1/3"); fail();} catch (IllegalArgumentException e) {	}
 		try	{ url.setPhoneNumber("1-212-555-0101"); fail();} catch (IllegalArgumentException e) {}
-		try	{ url.setPhoneNumber("+1-212-555-0101", "atlanta.com"); fail();} catch (IllegalArgumentException e) {}
+		try	{ url.setPhoneNumber("+1-212-555-0101", "atlanta.com"); fail();} catch (IllegalArgumentException e) {}assertEquals("#123#", newTelURL("tel:#123#;phone-context=atlanta.com").getPhoneNumber());
+		
+		url.setPhoneNumber("1ABCDEF2", "atlanta.com");
+		assertEquals("*123*",  newTelURL("tel:*123*;phone-context=atlanta.com").getPhoneNumber());
+		url.setPhoneNumber("1abcdef2", "atlanta.com");
+		try	{ url.setPhoneNumber("+#123#"); fail();} catch (IllegalArgumentException e) {}
+		try	{ url.setPhoneNumber("+123A"); fail();} catch (IllegalArgumentException e) {}
+		try	{ newTelURL("tel:+*123*").getPhoneNumber(); fail();} catch (ParseException e) {}
+		try	{ newTelURL("tel:+123A").getPhoneNumber(); fail();} catch (ParseException e) {}
 	}	
+	
+	private TelURL newTelURL(String url) throws ServletParseException, ParseException {
+		return (TelURL) URIFactory.parseURI(url);
+	}
 
 	@Test
 	public void testParameters() throws Exception

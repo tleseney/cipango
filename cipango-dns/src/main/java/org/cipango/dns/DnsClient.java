@@ -21,8 +21,10 @@ public interface DnsClient
 	public Cache getCache();
 
 	public Name[] getSearchList();
-
+	
 	public DnsConnector getDefaultConnector();
+	
+	public DnsConnector getTcpConnector();
 
 	public Resolver[] getResolvers();
 

@@ -1,0 +1,11 @@
+REGISTER sip:cipango.org SIP/2.0
+Via: SIP/2.0/WS df7jal23ls0d.invalid;branch=z9hG4bKaKkMckT0t3noG816WywV4ve4x6xTaJ7g;rport
+From: <sip:b@cipango.org>;tag=o7Xgo1mPkuqLSSQCNCu4 
+To: <sip:b@cipango.org>
+Contact: <sip:b@df7jal23ls0d.invalid;rtcweb-breaker=no;transport=ws>;expires=200;click2call=no;+g.oma.sip-im;+audio;language="en,fr"
+Call-ID: caba3247-d95f-1ba7-e5c7-93fd52af1400
+CSeq: 12794 REGISTER
+Content-Length: 0
+Max-Forwards: 70
+Supported: path
+

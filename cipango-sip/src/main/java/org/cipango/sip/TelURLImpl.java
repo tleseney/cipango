@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
+import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.TelURL;
 
 import org.cipango.util.StringUtil;
@@ -41,7 +42,9 @@ public class TelURLImpl implements TelURL, Serializable, Modifiable
 	private transient boolean _modified;
 	
 	public static final String PHONE_CONTEXT = "phone-context";
-	private static final BitSet PHONE_DIGITS = StringUtil.toBitSet(StringUtil.DIGITS + '-' + '.' + '(' + ')');
+	
+	private static final BitSet GLOBAL_PHONE_DIGITS = StringUtil.toBitSet(StringUtil.DIGITS + '-' + '.' + '(' + ')');
+	private static final BitSet LOCAL_PHONE_DIGITS = StringUtil.toBitSet(StringUtil.HEX_DIGITS + '-' + '.' + '(' + ')' + '*' + '#');
 	
 	public TelURLImpl(String uri) throws ParseException 
 	{
@@ -69,12 +72,15 @@ public class TelURLImpl implements TelURL, Serializable, Modifiable
 		else 
 		{
 			_number = _uri.substring(indexScheme + 1, indexParam);
-			if (!StringUtil.contains(getPhoneNumber(), PHONE_DIGITS)) 
-				throw new ParseException("Invalid phone number [" + _number
-						+ "] in URI [" + _uri + "]", indexScheme + 1);
 			String sParams = _uri.substring(indexParam + 1);
 			parseParams(sParams);
 		}
+		if (isGlobal() && !StringUtil.contains(getPhoneNumber(), GLOBAL_PHONE_DIGITS)) 
+			throw new ParseException("Invalid global phone number [" + _number
+					+ "] in URI [" + _uri + "]", indexScheme + 1);
+		if (!isGlobal() && !StringUtil.contains(getPhoneNumber(), LOCAL_PHONE_DIGITS)) 
+			throw new ParseException("Invalid local phone number [" + _number
+					+ "] in URI [" + _uri + "]", indexScheme + 1);
 	}
 	
 	private void parseParams(String sParams) throws ParseException 
@@ -137,7 +143,7 @@ public class TelURLImpl implements TelURL, Serializable, Modifiable
 		if (!number.startsWith("+"))
 			throw new IllegalArgumentException("Not a global number: " + number);
 		String n = number.startsWith("+") ? number.substring(1) : number;
-		if (!StringUtil.contains(n, PHONE_DIGITS)) 
+		if (!StringUtil.contains(n, GLOBAL_PHONE_DIGITS)) 
 			throw new IllegalArgumentException("Invalid phone number [" + number + "]");
 		_number = number;
 		_modified = true;
@@ -147,8 +153,8 @@ public class TelURLImpl implements TelURL, Serializable, Modifiable
 	{
 		if (number.startsWith("+"))
 			throw new IllegalArgumentException("Not a local number: " + number);
-// FIXME		if (!SipGrammar.__phoneDigits.containsAll(number)) 
-//			throw new IllegalArgumentException("Invalid phone number [" + number + "]");
+		if (!StringUtil.contains(number, LOCAL_PHONE_DIGITS)) 
+			throw new IllegalArgumentException("Invalid phone number [" + number + "]");
 		_number = number;
 		setParameter(PHONE_CONTEXT, phoneContext);
 		_modified = true;

@@ -86,7 +86,7 @@ public class Name implements Cloneable, Serializable
 	@Override
 	public int hashCode()
 	{
-		return toString().hashCode();
+		return toString().toLowerCase().hashCode();
 	}
 	
 	@Override
@@ -98,7 +98,7 @@ public class Name implements Cloneable, Serializable
 			return false;
 		
 		Name name = (Name) o;
-		if (!_label.equals(name.getLabel()))
+		if (!_label.equalsIgnoreCase(name.getLabel()))
 			return false;
 		
 		if (hasChild())

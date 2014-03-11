@@ -20,6 +20,7 @@
             </Call>
           </New>
         </Set>
+        <Set name="useNaptr"><Property default="true" name="rfc3263.naptr"/></Set>
       </New>
     </Set>
     

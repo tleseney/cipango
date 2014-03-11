@@ -4,9 +4,10 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.fail;
+import static junit.framework.Assert.*;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -15,6 +16,7 @@ import java.util.ListIterator;
 
 import javax.servlet.sip.Address;
 import javax.servlet.sip.Parameterable;
+import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipURI;
 import javax.servlet.sip.SipServletMessage.HeaderForm;
 import javax.servlet.sip.URI;
@@ -228,16 +230,8 @@ public class SipMessageTest
 	@Test
 	public void testMultipleLineHeaders() throws Exception
 	{
-		InputStream is = getClass().getResourceAsStream("/org/cipango/server/MultipleLineRequest.txt");
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		byte[] buffer = new byte[1024];
-		int read;
-		while ((read = is.read(buffer)) != -1)
-		{
-			os.write(buffer, 0, read);
-		}
-		
-		SipMessage message = getMessage(os.toString());
+		InputStream is = getClass().getResourceAsStream("/org/cipango/server/MultipleLineRequest.txt");		
+		SipMessage message = getMessage(is);
 		String toString = message.toString();
 		//System.out.println(message);
 	
@@ -259,6 +253,22 @@ public class SipMessageTest
 		}
 	}
 	
+	/**
+	 * Test for CIPANGO-205: Can't find Contact Header in REGISTER if a contact parameter is quoted
+	 */
+	@Test
+	public void testQuotedContact() throws Exception
+	{
+		InputStream is = getClass().getResourceAsStream("/org/cipango/server/contact.dat");		
+		SipMessage message = getMessage(is);
+
+		//System.out.println(message);
+		Address contact = message.getAddressHeader("contact");
+		assertNotNull(contact);
+		assertEquals("<sip:b@df7jal23ls0d.invalid;rtcweb-breaker=no;transport=ws>;expires=200;click2call=no;+g.oma.sip-im;+audio;language=\"en,fr\"",
+				contact.toString());
+	}
+	
 	private int count(String string, String token)
 	{
 		int i = 0;
@@ -266,6 +276,19 @@ public class SipMessageTest
 		while ((index = string.indexOf(token, index + 1)) != -1)
 			i++;
 		return i;
+	}
+	
+	public static SipMessage getMessage(InputStream is) throws Exception
+	{
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		byte[] buffer = new byte[1024];
+		int read;
+		while ((read = is.read(buffer)) != -1)
+		{
+			os.write(buffer, 0, read);
+		}
+		
+		return getMessage(os.toString());
 	}
 	
 	public static SipMessage getMessage(String msg) throws Exception

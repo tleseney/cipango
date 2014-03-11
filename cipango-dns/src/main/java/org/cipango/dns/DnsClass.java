@@ -13,64 +13,39 @@
 // ========================================================================
 package org.cipango.dns;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-
-import org.cipango.dns.util.BufferUtil;
 
 
-public enum DnsClass
+public class DnsClass
 {
 
 	/**
 	 * the Internet
 	 */
-	IN(1),
+	public static int IN = 1;
 	/**
 	 * the CSNET class (Obsolete - used only for examples in some obsolete RFCs)
 	 * @deprecated
 	 */
-	CS(2),
+	public static int CS = 2;
 	/**
 	 * the CHAOS class
 	 */
-	CH(3),
+	public static int CH = 3;
 	/**
 	 *  Hesiod [Dyer 87]
 	 */
-	HS(4),
+	public static int HS = 4;
 	/** 
 	 * Special value used in dynamic update messages 
 	 */
-	NONE(254),
+	public static int NONE = 254;
 	/** 
 	 * Matches any class 
 	 */
-	ANY(255);
+	public static int ANY = 255;
 
-
-	private int _value;
-
-	private DnsClass(int value)
+	private DnsClass()
 	{
-		_value = value;
 	}
 	
-	public int getValue()
-	{
-		return _value;
-	}
-	
-	public void encode(ByteBuffer b)
-	{
-		BufferUtil.put16(b, _value);
-	}
-	
-	public static DnsClass getClass(int value) throws IOException
-	{
-		for (DnsClass t : DnsClass.values())
-			if (t.getValue() == value)
-				return t;
-		throw new IOException("Could not found DNS class with value: " + value);
-	}
 }

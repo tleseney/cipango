@@ -13,16 +13,9 @@
       <Call name="start"/>
     </Get>
   </New>
-  
-  <New class="org.infinispan.tree.TreeCacheFactory">
-    <Call id="treeCache" name="createTreeCache">
-      <Arg><Ref id="cache"/></Arg>
-    </Call>
-  </New>
-  
+
   <Call name="addBean">
-    <Arg><Ref id="treeCache"/></Arg>
+    <Arg><Ref id="cache"/></Arg>
   </Call>
-  
 
 </Configure>

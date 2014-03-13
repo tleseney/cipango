@@ -43,13 +43,8 @@
     <dependency>
       <groupId>org.infinispan</groupId>
       <artifactId>infinispan-core</artifactId>
-      <version>5.2.6.Final</version>
+      <version>6.0.0.Final</version>
     </dependency>
-    <dependency>
-		<groupId>org.infinispan</groupId>
-		<artifactId>infinispan-tree</artifactId>
-		<version>5.2.6.Final</version>
-	</dependency>
   </dependencies>
 
 </project>

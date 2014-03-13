@@ -13,16 +13,20 @@
 // ========================================================================
 package org.cipango.replication;
 
+import java.io.IOException;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.servlet.sip.ServletParseException;
+import javax.servlet.sip.ServletTimer;
 import javax.servlet.sip.SipSession.State;
 
 import org.cipango.server.session.ApplicationSession;
@@ -32,21 +36,21 @@ import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.annotation.ManagedOperation;
 import org.eclipse.jetty.util.annotation.Name;
+import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
-import org.infinispan.tree.Fqn;
-import org.infinispan.tree.Node;
-import org.infinispan.tree.TreeCache;
+import org.infinispan.Cache;
+
 
 @ManagedObject
 public class InfinispanSessionManager extends SessionManager
 {
 	public static final String SESSIONS = "sipSessions";
 	public static final String TIMERS = "timers";
+	public static final String DATA = "data";
 	
 	private final static Logger __log = Log.getLogger(InfinispanSessionManager.class);
-	private TreeCache<String, Object> _treeCache;
-	private Fqn _baseFqn;
+	private CacheWrapper _cache;
 	
 	@SuppressWarnings("unchecked")
 	@Override
@@ -54,19 +58,11 @@ public class InfinispanSessionManager extends SessionManager
 	{
 		super.doStart();
 		
-		_treeCache = getSipAppContext().getServer().getBean(TreeCache.class);
+		_cache = new CacheWrapper(getSipAppContext().getServer().getBean(
+				Cache.class), getSipAppContext().getContextId());
+		_cache.start();
 		
-		if (_treeCache == null)
-			throw new NullPointerException("Tree cache is null");
-		
-		_treeCache.start();
-		
-		if (getSipAppContext().getContextId() != null)
-			_baseFqn = Fqn.fromElements(getSipAppContext().getContextId(), "appSessions");
-		else
-			_baseFqn = Fqn.fromElements("appSessions");
-		
-		List<ReplicatedAppSession> calls = loadCalls();
+		List<ReplicatedAppSession> calls = loadSessions();
 		synchronized (this)
 		{
 			ConcurrentHashMap<String, ApplicationSession> sessions = getAppSessions();
@@ -75,224 +71,170 @@ public class InfinispanSessionManager extends SessionManager
 			
 		}
 	}
-	
-	protected List<ReplicatedAppSession> loadCalls()
+
+	@Override
+	protected void doStop() throws Exception
 	{
+		super.doStop();
+		_cache.stop();
+	}
+
+	protected List<ReplicatedAppSession> loadSessions()
+	{
+	
 		List<ReplicatedAppSession> calls = new ArrayList<ReplicatedAppSession>();
+		List<String> sessions = _cache.getAppSessions();
 		
-		Node<String, Object> root = _treeCache.getNode(_baseFqn);
-		if (root == null)
-			return calls;
-		
+		__log.info("Got {} calls to load from cache for application {}", sessions.size(), getSipAppContext().getName());
 		ReplicatedAppSession session;
-		Set<Node<String, Object>> children = root.getChildren();
-		if (children != null)
+		if (sessions != null)
 		{
-			for (Node<String, Object> node : children)
+			for (String key : new ArrayList<String>(sessions))
 			{
-				session = loadCall(node);
+				session = loadSession(key);
 				if (session != null)
 					calls.add(session);
+				else
+					sessions.remove(key);
 			}
+
+			__log.warn("**** \t Storing " + sessions.size() + " calls");
+			_cache.setAppSessions(sessions);
 		}
 		return calls;
-		
 	}
 	
-	protected ReplicatedAppSession loadCall(Node<String, Object> node)
+	protected ReplicatedAppSession loadSession(String key)
 	{
-		String id = node.getFqn().getLastElementAsString();
-		
-		
 		try
 		{
-			ReplicatedAppSession appSession = new ReplicatedAppSession(this, id, node.getData());
-			
-			if (appSession.getExpirationTime() == Long.MIN_VALUE)
-			{
-				__log.warn("Application session " + appSession + " is not added as it is expired");
-				_treeCache.removeNode(node.getFqn());
-				return null;
-			}
-			
-			Node<String, Object> sessionsNode = node.getChild(SESSIONS);
-			if (sessionsNode != null)
-			{
-				
-				for (Node<String, Object> sessionNode : sessionsNode.getChildren())
-				{
-					ReplicatedSession session = new ReplicatedSession(appSession, sessionNode.getFqn()
-							.getLastElementAsString(), sessionNode.getData());
-					appSession.addSession(session);
-				}
-			}
-			
-			Node<String, Object> timersNode = node.getChild(TIMERS);
-			if (timersNode != null)
-			{
-				for (Node<String, Object> timerNode : timersNode.getChildren())
-					appSession.newTimer(timerNode.getData(), timerNode.getFqn().getLastElementAsString());
-			}
-			
+			// TODO: take care of return value.
+			_cache.startBatch();
+			AppSessionNode node = new AppSessionNode(key);
+			ReplicatedAppSession appSession = node.load();
+			_cache.endBatch(appSession != null);
 			return appSession;
-			
 		}
-		catch (Throwable e)
+		catch (Throwable t)
 		{
-			__log.warn("Failed to load application session with id " + id, e);
+			__log.warn("Failed to load application session with key " + key, t);
 			try
 			{
-				_treeCache.removeNode(node.getFqn());
+				_cache.endBatch(false);
+				_cache.remove(key);
 			}
-			catch (Exception e2)
+			catch (Exception e)
 			{
-				__log.ignore(e2);
+				__log.ignore(e);
 			}
 			return null;
 		}
 	}
 	
 	@Override
-	protected void doStop() throws Exception
-	{
-		super.doStop();
-		_treeCache.stop();
-	}
-	
-	@Override
 	protected void saveSession(ApplicationSession applicationSession)
 	{
+		// TODO: use mortal data with the session expiration time?
+		// See https://docs.jboss.org/author/display/ISPN/Using+the+Cache+API
 		super.saveSession(applicationSession);
 		try
 		{
-			ReplicatedAppSession appSession = (ReplicatedAppSession) applicationSession;
-			Fqn appSessionFqn = Fqn.fromRelativeElements(_baseFqn, applicationSession.getId());
-			
-			boolean hasConfirmedSession = putSessions(appSession,
-					Fqn.fromRelativeElements(appSessionFqn, SESSIONS));
-			if (hasConfirmedSession)
-			{
-				appSession.notifyActivationListener(false);
-				_treeCache.put(appSessionFqn, appSession.getData());
-				putTimers(appSession, Fqn.fromElements(appSessionFqn, TIMERS));
-			}
+			// TODO: take care of return value.
+			_cache.startBatch();
+			AppSessionNode node = new AppSessionNode();
+			node.store((ReplicatedAppSession) applicationSession);
+			_cache.endBatch(true);
 			
 			if (__log.isDebugEnabled())
 				__log.debug("Successfully store call {} in replicated cache", applicationSession.getId());
-			
-			if (hasConfirmedSession)
-				__log.warn(">>>>>>>>>>>>>>>>Replicated session:\n"
-					+ viewReplicatedSession(applicationSession.getId()));
 		}
 		catch (Exception e)
 		{
+			_cache.endBatch(false);
 			__log.warn("Failed to store call " + applicationSession.getId() + " in replicated cache: " + e, e);
 		}
 	}
 	
-	@SuppressWarnings({ "rawtypes" })
-	private boolean putSessions(ReplicatedAppSession appSession, Fqn sessionsFqn) throws Exception
+	private void putSipSessions(Iterator<?> sessions, AppSessionNode node) throws Exception
 	{
-		boolean hasConfirmedSession = false;
-		Node<String, Object> node = _treeCache.getNode(sessionsFqn);
-		List<Fqn> toRemove = new ArrayList<>();
-		if (node != null && node.getChildren() != null)
-		{
-			for (Node<String, Object> child : node.getChildren())
-				toRemove.add(child.getFqn());
-		}
+		Map<String, String> sessionIds = node.getSessions();
+		List<String> toRemove = new ArrayList<String>(sessionIds.keySet());
 		
-		
-		Iterator it = appSession.getSessions("sip");
-		while (it.hasNext())
+		while (sessions.hasNext())
 		{
-			ReplicatedSession session = (ReplicatedSession) it.next();
+			ReplicatedSession session = (ReplicatedSession) sessions.next();
 			if (session.getState() == State.CONFIRMED)
 			{
-				Fqn sessionFqn = Fqn.fromRelativeElements(sessionsFqn, session.getId());
+				String key = node.getKeyFromId(session.getId());
 				session.notifyActivationListener(false);
-				_treeCache.put(sessionFqn, session.getData());
-				toRemove.remove(sessionFqn);
-				hasConfirmedSession = true;
+				_cache.put(key, session.getData());
+				if (!sessionIds.containsKey(key))
+					sessionIds.put(key, session.getId());
+				toRemove.remove(key);
 			}
 		}
 		
-		Iterator<Fqn> it2 = toRemove.iterator();
-		while (it2.hasNext())
-			_treeCache.removeNode(it2.next());
-		
-		return hasConfirmedSession;
+		Iterator<String> iter = toRemove.iterator();
+        while (iter.hasNext())
+        {
+        	String id = iter.next();
+        	sessionIds.remove(id);
+        	_cache.remove(id);
+        }
 	}
 	
-	@SuppressWarnings({ "rawtypes" })
-	private void putTimers(ReplicatedAppSession appSession, Fqn timersFqn) throws Exception
+	private void putTimers(ReplicatedAppSession appSession, AppSessionNode node) throws Exception
 	{
-		Node<String, Object> node = _treeCache.getNode(timersFqn);
-		List<Fqn> toRemove = new ArrayList<>();
-		if (node != null && node.getChildren() != null)
-		{
-			for (Node<String, Object> child : node.getChildren())
-				toRemove.add(child.getFqn());
-		}
+		Map<String, String> timerIds = node.getTimers();
+		List<String> toRemove = new ArrayList<String>(timerIds.keySet());
 		
-		Iterator it = appSession.getTimers().iterator();
+		Iterator<ServletTimer> it = appSession.getTimers().iterator();
 		while (it.hasNext())
 		{
 			Timer timer = (Timer) it.next();
 			if (timer.isPersistent())
 			{
-				Fqn timerFqn = Fqn.fromElements(timersFqn, timer.getId());
-				_treeCache.put(timerFqn, appSession.getTimerData(timer));
-				toRemove.remove(timerFqn);
+				String key = node.getKeyFromId(timer.getId());
+				_cache.put(key, appSession.getTimerData(timer));
+				if (!timerIds.containsKey(key))
+					timerIds.put(key, timer.getId());
+				toRemove.remove(key);
 			}
 		}
-		
-		Iterator<Fqn> it2 = toRemove.iterator();
-		while (it2.hasNext())
-			_treeCache.removeNode(it2.next());
+
+		Iterator<String> iter = toRemove.iterator();
+        while (iter.hasNext())
+        {
+        	String id = iter.next();
+        	timerIds.remove(id);
+        	_cache.remove(id);
+	}
 	}
 	
-	@ManagedAttribute(value = "Returns a set containing the IDs of replicated application sessions")
-	public Set<Object> getReplicatedAppSessionIds() throws Exception
+	@ManagedAttribute(value = "Returns a list containing the IDs of replicated application sessions")
+	public List<String> getReplicatedAppSessionIds() throws Exception
 	{
-		Node<String, Object> node = _treeCache.getNode(_baseFqn);
-		if (node == null)
-			return Collections.emptySet();
-		return node.getChildrenNames();
+		return new ArrayList<String>(_cache.getAppSessions());
 	}
 	
 	@ManagedOperation(value = "View data save in cache for application session with id sessionId", impact = "INFO")
 	public String viewReplicatedSession(@Name("sessionId") String sessionId) throws Exception
 	{
-		int index = 1;
 		StringBuilder sb = new StringBuilder();
 		sb.append(sessionId).append('\n');
 		
-		Fqn appSession = Fqn.fromRelativeElements(_baseFqn, sessionId);
-		
-		Node<String, Object> node = _treeCache.getNode(appSession);
-		if (node == null)
+		AppSessionNode node = new AppSessionNode(sessionId);
+		if (!node.exists())
 		{
 			sb.append("No app session found");
 			return sb.toString();
 		}
-		index++;
 		ClassLoader ocl = Thread.currentThread().getContextClassLoader();
 		
 		try
 		{
 			Thread.currentThread().setContextClassLoader(getSipAppContext().getClassLoader());
-			
-			print(sb, node, index);
-			// Iterator<Node<String, Object>> it = node.getChildren().iterator();
-			// while (it.hasNext())
-			// {
-			// Node<String, Object> appSession = it.next();
-			// sb.append("\t+ ").append(node.getFqn().getLastElement()).append("\n");
-			// index++;
-			//
-			// print(sb, appSession, index);
-			// }
+			print(sb, node);
 		}
 		finally
 		{
@@ -301,14 +243,34 @@ public class InfinispanSessionManager extends SessionManager
 		return sb.toString();
 	}
 	
-	private void print(StringBuilder sb, Node<String, Object> node, int index) throws Exception
+	@SuppressWarnings("unchecked")
+	private void print(StringBuilder sb, AppSessionNode node) throws Exception
 	{
-		for (Entry<String, Object> entry : node.getData().entrySet())
+		print(sb, node.getData(), 1);
+		
+		sb.append("\t+ [sipSessions]\n");
+		for (String key : node.getSessions().keySet())
+		{
+			sb.append("\t\t+ " + node.getIdFromKey(key) + "\n");
+			print(sb, (Map<String, Object>) _cache.get(key), 3);
+		}
+
+		sb.append("\t+ [sipTimers]\n");
+		for (String key : node.getTimers().keySet())
+		{
+			sb.append("\t\t+ " + node.getIdFromKey(key) + "\n");
+			print(sb, (Map<String, Object>) _cache.get(key), 3);
+		}
+	}
+	
+	private void print(StringBuilder sb, Map<String, Object> data, int depth) throws Exception
+	{
+		for (Entry<String, Object> entry : data.entrySet())
 		{
 			String key = entry.getKey();
 			Object value = entry.getValue();
 			
-			for (int i = 0; i < index; i++)
+			for (int i = 0; i < depth; i++)
 				sb.append('\t');
 			sb.append("- ").append(key).append(": ");
 			if (value instanceof byte[])
@@ -335,31 +297,11 @@ public class InfinispanSessionManager extends SessionManager
 			}
 			sb.append('\n');
 		}
-		
-		if (node.getChildren() != null)
-		{
-			for (Node<String, Object> node2 : node.getChildren())
-			{
-				for (int i = 0; i < index; i++)
-					sb.append('\t');
-				sb.append("+ [").append(node2.getFqn().getLastElement()).append("]\n");
-				
-				for (Node<String, Object> node3 : node2.getChildren())
-				{
-					for (int i = 0; i < index + 1; i++)
-						sb.append('\t');
-					sb.append("+ ").append(node3.getFqn().getLastElement()).append("\n");
-					if (node3 != null)
-						print(sb, node3, index + 2);
 				}
-			}
-		}
-	}
 	
 	@Override
 	public void removeApplicationSession(ApplicationSession session)
 	{
-		// TODO Auto-generated method stub
 		super.removeApplicationSession(session);
 	}
 	
@@ -380,4 +322,188 @@ public class InfinispanSessionManager extends SessionManager
 		return session;
 	}
 	
+	private class CacheWrapper extends AbstractLifeCycle
+	{
+		private Cache<String, Object> _cache;
+		private String _base;
+		
+		protected CacheWrapper(Cache<String, Object> cache, String contextId)
+		{
+			if (cache == null)
+				throw new NullPointerException("Cache is null");
+			
+			_cache = cache;
+			if (contextId != null)
+				_base = contextId;
+			else
+				_base = "context";
+			__log.debug("Use context ID: {} for base", _base);
+		}
+
+		@Override
+		protected void doStart() throws Exception
+		{
+			super.doStop();
+			_cache.start();
+		}
+
+		@Override
+		protected void doStop() throws Exception
+		{
+			super.doStop();
+			_cache.stop();
+		}
+		
+		public Object get(String key)
+		{
+			return _cache.get(key);
+		}
+		
+		public Object put(String key, Object o)
+		{
+			return _cache.put(key,  o);
+		}
+		
+		public Object remove(String key)
+		{
+			return _cache.remove(key);
+		}
+		
+		public boolean startBatch()
+		{
+			return _cache.startBatch();
+		}
+		
+		public void endBatch(boolean successful)
+		{
+			_cache.endBatch(successful);
+		}
+		
+		@SuppressWarnings("unchecked")
+		public List<String> getAppSessions()
+		{
+			List<String> root = (List<String>) _cache.get(_base);
+			__log.warn(">>>>>>>>>>getAppSessions {} on {}/{}", root, _base, _cache);
+			if (root == null)
+				root = new ArrayList<String>();
+
+			return root;
+		}
+
+		public void addAppSession(String id)
+		{
+			List<String> sessions = getAppSessions();
+			if (!sessions.contains(id))
+			{
+				sessions.add(id);
+				setAppSessions(sessions);
+			}
+		}
+
+		public void setAppSessions(List<String> sessions)
+		{
+			_cache.put(_base, sessions);
+		}
+	}
+	
+	private class AppSessionNode
+	{
+		private Map<String, Object> _node;
+		private String _id;
+		
+		AppSessionNode()
+		{
+			_node = new HashMap<String, Object>();
+			_node.put(SESSIONS, new HashMap<String, String>());
+			_node.put(TIMERS, new HashMap<String, String>());
+		}
+		
+		@SuppressWarnings("unchecked")
+		AppSessionNode(String id)
+		{
+			_id = id;
+			_node = (Map<String, Object>) _cache.get(id);
+		}
+
+		boolean exists()
+		{
+			return _node != null;
+		}
+
+		@SuppressWarnings("unchecked")
+		ReplicatedAppSession load() throws ClassNotFoundException, IOException, ServletParseException, ParseException
+		{
+			
+			ReplicatedAppSession appSession = new ReplicatedAppSession(InfinispanSessionManager.this, _id, getData());
+			if (appSession.getExpirationTime() == Long.MIN_VALUE)
+			{
+				__log.warn("Application session " + appSession + " is not added as it is expired");
+				_cache.remove(_id);
+				return null;
+			}
+			
+			Map<String, String> keys = (Map<String, String>) _node.get(SESSIONS);
+			if (keys != null)
+			{
+				for (String key : keys.keySet())
+					appSession.addSession(new ReplicatedSession(appSession, getIdFromKey(key), getItemData(key)));
+			}
+
+			keys = (Map<String, String>) _node.get(TIMERS);
+			if (keys != null)
+			{
+				for (String key : keys.keySet())
+					appSession.newTimer(getItemData(key), getIdFromKey(key));
+			}
+			return appSession;
+		}
+		
+		void store(ReplicatedAppSession appSession) throws Exception
+		{
+			_id = appSession.getId();
+			putSipSessions(appSession.getSessions("sip"), this);
+			if (!getSessions().isEmpty())
+			{
+				appSession.notifyActivationListener(false);
+				putTimers(appSession, this);
+				_node.put(DATA, appSession.getData());
+				_cache.put(_id, _node);
+				_cache.addAppSession(_id);
+			}
+		}
+
+		@SuppressWarnings("unchecked")
+		Map<String, Object> getData()
+		{
+			return (Map<String, Object>) _node.get(DATA);
+		}
+		
+		@SuppressWarnings("unchecked")
+		Map<String, String> getSessions()
+		{
+			return (Map<String, String>) _node.get(SESSIONS);
+		}
+		
+		@SuppressWarnings("unchecked")
+		Map<String, String> getTimers()
+		{
+			return (Map<String, String>) _node.get(TIMERS);
+		}
+		
+		@SuppressWarnings("unchecked")
+		Map<String, Object> getItemData(String key)
+		{
+			return (Map<String, Object>) _cache.get(key);
+		}
+		
+		String getKeyFromId(String id)
+		{
+			return _id + "." + id;			
+		}
+
+		String getIdFromKey(String key)
+		{
+			return key.substring(_id.length() + 1);			
+		}
+	}
 }

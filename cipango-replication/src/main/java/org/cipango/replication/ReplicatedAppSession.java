@@ -31,7 +31,8 @@ import org.cipango.server.session.Session;
 import org.cipango.server.session.SessionManager;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
-import org.infinispan.marshall.MarshalledValue;
+import org.infinispan.commons.marshall.jboss.GenericJBossMarshaller;
+import org.infinispan.marshall.core.MarshalledValue;
 
 public class ReplicatedAppSession extends ApplicationSession implements Serializable
 {
@@ -193,7 +194,7 @@ public class ReplicatedAppSession extends ApplicationSession implements Serializ
 		timerData.put(EXCUTION_TIME, timer.scheduledExecutionTime());
 		timerData.put(PERIOD, timer.getPeriod());
 		timerData.put(FIXED_DELAY, false);
-		timerData.put(INFO, new MarshalledValue(timer.getInfo(), false, null));
+		timerData.put(INFO, new MarshalledValue(timer.getInfo(), new GenericJBossMarshaller()));
 		
 		return timerData;
 	}

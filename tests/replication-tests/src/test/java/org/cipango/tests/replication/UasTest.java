@@ -16,6 +16,8 @@ package org.cipango.tests.replication;
 import static org.cipango.client.test.matcher.SipMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import javax.servlet.sip.SipServletResponse;
+
 import org.cipango.client.Call;
 import org.cipango.client.SipMethods;
 import org.cipango.tests.UaTestCase;
@@ -47,6 +49,7 @@ public class UasTest extends UaTestCase
 	public void testUas() throws Exception
 	{
 		Call call = _ua.createCall(_ua.getFactory().createURI(getTo()));
+		assertThat(call.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
         assertThat(call.waitForResponse(), isSuccess());
         call.createAck().send();
         

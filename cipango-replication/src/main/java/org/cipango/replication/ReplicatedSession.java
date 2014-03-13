@@ -171,11 +171,11 @@ public class ReplicatedSession extends Session implements Serializable
 		return value;
 	}
 	
-	private static Address getAddress(Object value) throws ServletParseException
+	private static Address getAddress(Object value) throws ServletParseException, ParseException
 	{
 		if (value == null)
 			return null;
-		return new AddressImpl((String) value);
+		return new AddressImpl((String) value, true);
 	}
 	
 	private static URI getUri(Object value) throws ServletParseException, ParseException

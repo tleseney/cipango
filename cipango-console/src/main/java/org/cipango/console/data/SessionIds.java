@@ -13,7 +13,7 @@
 // ========================================================================
 package org.cipango.console.data;
 
-import java.util.List;
+import java.util.Collection;
 
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
@@ -21,13 +21,13 @@ import javax.management.ObjectName;
 public class SessionIds
 {
 	private ObjectName _sessionManager;
-	private List<String> _sessionIds;
+	private Collection<String> _sessionIds;
 	
 	@SuppressWarnings("unchecked")
 	public SessionIds(MBeanServerConnection mbsc, ObjectName sessionManager, String attributeName) throws Exception
 	{
 		_sessionManager = sessionManager;
-		_sessionIds = (List<String>) mbsc.getAttribute(_sessionManager, attributeName);
+		_sessionIds = (Collection<String>) mbsc.getAttribute(_sessionManager, attributeName);
 	}
 
 	public ObjectName getSessionManager()
@@ -35,7 +35,7 @@ public class SessionIds
 		return _sessionManager;
 	}
 
-	public List<String> getSessionIds()
+	public Collection<String> getSessionIds()
 	{
 		return _sessionIds;
 	}

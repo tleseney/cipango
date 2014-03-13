@@ -15,6 +15,7 @@ package org.cipango.replication;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -254,7 +255,10 @@ public class InfinispanSessionManager extends SessionManager
 	@ManagedAttribute(value = "Returns a set containing the IDs of replicated application sessions")
 	public Set<Object> getReplicatedAppSessionIds() throws Exception
 	{
-		return _treeCache.getNode(_baseFqn).getChildrenNames();
+		Node<String, Object> node = _treeCache.getNode(_baseFqn);
+		if (node == null)
+			return Collections.emptySet();
+		return node.getChildrenNames();
 	}
 	
 	@ManagedOperation(value = "View data save in cache for application session with id sessionId", impact = "INFO")

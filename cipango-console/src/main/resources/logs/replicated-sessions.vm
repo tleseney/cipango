@@ -1,4 +1,4 @@
-#set ($appIds = $sipManager.getApplicationIds())
+#set ($appIds = $sipManager.getReplicatedApplicationIds())
 <h2>List of replicated SIP Application sessions</h2>
 
 <table class="table table-striped">

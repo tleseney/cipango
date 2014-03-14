@@ -14,6 +14,7 @@
 
 package org.cipango.server.session.scoped;
 
+import java.io.Serializable;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,8 +31,9 @@ import org.cipango.server.session.Session;
 import org.cipango.server.session.SessionManager.AppSessionIf;
 import org.cipango.server.session.SessionManager.ApplicationSessionScope;
 
-public class ScopedAppSession extends ScopedObject implements AppSessionIf
+public class ScopedAppSession extends ScopedObject implements AppSessionIf, Serializable
 {
+	private static final long serialVersionUID = 1L;
 	protected ApplicationSession _appSession;
 
 	public ScopedAppSession(ApplicationSession appSession)

@@ -29,6 +29,7 @@ import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.ServletTimer;
 import javax.servlet.sip.SipSession.State;
 
+import org.cipango.replication.ReplicatedAppSession.ProxyAppSession;
 import org.cipango.server.session.ApplicationSession;
 import org.cipango.server.session.ApplicationSession.Timer;
 import org.cipango.server.session.SessionManager;
@@ -89,17 +90,26 @@ public class InfinispanSessionManager extends SessionManager
 		ReplicatedAppSession session;
 		if (sessions != null)
 		{
-			for (String key : new ArrayList<String>(sessions))
+			ClassLoader old = Thread.currentThread().getContextClassLoader();
+			try
 			{
-				session = loadSession(key);
-				if (session != null)
-					calls.add(session);
-				else
-					sessions.remove(key);
+				Thread.currentThread().setContextClassLoader(getSipAppContext().getClassLoader());
+    			for (String key : new ArrayList<String>(sessions))
+    			{
+    				session = loadSession(key);
+    				if (session != null)
+    					calls.add(session);
+    				else
+    					sessions.remove(key);
+    			}
+    
+    			__log.warn("**** \t Storing " + sessions.size() + " calls");
+    			_cache.setAppSessions(sessions);
 			}
-
-			__log.warn("**** \t Storing " + sessions.size() + " calls");
-			_cache.setAppSessions(sessions);
+			finally
+			{
+				Thread.currentThread().setContextClassLoader(old);
+			}
 		}
 		return calls;
 	}
@@ -157,8 +167,8 @@ public class InfinispanSessionManager extends SessionManager
 	
 	private void putSipSessions(Iterator<?> sessions, AppSessionNode node) throws Exception
 	{
-		Map<String, String> sessionIds = node.getSessions();
-		List<String> toRemove = new ArrayList<String>(sessionIds.keySet());
+		List<String> sessionIds = node.getSessions();
+		List<String> toRemove = new ArrayList<String>(sessionIds);
 		
 		while (sessions.hasNext())
 		{
@@ -168,8 +178,8 @@ public class InfinispanSessionManager extends SessionManager
 				String key = node.getKeyFromId(session.getId());
 				session.notifyActivationListener(false);
 				_cache.put(key, session.getData());
-				if (!sessionIds.containsKey(key))
-					sessionIds.put(key, session.getId());
+				if (!sessionIds.contains(key))
+					sessionIds.add(key);
 				toRemove.remove(key);
 			}
 		}
@@ -185,8 +195,11 @@ public class InfinispanSessionManager extends SessionManager
 	
 	private void putTimers(ReplicatedAppSession appSession, AppSessionNode node) throws Exception
 	{
-		Map<String, String> timerIds = node.getTimers();
-		List<String> toRemove = new ArrayList<String>(timerIds.keySet());
+		List<String> timerIds = node.getTimers();
+		if (timerIds.isEmpty() && appSession.getTimers().isEmpty())
+			return;
+		
+		List<String> toRemove = new ArrayList<String>(timerIds);
 		
 		Iterator<ServletTimer> it = appSession.getTimers().iterator();
 		while (it.hasNext())
@@ -194,10 +207,10 @@ public class InfinispanSessionManager extends SessionManager
 			Timer timer = (Timer) it.next();
 			if (timer.isPersistent())
 			{
-				String key = node.getKeyFromId(timer.getId());
+				String key = node.getKeyFromId(timer.getId()); // FIXME should prefix with timer to prevent collisions with sessions
 				_cache.put(key, appSession.getTimerData(timer));
-				if (!timerIds.containsKey(key))
-					timerIds.put(key, timer.getId());
+				if (!timerIds.contains(key))
+					timerIds.add(key);
 				toRemove.remove(key);
 			}
 		}
@@ -208,7 +221,8 @@ public class InfinispanSessionManager extends SessionManager
         	String id = iter.next();
         	timerIds.remove(id);
         	_cache.remove(id);
-	}
+        }
+        node.setTimers(timerIds);
 	}
 	
 	@ManagedAttribute(value = "Returns a list containing the IDs of replicated application sessions")
@@ -220,27 +234,32 @@ public class InfinispanSessionManager extends SessionManager
 	@ManagedOperation(value = "View data save in cache for application session with id sessionId", impact = "INFO")
 	public String viewReplicatedSession(@Name("sessionId") String sessionId) throws Exception
 	{
-		StringBuilder sb = new StringBuilder();
-		sb.append(sessionId).append('\n');
-		
-		AppSessionNode node = new AppSessionNode(sessionId);
-		if (!node.exists())
-		{
-			sb.append("No app session found");
-			return sb.toString();
-		}
+		SessionManager old = ProxyAppSession.getSessionManager();
 		ClassLoader ocl = Thread.currentThread().getContextClassLoader();
-		
 		try
 		{
-			Thread.currentThread().setContextClassLoader(getSipAppContext().getClassLoader());
-			print(sb, node);
+			ProxyAppSession.setSessionManager(this);
+    		Thread.currentThread().setContextClassLoader(getSipAppContext().getClassLoader());
+    		
+    		StringBuilder sb = new StringBuilder();
+    		sb.append(sessionId).append('\n');
+    		
+    		AppSessionNode node = new AppSessionNode(sessionId);
+    		if (!node.exists())
+    		{
+    			sb.append("No app session found");
+    			return sb.toString();
+    		}
+    		
+    		print(sb, node);
+
+    		return sb.toString();
 		}
 		finally
 		{
+			ProxyAppSession.setSessionManager(old);
 			Thread.currentThread().setContextClassLoader(ocl);
 		}
-		return sb.toString();
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -249,14 +268,14 @@ public class InfinispanSessionManager extends SessionManager
 		print(sb, node.getData(), 1);
 		
 		sb.append("\t+ [sipSessions]\n");
-		for (String key : node.getSessions().keySet())
+		for (String key : node.getSessions())
 		{
 			sb.append("\t\t+ " + node.getIdFromKey(key) + "\n");
 			print(sb, (Map<String, Object>) _cache.get(key), 3);
 		}
 
-		sb.append("\t+ [sipTimers]\n");
-		for (String key : node.getTimers().keySet())
+		sb.append("\t+ [timers]\n");
+		for (String key : node.getTimers())
 		{
 			sb.append("\t\t+ " + node.getIdFromKey(key) + "\n");
 			print(sb, (Map<String, Object>) _cache.get(key), 3);
@@ -284,6 +303,7 @@ public class InfinispanSessionManager extends SessionManager
 				{
 					sb.append("FAILED TO DESERIALIZE NODE with key ").append(key);
 					sb.append(": ").append(e.getMessage());
+					__log.warn("FAILED TO DESERIALIZE NODE with key " + key, e);
 				}
 				sb.append(" (size: ").append(b.length).append(" bytes)");
 			}
@@ -303,6 +323,30 @@ public class InfinispanSessionManager extends SessionManager
 	public void removeApplicationSession(ApplicationSession session)
 	{
 		super.removeApplicationSession(session);
+		try
+		{
+			_cache.startBatch();
+			
+			AppSessionNode node = new AppSessionNode(session.getId());
+			if (node != null)
+			{
+				for (String key : node.getSessions())
+					_cache.remove(key);
+				
+				for (String key : node.getTimers())
+					_cache.remove(key);
+			}
+			_cache.remove(session.getId());
+			List<String> appSessions = _cache.getAppSessions();
+			appSessions.remove(session.getId());
+			_cache.setAppSessions(appSessions);
+			
+			_cache.endBatch(true);
+		} 
+		catch (Exception e)
+		{
+			_cache.endBatch(false);
+		}
 	}
 	
 	@Override
@@ -383,7 +427,6 @@ public class InfinispanSessionManager extends SessionManager
 		public List<String> getAppSessions()
 		{
 			List<String> root = (List<String>) _cache.get(_base);
-			__log.warn(">>>>>>>>>>getAppSessions {} on {}/{}", root, _base, _cache);
 			if (root == null)
 				root = new ArrayList<String>();
 
@@ -399,7 +442,7 @@ public class InfinispanSessionManager extends SessionManager
 				setAppSessions(sessions);
 			}
 		}
-
+			
 		public void setAppSessions(List<String> sessions)
 		{
 			_cache.put(_base, sessions);
@@ -414,8 +457,7 @@ public class InfinispanSessionManager extends SessionManager
 		AppSessionNode()
 		{
 			_node = new HashMap<String, Object>();
-			_node.put(SESSIONS, new HashMap<String, String>());
-			_node.put(TIMERS, new HashMap<String, String>());
+			_node.put(SESSIONS, new ArrayList<>(2));
 		}
 		
 		@SuppressWarnings("unchecked")
@@ -430,7 +472,6 @@ public class InfinispanSessionManager extends SessionManager
 			return _node != null;
 		}
 
-		@SuppressWarnings("unchecked")
 		ReplicatedAppSession load() throws ClassNotFoundException, IOException, ServletParseException, ParseException
 		{
 			
@@ -442,17 +483,17 @@ public class InfinispanSessionManager extends SessionManager
 				return null;
 			}
 			
-			Map<String, String> keys = (Map<String, String>) _node.get(SESSIONS);
+			List<String> keys = getSessions();
 			if (keys != null)
 			{
-				for (String key : keys.keySet())
+				for (String key : keys)
 					appSession.addSession(new ReplicatedSession(appSession, getIdFromKey(key), getItemData(key)));
 			}
-
-			keys = (Map<String, String>) _node.get(TIMERS);
-			if (keys != null)
+			
+			List<String> timersKeys = getTimers();
+			if (timersKeys != null)
 			{
-				for (String key : keys.keySet())
+				for (String key : timersKeys)
 					appSession.newTimer(getItemData(key), getIdFromKey(key));
 			}
 			return appSession;
@@ -479,15 +520,24 @@ public class InfinispanSessionManager extends SessionManager
 		}
 		
 		@SuppressWarnings("unchecked")
-		Map<String, String> getSessions()
+		List<String> getSessions()
 		{
-			return (Map<String, String>) _node.get(SESSIONS);
+			return (List<String>) _node.get(SESSIONS);
 		}
 		
 		@SuppressWarnings("unchecked")
-		Map<String, String> getTimers()
+		List<String> getTimers()
 		{
-			return (Map<String, String>) _node.get(TIMERS);
+			List<String> list = (List<String>) _node.get(TIMERS);
+			if (list == null)
+				return new ArrayList<>(0);
+			return list;
+		}
+		
+		public void setTimers(List<String> timers)
+		{
+			if (timers != null && !timers.isEmpty())
+				_node.put(TIMERS, timers);
 		}
 		
 		@SuppressWarnings("unchecked")

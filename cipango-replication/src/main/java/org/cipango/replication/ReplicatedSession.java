@@ -207,10 +207,12 @@ public class ReplicatedSession extends Session implements Serializable
 	@SuppressWarnings("unchecked")
 	public void deserializeIfNeeded() throws ClassNotFoundException, IOException
 	{
-		if (_serializeAttributes != null)
+		if (_serializeAttributes != null) 
 		{
-			_attributes = (Map<String, Object>) Serializer.deserialize(_serializeAttributes);
+			byte[] serializeAttributes = _serializeAttributes;
 			_serializeAttributes = null;
+			_attributes = (Map<String, Object>) Serializer.deserialize(serializeAttributes);
+			notifyActivationListener(true);
 		}
 	}
 	
@@ -291,19 +293,19 @@ public class ReplicatedSession extends Session implements Serializable
 			SessionManager sessionManager = ProxyAppSession.getSessionManager();
 			if (sessionManager == null)
 			{
-				__log.warn("Could not session manager in local thread");
+				__log.warn("Could not get session manager in local thread");
 				return null;
 			}
 			
 			ApplicationSession applicationSession = sessionManager.getApplicationSession(_appSessionId);
 			if (applicationSession == null)
 			{
-				__log.warn("Could not application session with ID " + _appSessionId);
+				__log.warn("Could not find application session with ID " + _appSessionId);
 				return null;
 			}
 			SipSession session = applicationSession.getSipSession(_id);
 			if (session == null)
-				__log.warn("Could not application session with ID " + _id);
+				__log.warn("Could not find SIP session with ID " + _id);
 			return session;
 		}
 

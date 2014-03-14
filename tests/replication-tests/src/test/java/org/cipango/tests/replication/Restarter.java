@@ -17,9 +17,15 @@ public class Restarter
 {
 	public void restartCipango()
 	{
+		restartCipango(20);
+	}
+	
+	public void restartCipango(int seconds)
+	{
+		System.out.println("Waiting " + seconds + " seconds...");
 		try
 		{
-			Thread.sleep(20000);
+			Thread.sleep(seconds * 1000);
 		}
 		catch (InterruptedException ignore)
 		{

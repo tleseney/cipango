@@ -34,7 +34,7 @@ import javax.servlet.sip.TimerService;
 
 import org.cipango.tests.SipServletTestCase;
 
-@javax.servlet.sip.annotation.SipServlet(name="org.cipango.tests.TimerTest", loadOnStartup=1)
+@javax.servlet.sip.annotation.SipServlet(name="org.cipango.tests.replication.TimerTest", loadOnStartup=1)
 public class TimerServlet extends SipServletTestCase
 {
 

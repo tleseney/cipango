@@ -18,6 +18,7 @@ import static org.cipango.client.test.matcher.SipMatchers.isSuccess;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import javax.servlet.sip.SipServletRequest;
+import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.client.Call;
 import org.cipango.tests.UaTestCase;
@@ -50,11 +51,11 @@ public class TimerTest extends UaTestCase
         assertThat(call.waitForResponse(), isSuccess());
         call.createAck().send();
         
-        new Restarter().restartCipango();
+        new Restarter().restartCipango(48);
         
         SipServletRequest request = call.waitForRequest();
         assertThat(request, isBye());
-        assertThat(call.waitForResponse(), isSuccess());		
+        request.createResponse(SipServletResponse.SC_OK).send();
 	}
 	
 }

@@ -20,20 +20,21 @@ import javax.servlet.sip.ServletTimer;
 import javax.servlet.sip.SipApplicationSession;
 
 import org.cipango.server.session.ApplicationSession;
+import org.cipango.server.session.SessionManager;
 import org.cipango.server.session.SessionManager.ApplicationSessionScope;
 
-public class ScopedTimer extends ScopedObject implements ServletTimer
+public class ScopedTimer extends ScopedObject implements ServletTimer, Serializable
 {
+
+	private static final long serialVersionUID = 1L;
 	private ServletTimer _timer;
-	private ApplicationSession _appSession;
 
 	public ScopedTimer(ApplicationSession session, long delay, boolean isPersistent, Serializable info)
 	{
-		_appSession = session;
-		ApplicationSessionScope scope = openScope();
+		ApplicationSessionScope scope = openScope(session);
 		try
 		{
-			_timer = new ApplicationSession.Timer(session, delay, isPersistent, info);
+			_timer = session.newTimer(delay, isPersistent, info);
 		}
 		finally
 		{
@@ -44,22 +45,26 @@ public class ScopedTimer extends ScopedObject implements ServletTimer
 	public ScopedTimer(ApplicationSession session, long delay, long period, boolean fixedDelay,
 			boolean isPersistent, Serializable info)
 	{
-		_appSession = session;
-		ApplicationSessionScope scope = openScope();
+		ApplicationSessionScope scope = openScope(session);
 		try
 		{
-			_timer = new ApplicationSession.Timer(session, delay, period, fixedDelay, isPersistent, info);
+			_timer = session.newTimer(delay, period, fixedDelay, isPersistent, info);
 		}
 		finally
 		{
 			scope.close();
 		}
 	}
+	
+	protected ApplicationSessionScope openScope(ApplicationSession session)
+	{
+		SessionManager sessionManager = session.getSessionManager();
+		return sessionManager.openScope(session);
+	}
 
 	public ScopedTimer(ServletTimer timer)
 	{
 		_timer = timer;
-		_appSession = (ApplicationSession) timer.getApplicationSession();
 	}
 
 	public void cancel()
@@ -121,6 +126,6 @@ public class ScopedTimer extends ScopedObject implements ServletTimer
 	@Override
 	protected ApplicationSession getAppSession()
 	{
-		return _appSession;
+		return (ApplicationSession) _timer.getApplicationSession();
 	}
 }

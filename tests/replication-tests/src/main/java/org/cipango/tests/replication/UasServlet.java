@@ -77,7 +77,7 @@ public class UasServlet extends SipServletTestCase
 				req.getSession().setAttribute("appSession", appSession);
 				
 				
-				_timerService.createTimer(appSession, 8000,
+				_timerService.createTimer(appSession, 2000,
 						true, new Timeout());				
 			}
 			else if ("BYE".equals(req.getMethod()))
@@ -123,6 +123,7 @@ public class UasServlet extends SipServletTestCase
 		public void run(SipApplicationSession appSession) throws Exception
 		{
 			SipServletRequest req = (SipServletRequest) appSession.getAttribute("INVITE");
+			appSession.removeAttribute("INVITE");
 			SipServletResponse response;
 			try
 			{

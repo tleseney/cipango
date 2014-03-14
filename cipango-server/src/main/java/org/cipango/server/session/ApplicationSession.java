@@ -789,6 +789,16 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 		out.append(indent).append("- ").append(name).append(": ").append(String.valueOf(value)).append('\n');
 	}
 	
+	public Timer newTimer(long delay, boolean isPersistent, Serializable info)
+	{
+		return new Timer(this, delay, -1, false, isPersistent, info);
+	}
+	
+	public Timer newTimer(long delay, long period, boolean fixedDelay, boolean isPersistent, Serializable info)
+	{
+		return new Timer(this, delay, period, fixedDelay, isPersistent, info);
+	}
+	
     public static class Timer extends ScopedRunable implements ServletTimer, Runnable
     {
 		private Serializable _info;
@@ -798,12 +808,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
         private final String _id;
         private long _scheduleExecutionTime = -1;
         private boolean _fixedDelay;
-        
-        public Timer(ApplicationSession session, long delay, boolean persistent, Serializable info)
-        {
-        	this(session, delay, -1, false, persistent, info);
-        }
-        
+                
         public Timer(ApplicationSession session, long delay, long period, boolean fixedDelay, boolean isPersistent, Serializable info)
         {
         	this(session, delay, period, fixedDelay, isPersistent, info, session.getSessionManager().newTimerId());

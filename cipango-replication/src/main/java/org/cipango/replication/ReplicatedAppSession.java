@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 import javax.servlet.sip.Address;
+import javax.servlet.sip.ServletTimer;
 import javax.servlet.sip.SipApplicationSessionActivationListener;
 import javax.servlet.sip.SipApplicationSessionEvent;
 import javax.servlet.sip.UAMode;
@@ -127,23 +128,32 @@ public class ReplicatedAppSession extends ApplicationSession implements Serializ
 	@SuppressWarnings("unchecked")
 	public void deserializeIfNeeded()
 	{
-		if (_serializeAttributes != null)
+		SessionManager old = ProxyAppSession.getSessionManager();
+		ClassLoader ocl = Thread.currentThread().getContextClassLoader();
+		try
 		{
-			try
+			Thread.currentThread().setContextClassLoader(getContext().getClassLoader());
+			ProxyAppSession.setSessionManager(getSessionManager());
+			if (_serializeAttributes != null) 
 			{
-				ProxyAppSession.setSessionManager(getSessionManager());
-				_attributes = (Map<String, Object>) Serializer.deserialize(_serializeAttributes);
+				byte[] serializeAttributes = _serializeAttributes;
 				_serializeAttributes = null;
-				
-				for (Session session : _sessions)
-					((ReplicatedSession) session).deserializeIfNeeded();
-				
-				ProxyAppSession.setSessionManager(null);
+				_attributes = (Map<String, Object>) Serializer.deserialize(serializeAttributes);
+				notifyActivationListener(true);
 			}
-			catch (Exception e)
-			{
-				__log.warn("Failed to deserialize attributes", e);
-			}
+			
+			for (Session session : _sessions)
+				((ReplicatedSession) session).deserializeIfNeeded();
+			
+		}
+		catch (Exception e)
+		{
+			__log.warn("Failed to deserialize attributes", e);
+		}
+		finally
+		{
+			Thread.currentThread().setContextClassLoader(ocl);
+			ProxyAppSession.setSessionManager(old);
 		}
 	}
 	
@@ -171,16 +181,26 @@ public class ReplicatedAppSession extends ApplicationSession implements Serializ
 		}
 	}
 	
+	@Override
+	public Timer newTimer(long delay, boolean isPersistent, Serializable info) {
+		return new ReplicatedTimer(this, delay, -1, false, isPersistent, info);
+	}
+
+	@Override
+	public Timer newTimer(long delay, long period, boolean fixedDelay, boolean isPersistent,
+			Serializable info) {
+		return new ReplicatedTimer(this, delay, period, fixedDelay, isPersistent, info);
+	}
 	
 	public void newTimer(Map<String, Object> timerData, String timerId) throws IOException, ClassNotFoundException
 	{
 		long executionTime = (Long) timerData.get(EXCUTION_TIME);
 		long period = (Long) timerData.get(PERIOD);
 		boolean fixedDelay = getBoolean(timerData, FIXED_DELAY, false);
-		MarshalledValue mInfo = (MarshalledValue) timerData.get(INFO);
+		byte[] bInfo = (byte[]) timerData.get(INFO);
 		Serializable info = null;
-		if (mInfo != null)
-			info = (Serializable) mInfo.get();
+		if (bInfo != null)
+			info = (Serializable) Serializer.deserialize(bInfo);
 		
 		long delay = executionTime - System.currentTimeMillis();
 		if (delay < 0)
@@ -191,15 +211,33 @@ public class ReplicatedAppSession extends ApplicationSession implements Serializ
 	public Map<String, Object> getTimerData(Timer timer) throws IOException
 	{
 		Map<String, Object> timerData = new HashMap<String, Object>();
-		timerData.put(EXCUTION_TIME, timer.scheduledExecutionTime());
+		timerData.put(EXCUTION_TIME, timer.getTimeRemaining() + System.currentTimeMillis());
 		timerData.put(PERIOD, timer.getPeriod());
 		timerData.put(FIXED_DELAY, false);
-		timerData.put(INFO, new MarshalledValue(timer.getInfo(), new GenericJBossMarshaller()));
+		if (timer.getInfo() != null)
+			timerData.put(INFO, Serializer.serialize(timer.getInfo()));
 		
 		return timerData;
 	}
 	
 	
+	public static class ReplicatedTimer extends ApplicationSession.Timer implements Serializable
+	{
+		public ReplicatedTimer(ApplicationSession session, long delay, long period,
+				boolean fixedDelay, boolean isPersistent, Serializable info) {
+			super(session, delay, period, fixedDelay, isPersistent, info);
+		}
+		
+		public ReplicatedTimer(ApplicationSession session, long delay, long period, boolean fixedDelay, boolean isPersistent, Serializable info, String id)
+		{
+			super(session, delay, period, fixedDelay, isPersistent, info, id);
+		}
+		
+		private Object writeReplace() throws ObjectStreamException
+		{
+			return new ProxyTimer(getApplicationSession().getId(), getId());
+		}
+	}
 	
 	public static class ProxyAppSession implements Serializable
 	{
@@ -222,13 +260,13 @@ public class ReplicatedAppSession extends ApplicationSession implements Serializ
 			SessionManager sessionManager = __sessionManager.get();
 			if (sessionManager == null)
 			{
-				__log.warn("Could not session manager in local thread");
+				__log.warn("Could not get session manager in local thread");
 				return null;
 			}
 			
 			ApplicationSession applicationSession = sessionManager.getApplicationSession(_id);
 			if (applicationSession == null)
-				__log.warn("Could not session with ID " + _id);
+				__log.warn("Could not load session with ID " + _id);
 			return applicationSession;
 		}
 
@@ -242,4 +280,43 @@ public class ReplicatedAppSession extends ApplicationSession implements Serializ
 			return __sessionManager.get();
 		}
 	}
+	
+	public static class ProxyTimer implements Serializable
+	{
+		private static final long serialVersionUID = 1L;
+		private String _appSessionId; 
+		private String _id; 
+		
+		public ProxyTimer()
+		{
+		}
+		
+		public ProxyTimer(String appSessionId, String id)
+		{
+			_appSessionId = appSessionId;
+			_id = id;
+		}
+		
+		private Object readResolve() throws ObjectStreamException 
+		{
+			SessionManager sessionManager = ProxyAppSession.getSessionManager();
+			if (sessionManager == null)
+			{
+				__log.warn("Could not get session manager in local thread");
+				return null;
+			}
+			
+			ApplicationSession applicationSession = sessionManager.getApplicationSession(_appSessionId);
+			if (applicationSession == null)
+			{
+				__log.warn("Could not find application session with ID " + _appSessionId);
+				return null;
+			}
+			ServletTimer timer = applicationSession.getTimer(_id);
+			if (timer == null)
+				__log.warn("Could not find servlet timer with ID " + _id);
+			return timer;
+		}
+	}
+
 }

@@ -56,7 +56,7 @@ public class ARecord extends Record
 	{
 		if (dataLength != 4)
 			throw new IOException("Invalid RDLENGTH: " + dataLength + " in A record");	
-		_address = InetAddress.getByAddress(BufferUtil.getBytes(b, 4));	
+		_address = InetAddress.getByAddress(getName().toString(), BufferUtil.getBytes(b, 4));	
 	}
 	
 	@Override

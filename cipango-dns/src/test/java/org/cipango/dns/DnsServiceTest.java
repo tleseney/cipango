@@ -252,23 +252,18 @@ public class DnsServiceTest
 	
 	@Test
 	public void testPtr() throws Exception
-	{
+	{	
 		List<Record> records = _dnsService.lookup(new PtrRecord(InetAddress.getByName(IPV4_ADDR)));
 		assertEquals(1, records.size());
 		PtrRecord ptr = (PtrRecord) records.get(0);
 		assertEquals("redirect.ovh.net", ptr.getPrtdName().toString());
 		//System.out.println(records);
 	}
-	
-
-	public void testPtrIpv6() throws Exception
+		
+	@Test
+	public void testgetHostByAddr() throws Exception
 	{
-		//new PtrRecord(InetAddress.getByName(IPV6_ADDR));
-		List<Record> records = _dnsService.lookup(new PtrRecord(InetAddress.getByName(IPV6_ADDR)));
-		assertEquals(1, records.size());
-		PtrRecord ptr = (PtrRecord) records.get(0);
-		assertEquals("46-105-46-188.ovh.net", ptr.getPrtdName().toString());
-		//System.out.println(records);
+		assertEquals("redirect.ovh.net", _dnsService.getHostByAddr(InetAddress.getByName(IPV4_ADDR).getAddress()));
 	}
 	
 	@Test
@@ -306,15 +301,20 @@ public class DnsServiceTest
 	{
 		_dnsService.addEtcHosts(getClass().getResourceAsStream("/hosts"));
 		_dnsService.lookupAllHostAddr("space.cipango.test");
-		assertIpEqual("space.cipango.test", "192.168.1.1");
-		assertIpEqual("tab.cipango.test", "192.168.1.2");
-		assertIpEqual("multiple.cipango.test", "192.168.1.3");
-		assertIpEqual("multiple", "192.168.1.3");
-		assertIpEqual("comment.cipango.test", "192.168.1.4");
-		assertIpEqual("comment", "192.168.1.4");
+		assertIpEqual("space.cipango.test", "192.168.1.1", true);
+		assertIpEqual("tab.cipango.test", "192.168.1.2", true);
+		assertIpEqual("multiple.cipango.test", "192.168.1.3", false);
+		assertIpEqual("multiple", "192.168.1.3", false);
+		assertIpEqual("comment.cipango.test", "192.168.1.4", false);
+		assertIpEqual("comment", "192.168.1.4", false);
+		
+		assertIpEqual("ip6-localhost", "::1", false);
+		assertIpEqual("ip6-loopback", "::1", false);
+		assertIpEqual("ip6.cipango.test", "fe00::0", true);
+		
 	}
 	
-	private void assertIpEqual(String name, String expectedIp) throws UnknownHostException
+	private void assertIpEqual(String name, String expectedIp, boolean checkReverse) throws UnknownHostException
 	{
 		InetAddress[] actual = _dnsService.lookupAllHostAddr(name);
 		if (actual == null || actual.length == 0)
@@ -325,6 +325,9 @@ public class DnsServiceTest
 		
 		InetAddress expectedAddr = InetAddress.getByName(expectedIp);
 		assertEquals(expectedAddr, actual[0]);
+		
+		if (checkReverse)
+			assertEquals(name, _dnsService.getHostByAddr(expectedAddr.getAddress()));
 	}
 		
 	class Load implements Runnable

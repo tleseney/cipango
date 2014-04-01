@@ -66,6 +66,7 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 		if (_executor == null) {
 			QueuedThreadPool executor = new QueuedThreadPool(10, 1, 2000);
 			executor.setName("qtp-dns");
+			executor.setDaemon(true);
 			setExecutor(executor);
 		}
 		
@@ -172,6 +173,27 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 				throw (UnknownHostException) e;
 			LOG.debug(e);
 			throw new UnknownHostException(host);
+		}
+	}
+	
+	public String getHostByAddr(byte[] addr) throws UnknownHostException {
+		try
+		{
+			Name name = PtrRecord.getReverseName(InetAddress.getByAddress(addr));
+			String reverse = _staticHostsByAddr.get(name);
+			if (reverse != null)
+				return reverse;
+			
+    		PtrRecord ptrRecord = new PtrRecord(name);
+    		List<Record> records = new Lookup(this, ptrRecord).resolve();
+    		PtrRecord result = (PtrRecord) records.get(0);
+    		return result.getPrtdName().toString();
+		}
+		catch (IOException e) {
+			if (e instanceof UnknownHostException)
+				throw (UnknownHostException) e;
+			LOG.debug(e);
+			throw new UnknownHostException();
 		}
 	}
 

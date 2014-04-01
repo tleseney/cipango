@@ -78,4 +78,9 @@ public class ARecord extends Record
 	{
 		return compare(_address, ((ARecord) record).getAddress());
 	}
+
+	public void setAddress(InetAddress address)
+	{
+		_address = address;
+	}
 }

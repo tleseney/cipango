@@ -278,7 +278,7 @@ public class DnsServiceTest
 		badResolver.setHost("127.0.0.1");
 		badResolver.setPort(45877);
 		badResolver.setTimeout(500);
-		badResolver.setAttemps(2);
+		badResolver.setAttempts(2);
 		Resolver[] resolvers = new Resolver[2];
 		resolvers[0] = badResolver;
 		resolvers[1] = _dnsService.getResolvers()[0];

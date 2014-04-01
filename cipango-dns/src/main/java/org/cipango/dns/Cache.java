@@ -14,7 +14,7 @@
 package org.cipango.dns;
 
 import java.io.IOException;
-import java.rmi.UnknownHostException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -39,7 +39,7 @@ public class Cache implements Dumpable
 	public static final int DEFAULT_NEGATIVE_TTL = 3600;
 	private static final Logger LOG = Log.getLogger(Cache.class);
 	
-	private ConcurrentMap<Name, List<Element>> _cache = new ConcurrentHashMap<Name, List<Element>>();
+	private ConcurrentMap<Name, RemovableList> _cache = new ConcurrentHashMap<Name, RemovableList>();
 	
 	public Cache()
 	{
@@ -47,23 +47,34 @@ public class Cache implements Dumpable
 	
 	public void addRecord(Record record)
 	{
-		List<Element> records = _cache.get(record.getName());
+		RemovableList records = _cache.get(record.getName());
 		
-		if (records ==null)
+		if (records == null)
 		{
-			records = new ArrayList<Element>();
-			List<Element> records2 = _cache.putIfAbsent(record.getName(), records);
+			records = new RemovableList();
+			RemovableList records2 = _cache.putIfAbsent(record.getName(), records);
 			if (records2 != null)	
 				records = records2;
 		}
 		
 		synchronized (records)
 		{
-			for (Element element : records)
+			if (records.isRemoved())
 			{
+				LOG.debug("Record list for {} as been removed, so reload list from cache", record.getName());
+				addRecord(record);
+				return;
+			}
+			
+			Iterator<Element> it = records.iterator();
+			while (it.hasNext())
+			{
+				Element element = it.next();
 				if (element.get().equals(record))
 				{
-					LOG.debug("Do not add record {} on {} as it is already present", record, records);
+					it.remove();
+					records.add(new Element(record));
+					LOG.debug("Update record {} on {} with {}", element, records, record);
 					return;
 				}
 			}
@@ -75,12 +86,12 @@ public class Cache implements Dumpable
 	public void addNegativeRecord(DnsMessage query, DnsMessage answer)
 	{
 		Record record = query.getQuestionSection().get(0);
-		List<Element> records = _cache.get(record.getName());
+		RemovableList records = _cache.get(record.getName());
 		
-		if (records ==null)
+		if (records == null)
 		{
-			records = new ArrayList<Element>();
-			List<Element> records2 = _cache.putIfAbsent(record.getName(), records);
+			records = new RemovableList();
+			RemovableList records2 = _cache.putIfAbsent(record.getName(), records);
 			if (records2 != null)	
 				records = records2;
 		}
@@ -130,7 +141,7 @@ public class Cache implements Dumpable
 	@SuppressWarnings("unchecked")
 	public List<Record> getRecords(Name name, Type type) throws UnknownHostException
 	{
-		List<Element> records = _cache.get(name);
+		RemovableList records = _cache.get(name);
 		if (records != null)
 		{
 			List<Record> list = new ArrayList<Record>();
@@ -153,6 +164,10 @@ public class Cache implements Dumpable
 						list.add(element.get());
 					}
 				}
+				if (records.isEmpty()) {
+					_cache.remove(name, records);
+					records.setRemoved();
+				}
 			}
 			return list;
 		}
@@ -165,6 +180,26 @@ public class Cache implements Dumpable
 		_cache.clear();
 	}
 	
+	@ManagedOperation(value="Remove old entries from cache", impact="ACTION")
+	public void scavenge() {
+		for (Entry<Name, RemovableList> entry : _cache.entrySet())
+		{
+			RemovableList records = entry.getValue();
+			synchronized (records) {
+				Iterator<Element> it = records.iterator();
+				while (it.hasNext())
+				{
+					Element element = it.next();
+					if (element.isExpired())
+						it.remove();
+				}
+				if (records.isEmpty()) {
+					_cache.remove(entry.getKey(), records);
+					records.setRemoved();
+				}
+			}
+		}
+	}
 
 	@Override
 	public String dump()
@@ -176,13 +211,14 @@ public class Cache implements Dumpable
 	public void dump(Appendable out, String indent) throws IOException
 	{
 		out.append("DNS cache").append('\n');
-		for (Entry<Name, List<Element>> entry : _cache.entrySet())
+		for (Entry<Name, RemovableList> entry : _cache.entrySet())
 		{
 			out.append(indent).append("  - ");
 			out.append(entry.getKey().toString()).append(": ").append(entry.getValue().toString()).append('\n');
 		}
 	}
 	
+
 	static class Element
 	{
 		private Record _record;
@@ -228,5 +264,23 @@ public class Cache implements Dumpable
 		}
 	}
 
+	static class RemovableList extends ArrayList<Element>
+	{
+		private static final long serialVersionUID = 1L;
+		private boolean _removed;
+		
+		public RemovableList() {
+			super(4);
+			_removed = false;
+		}
 
+		public boolean isRemoved() {
+			return _removed;
+		}
+
+		public void setRemoved() {
+			_removed = true;
+		}
+				
+	}
 }

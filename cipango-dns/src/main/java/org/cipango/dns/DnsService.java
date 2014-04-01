@@ -22,7 +22,6 @@ import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,15 +74,15 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 			sun.net.dns.ResolverConfiguration resolverConfiguration = sun.net.dns.ResolverConfiguration
 					.open();
 			List<String> servers = resolverConfiguration.nameservers();
-			int attemps = resolverConfiguration.options().attempts();
+			int attempts = resolverConfiguration.options().attempts();
 			int retrans = resolverConfiguration.options().retrans();
 
 			for (String server : servers)
 			{
 				Resolver resolver = new Resolver();
 				resolver.setHost(server);
-				if (attemps != -1)
-					resolver.setAttemps(attemps);
+				if (attempts != -1)
+					resolver.setAttempts(attempts);
 				if (retrans != -1)
 					resolver.setTimeout(retrans);
 				addResolver(resolver);

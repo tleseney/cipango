@@ -16,6 +16,8 @@ package org.cipango.dns;
 import static org.junit.Assert.*;
 
 import java.net.DatagramSocket;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -261,9 +263,58 @@ public class DnsServiceTest
 	}
 		
 	@Test
-	public void testgetHostByAddr() throws Exception
+	public void testGetHostByAddr() throws Exception
 	{
 		assertEquals("redirect.ovh.net", _dnsService.getHostByAddr(InetAddress.getByName(IPV4_ADDR).getAddress()));
+	}
+	
+	@Test
+	public void testLookupAllHostAddrPreferIpv4() throws Exception
+	{
+		_dnsService.setPreferIpv6(false);
+		
+		assertEquals(IPV4_ADDR, _dnsService.lookupAllHostAddr("jira.cipango.org")[0].getHostAddress());
+		// Check if no IPv4 records is found, IPv6 are returned 
+		testLookupAllHostAddrOnlyIpVersion(true, "ipv6.google.com");
+	}
+	
+	@Test
+	public void testLookupAllHostAddrPreferIpv6() throws Exception
+	{
+		_dnsService.setPreferIpv6(true);
+		assertEquals(InetAddress.getByName(IPV6_ADDR), _dnsService.lookupAllHostAddr("cipango.org")[0]);
+		// Check if no IPv6 records is found, IPv4 are returned 
+		testLookupAllHostAddrOnlyIpVersion(false, "ipv4.google.com");
+	}
+	
+
+	public void testLookupAllHostAddrOnlyIpVersion(boolean onlyIpv6, String domain) throws Exception
+	{
+		try {
+			InetAddress[] addresses = _dnsService.lookupAllHostAddr(domain);
+			assertNotNull(addresses);
+			assertTrue(addresses.length > 0);
+			for (InetAddress addr : addresses)
+			{
+				if (onlyIpv6)
+					assertTrue("Got IPv4 addr " + addr + " when expect only IPv6 addr", addr instanceof Inet6Address);
+				else
+					assertTrue("Got IPv6 addr " + addr + " when expect only IPv4 addr", addr instanceof Inet4Address);
+			}
+		} 
+		catch (UnknownHostException e)
+		{
+			try 
+			{
+				InetAddress.getAllByName(domain);
+				throw new Exception("Got UnknownHostException when IPv6 addr exist", e);
+			}
+			catch (UnknownHostException e2)
+			{
+				System.err.println("Domain " + domain + " is no more active, could not check if able to "
+						+ "get IPv6 address if no IPv4 addr is found") ;
+			}
+		}
 	}
 	
 	@Test

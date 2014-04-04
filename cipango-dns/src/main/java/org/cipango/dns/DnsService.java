@@ -66,6 +66,7 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 		if (_executor == null) {
 			QueuedThreadPool executor = new QueuedThreadPool(10, 1, 2000);
 			executor.setName("qtp-dns");
+			executor.setMinThreads(1);
 			executor.setDaemon(true);
 			setExecutor(executor);
 		}
@@ -141,14 +142,27 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 				return array;
 			
 			List<Record> records = null;
-			if (_preferIpv6)
-				records = lookup(new AaaaRecord(name));
-			if (records == null)
-				records = lookup(new ARecord(name));
-			if (records == null && !_preferIpv6)
-				records = lookup(new AaaaRecord(name));
-			if (records == null)
-				throw new UnknownHostException(host);
+			try
+			{
+				records = lookup( _preferIpv6 ? new AaaaRecord(name) : new ARecord(name));
+			}
+			catch (IOException e)
+			{
+				try 
+				{
+					records = lookup( _preferIpv6 ? new ARecord(name) : new AaaaRecord(name));
+				}
+				catch (UnknownHostException e2)
+				{
+					throw e2;
+				}
+				catch (Exception e2)
+				{
+					UnknownHostException e3 = new UnknownHostException(host);
+					e3.initCause(e2);
+					throw e3;
+				}
+			}
 	
 			array = new InetAddress[records.size()];
 			for (int i = 0; i < records.size(); i++)

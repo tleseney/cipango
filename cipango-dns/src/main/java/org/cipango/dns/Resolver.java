@@ -58,9 +58,7 @@ public class Resolver
 		for (int i = 0; i < _attempts; i++)
 		{
 			c.send(query);
-			DnsMessage answer;
-			
-			answer = c.waitAnswer(query, timeout);
+			DnsMessage answer = c.waitAnswer(query, timeout);
 			if (answer != null)
 			{
 				if (answer.getHeaderSection().isTruncated() && !_dnsClient.getDefaultConnector().isTcp())
@@ -79,10 +77,15 @@ public class Resolver
 				}
 				return answer;
 			}
-			timeout *= 2;
+			else
+				timeout(query);
 		}
 		throw new SocketTimeoutException("No response received for query " + query.getQuestionSection());
 		
+	}
+	
+	protected void timeout(DnsMessage query)
+	{
 	}
 
 	@ManagedAttribute(value="Host", readonly=true)

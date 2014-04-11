@@ -44,33 +44,12 @@ public class PtrRecord extends Record
 		
 	public PtrRecord(InetAddress address)
 	{
-		Name name;
-		byte[] addr = address.getAddress();
-		if (address instanceof Inet4Address)
-		{
-			name = new Name("in-addr.arpa");
-			for (int i = 0; i < addr.length; i++)
-			{
-				Name tmp = name;
-				name = new Name(Integer.toString(addr[i] & 0xFF));
-				name.setChild(tmp);
-			}
-		}
-		else
-		{
-			name = new Name("ip6.arpa");
-			for (int i = 0; i < addr.length; i++)
-			{
-				Name tmp = name;
-				name = new Name(Integer.toHexString((addr[i] >> 4) & 0xF));
-				name.setChild(tmp);
-				tmp = name;
-				
-				name = new Name(Integer.toHexString(addr[i] & 0xF));
-				name.setChild(tmp);
-			}
-		}
 		setName(getReverseName(address));
+	}
+	
+	public PtrRecord(Name name)
+	{
+		setName(name);
 	}
 	
 	public static Name getReverseName(InetAddress address)

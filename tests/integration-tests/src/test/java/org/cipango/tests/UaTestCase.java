@@ -130,6 +130,13 @@ public abstract class UaTestCase extends TestCase
 		_endpoints.add(e);
 		return e;
 	}
+	
+	public Endpoint createEndpoint(String user, int port)
+	{
+		Endpoint e = new Endpoint(user, getDomain(), port);
+		_endpoints.add(e);
+		return e;
+	}
 
 	public String getTo()
 	{
@@ -155,7 +162,7 @@ public abstract class UaTestCase extends TestCase
 		_ua = new TestAgent(_sipClient.getFactory().createAddress(getFrom()));
 		_sipClient.addUserAgent(_ua);
 
-		SipURI uri = _ua.getFactory().createSipURI(null, getRemoteHost());
+		SipURI uri = _ua.getFactory().createSipURI("integration-tests", getRemoteHost());
 		uri.setPort(getRemotePort());
 		uri.setLrParam(true);
 		_ua.setOutboundProxy(_ua.getFactory().createAddress(uri));

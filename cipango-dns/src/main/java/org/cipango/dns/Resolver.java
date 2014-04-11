@@ -35,7 +35,7 @@ public class Resolver
 	private InetAddress _host;
 	private int _port = DEFAULT_PORT;
 	private long _timeout = DEFAULT_TIMEOUT;
-	private int _attemps = 2;
+	private int _attempts = 2;
 	
 	private OptRecord _queryOpt;
 		
@@ -55,12 +55,10 @@ public class Resolver
 			query.getAdditionalSection().add(_queryOpt); // TODO clone
 		
 		int timeout = (int) _timeout;
-		for (int i = 0; i < _attemps; i++)
+		for (int i = 0; i < _attempts; i++)
 		{
 			c.send(query);
-			DnsMessage answer;
-			
-			answer = c.waitAnswer(query, timeout);
+			DnsMessage answer = c.waitAnswer(query, timeout);
 			if (answer != null)
 			{
 				if (answer.getHeaderSection().isTruncated() && !_dnsClient.getDefaultConnector().isTcp())
@@ -79,10 +77,15 @@ public class Resolver
 				}
 				return answer;
 			}
-			timeout *= 2;
+			else
+				timeout(query);
 		}
 		throw new SocketTimeoutException("No response received for query " + query.getQuestionSection());
 		
+	}
+	
+	protected void timeout(DnsMessage query)
+	{
 	}
 
 	@ManagedAttribute(value="Host", readonly=true)
@@ -123,15 +126,15 @@ public class Resolver
 		_timeout = timeout;
 	}
 
-	@ManagedAttribute("Attemps")
-	public int getAttemps()
+	@ManagedAttribute("Attempts")
+	public int getAttempts()
 	{
-		return _attemps;
+		return _attempts;
 	}
 
-	public void setAttemps(int attemps)
+	public void setAttempts(int attempts)
 	{
-		_attemps = attemps;
+		_attempts = attempts;
 	}
 
 	public DnsClient getDnsClient()

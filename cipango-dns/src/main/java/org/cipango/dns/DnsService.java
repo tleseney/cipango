@@ -22,7 +22,6 @@ import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,6 +66,8 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 		if (_executor == null) {
 			QueuedThreadPool executor = new QueuedThreadPool(10, 1, 2000);
 			executor.setName("qtp-dns");
+			executor.setMinThreads(1);
+			executor.setDaemon(true);
 			setExecutor(executor);
 		}
 		
@@ -75,15 +76,15 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 			sun.net.dns.ResolverConfiguration resolverConfiguration = sun.net.dns.ResolverConfiguration
 					.open();
 			List<String> servers = resolverConfiguration.nameservers();
-			int attemps = resolverConfiguration.options().attempts();
+			int attempts = resolverConfiguration.options().attempts();
 			int retrans = resolverConfiguration.options().retrans();
 
 			for (String server : servers)
 			{
 				Resolver resolver = new Resolver();
 				resolver.setHost(server);
-				if (attemps != -1)
-					resolver.setAttemps(attemps);
+				if (attempts != -1)
+					resolver.setAttempts(attempts);
 				if (retrans != -1)
 					resolver.setTimeout(retrans);
 				addResolver(resolver);
@@ -141,14 +142,27 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 				return array;
 			
 			List<Record> records = null;
-			if (_preferIpv6)
-				records = lookup(new AaaaRecord(name));
-			if (records == null)
-				records = lookup(new ARecord(name));
-			if (records == null && !_preferIpv6)
-				records = lookup(new AaaaRecord(name));
-			if (records == null)
-				throw new UnknownHostException(host);
+			try
+			{
+				records = lookup( _preferIpv6 ? new AaaaRecord(name) : new ARecord(name));
+			}
+			catch (IOException e)
+			{
+				try 
+				{
+					records = lookup( _preferIpv6 ? new ARecord(name) : new AaaaRecord(name));
+				}
+				catch (UnknownHostException e2)
+				{
+					throw e2;
+				}
+				catch (Exception e2)
+				{
+					UnknownHostException e3 = new UnknownHostException(host);
+					e3.initCause(e2);
+					throw e3;
+				}
+			}
 	
 			array = new InetAddress[records.size()];
 			for (int i = 0; i < records.size(); i++)
@@ -173,6 +187,27 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 				throw (UnknownHostException) e;
 			LOG.debug(e);
 			throw new UnknownHostException(host);
+		}
+	}
+	
+	public String getHostByAddr(byte[] addr) throws UnknownHostException {
+		try
+		{
+			Name name = PtrRecord.getReverseName(InetAddress.getByAddress(addr));
+			String reverse = _staticHostsByAddr.get(name);
+			if (reverse != null)
+				return reverse;
+			
+    		PtrRecord ptrRecord = new PtrRecord(name);
+    		List<Record> records = new Lookup(this, ptrRecord).resolve();
+    		PtrRecord result = (PtrRecord) records.get(0);
+    		return result.getPrtdName().toString();
+		}
+		catch (IOException e) {
+			if (e instanceof UnknownHostException)
+				throw (UnknownHostException) e;
+			LOG.debug(e);
+			throw new UnknownHostException();
 		}
 	}
 

@@ -57,7 +57,7 @@ public class AaaaRecord extends Record
 	{
 		if (dataLength != 16)
 			throw new IOException("Invalid RDlength in AAAA record");
-		_address = InetAddress.getByAddress(BufferUtil.getBytes(b, 16));
+		_address = InetAddress.getByAddress(getName().toString(), BufferUtil.getBytes(b, 16));
 		
 	}
 

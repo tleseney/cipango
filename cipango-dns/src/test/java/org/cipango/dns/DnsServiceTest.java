@@ -16,6 +16,8 @@ package org.cipango.dns;
 import static org.junit.Assert.*;
 
 import java.net.DatagramSocket;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -252,23 +254,67 @@ public class DnsServiceTest
 	
 	@Test
 	public void testPtr() throws Exception
-	{
+	{	
 		List<Record> records = _dnsService.lookup(new PtrRecord(InetAddress.getByName(IPV4_ADDR)));
 		assertEquals(1, records.size());
 		PtrRecord ptr = (PtrRecord) records.get(0);
 		assertEquals("redirect.ovh.net", ptr.getPrtdName().toString());
 		//System.out.println(records);
 	}
+		
+	@Test
+	public void testGetHostByAddr() throws Exception
+	{
+		assertEquals("redirect.ovh.net", _dnsService.getHostByAddr(InetAddress.getByName(IPV4_ADDR).getAddress()));
+	}
+	
+	@Test
+	public void testLookupAllHostAddrPreferIpv4() throws Exception
+	{
+		_dnsService.setPreferIpv6(false);
+		
+		assertEquals(IPV4_ADDR, _dnsService.lookupAllHostAddr("jira.cipango.org")[0].getHostAddress());
+		// Check if no IPv4 records is found, IPv6 are returned 
+		testLookupAllHostAddrOnlyIpVersion(true, "ipv6.google.com");
+	}
+	
+	@Test
+	public void testLookupAllHostAddrPreferIpv6() throws Exception
+	{
+		_dnsService.setPreferIpv6(true);
+		assertEquals(InetAddress.getByName(IPV6_ADDR), _dnsService.lookupAllHostAddr("cipango.org")[0]);
+		// Check if no IPv6 records is found, IPv4 are returned 
+		testLookupAllHostAddrOnlyIpVersion(false, "ipv4.google.com");
+	}
 	
 
-	public void testPtrIpv6() throws Exception
+	public void testLookupAllHostAddrOnlyIpVersion(boolean onlyIpv6, String domain) throws Exception
 	{
-		//new PtrRecord(InetAddress.getByName(IPV6_ADDR));
-		List<Record> records = _dnsService.lookup(new PtrRecord(InetAddress.getByName(IPV6_ADDR)));
-		assertEquals(1, records.size());
-		PtrRecord ptr = (PtrRecord) records.get(0);
-		assertEquals("46-105-46-188.ovh.net", ptr.getPrtdName().toString());
-		//System.out.println(records);
+		try {
+			InetAddress[] addresses = _dnsService.lookupAllHostAddr(domain);
+			assertNotNull(addresses);
+			assertTrue(addresses.length > 0);
+			for (InetAddress addr : addresses)
+			{
+				if (onlyIpv6)
+					assertTrue("Got IPv4 addr " + addr + " when expect only IPv6 addr", addr instanceof Inet6Address);
+				else
+					assertTrue("Got IPv6 addr " + addr + " when expect only IPv4 addr", addr instanceof Inet4Address);
+			}
+		} 
+		catch (UnknownHostException e)
+		{
+			try 
+			{
+				InetAddress.getAllByName(domain);
+				throw new Exception("Got UnknownHostException when IPv6 addr exist", e);
+			}
+			catch (UnknownHostException e2)
+			{
+				System.err.println("Domain " + domain + " is no more active, could not check if able to "
+						+ "get IPv6 address if no IPv4 addr is found") ;
+			}
+		}
 	}
 	
 	@Test
@@ -278,7 +324,7 @@ public class DnsServiceTest
 		badResolver.setHost("127.0.0.1");
 		badResolver.setPort(45877);
 		badResolver.setTimeout(500);
-		badResolver.setAttemps(2);
+		badResolver.setAttempts(2);
 		Resolver[] resolvers = new Resolver[2];
 		resolvers[0] = badResolver;
 		resolvers[1] = _dnsService.getResolvers()[0];
@@ -306,15 +352,20 @@ public class DnsServiceTest
 	{
 		_dnsService.addEtcHosts(getClass().getResourceAsStream("/hosts"));
 		_dnsService.lookupAllHostAddr("space.cipango.test");
-		assertIpEqual("space.cipango.test", "192.168.1.1");
-		assertIpEqual("tab.cipango.test", "192.168.1.2");
-		assertIpEqual("multiple.cipango.test", "192.168.1.3");
-		assertIpEqual("multiple", "192.168.1.3");
-		assertIpEqual("comment.cipango.test", "192.168.1.4");
-		assertIpEqual("comment", "192.168.1.4");
+		assertIpEqual("space.cipango.test", "192.168.1.1", true);
+		assertIpEqual("tab.cipango.test", "192.168.1.2", true);
+		assertIpEqual("multiple.cipango.test", "192.168.1.3", false);
+		assertIpEqual("multiple", "192.168.1.3", false);
+		assertIpEqual("comment.cipango.test", "192.168.1.4", false);
+		assertIpEqual("comment", "192.168.1.4", false);
+		
+		assertIpEqual("ip6-localhost", "::1", false);
+		assertIpEqual("ip6-loopback", "::1", false);
+		assertIpEqual("ip6.cipango.test", "fe00::0", true);
+		
 	}
 	
-	private void assertIpEqual(String name, String expectedIp) throws UnknownHostException
+	private void assertIpEqual(String name, String expectedIp, boolean checkReverse) throws UnknownHostException
 	{
 		InetAddress[] actual = _dnsService.lookupAllHostAddr(name);
 		if (actual == null || actual.length == 0)
@@ -325,6 +376,9 @@ public class DnsServiceTest
 		
 		InetAddress expectedAddr = InetAddress.getByName(expectedIp);
 		assertEquals(expectedAddr, actual[0]);
+		
+		if (checkReverse)
+			assertEquals(name, _dnsService.getHostByAddr(expectedAddr.getAddress()));
 	}
 		
 	class Load implements Runnable

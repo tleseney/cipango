@@ -87,10 +87,10 @@ public abstract class UaRunnable extends Thread
 		return _ua.getAlias();
 	}
 	
-	public void assertDone() throws Throwable
+	public void assertDone() throws Exception
 	{
 		if (_e != null)
-			throw _e;
+			throwException();
 		if (_isDone)
 			return;
 		
@@ -105,9 +105,20 @@ public abstract class UaRunnable extends Thread
 			}
 		}
 		if (_e != null)
-			throw _e;
+			throwException();
 		if (!_isDone)
 			Assert.fail(getUserName() + " not done");
+	}
+	
+	private void throwException() throws Exception
+	{
+		if (_e != null)
+		{
+			if (_e instanceof Exception)
+				throw (Exception) _e;
+			if (_e instanceof Error)
+				throw (Error) _e;
+		}
 	}
 	
 	/**

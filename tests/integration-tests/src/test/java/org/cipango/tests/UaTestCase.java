@@ -101,7 +101,7 @@ public abstract class UaTestCase extends TestCase
 
 	public String getHttpBaseUrl()
 	{
-		return "http://" + getRemoteHost() + ":" + _properties.getProperty("remote.http.port") + "/integration-tests";
+		return "http://" + getRemoteHost() + ":" + _properties.getProperty("remote.http.port") + "/" + getApplicationName();
 	}
 	
 	public Protocol getSipDefaultProtocol()
@@ -117,6 +117,11 @@ public abstract class UaTestCase extends TestCase
 	public Endpoint createEndpoint(String user)
 	{
 		return createEndpoint(user, null);
+	}
+	
+	public String getApplicationName() 
+	{
+		return _properties.getProperty("application.name", "integration-tests");
 	}
 	
 	/**
@@ -162,7 +167,7 @@ public abstract class UaTestCase extends TestCase
 		_ua = new TestAgent(_sipClient.getFactory().createAddress(getFrom()));
 		_sipClient.addUserAgent(_ua);
 
-		SipURI uri = _ua.getFactory().createSipURI("integration-tests", getRemoteHost());
+		SipURI uri = _ua.getFactory().createSipURI(getApplicationName(), getRemoteHost());
 		uri.setPort(getRemotePort());
 		uri.setLrParam(true);
 		_ua.setOutboundProxy(_ua.getFactory().createAddress(uri));

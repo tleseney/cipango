@@ -20,6 +20,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -79,9 +81,15 @@ public abstract class UaTestCase extends TestCase
 		return _properties.getProperty("local.domain");	
 	}
 	
-	public String getLocalHost()
+	public String getLocalHost() throws UnknownHostException
 	{
-		return _properties.getProperty("local.host");
+		String host = _properties.getProperty("local.host");
+		if (host == null)
+		{
+			host = InetAddress.getLocalHost().getHostAddress();
+			_properties.setProperty("local.host", host);
+		}
+		return host;
 	}
 	
 	public int getLocalPort()

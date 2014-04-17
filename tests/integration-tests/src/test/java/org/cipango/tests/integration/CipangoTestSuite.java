@@ -25,13 +25,10 @@ public class CipangoTestSuite
 	{
 		TestSuite suite = new TestSuite(CipangoTestSuite.class.getName());
 
-		suite.addTestSuite(org.cipango.tests.integration.AuthenticationTest.class);
 		suite.addTestSuite(org.cipango.tests.integration.B2bHelperForkTest.class);
 		suite.addTestSuite(org.cipango.tests.integration.B2bHelperTest.class);
 		suite.addTestSuite(org.cipango.tests.integration.DoubleRecordRouteTest.class);
 		suite.addTestSuite(org.cipango.tests.integration.InvalidateWhenReadyTest.class);
-		suite.addTestSuite(org.cipango.tests.integration.MethodAuthenticationTest.class);
-		suite.addTestSuite(org.cipango.tests.integration.ProxyAuthenticationTest.class);
 		suite.addTestSuite(org.cipango.tests.integration.ProxyTest.class);
 		suite.addTestSuite(org.cipango.tests.integration.ReliableTest.class);
 		suite.addTestSuite(org.cipango.tests.integration.ServletContextListenerTest.class);

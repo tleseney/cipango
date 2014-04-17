@@ -60,7 +60,7 @@ public class B2bHelperForkServlet extends AbstractServlet
 				request.getApplicationSession().setAttribute(Role.SESSION_UAS_1.toString(), request.getSession());
 				newRequest.getSession().setAttribute("test", "same");
 				newRequest.setHeader(MainServlet.SERVLET_HEADER, B2bHelperProxyServlet.class.getName());
-				newRequest.pushRoute(getOwnUri());
+				newRequest.pushRoute(getOwnUri(request));
 			}
 			else
 			{

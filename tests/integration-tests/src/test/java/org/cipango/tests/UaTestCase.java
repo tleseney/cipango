@@ -13,9 +13,6 @@
 // ========================================================================
 package org.cipango.tests;
 
-import static org.cipango.client.test.matcher.SipMatchers.*;
-import static org.hamcrest.MatcherAssert.assertThat;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,6 +38,7 @@ import org.cipango.client.SipClient.Protocol;
 import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
 import org.cipango.client.test.TestAgent;
+import org.cipango.sip.SipStatus;
 
 public abstract class UaTestCase extends TestCase
 {
@@ -222,7 +220,20 @@ public abstract class UaTestCase extends TestCase
 	{
 		SipServletRequest request = _ua.createRequest(SipMethods.MESSAGE, getTo());
 		SipServletResponse response = _ua.sendSynchronous(request);
-        assertThat(response, isSuccess());
+		checkSuccess(response);
+	}
+	
+	private void checkSuccess(SipServletResponse response) throws IOException
+	{
+		if (!SipStatus.isSuccess(response.getStatus()))
+		{
+			String error = "Test case fail on " + response.getStatus() + " "
+					+ response.getReasonPhrase();
+			if ( response.getContentLength() > 0)
+				fail(error + "\n" + new String(response.getRawContent()));
+			else
+				fail(error);
+		}
 	}
 	
 	public void startUacScenario() throws IOException, ServletException
@@ -230,7 +241,7 @@ public abstract class UaTestCase extends TestCase
 		SipServletRequest request = _ua.createRequest(SipMethods.REGISTER, getTo());
 		request.addHeader(SipHeaders.CONTACT, _sipClient.getContact().toString());
 		SipServletResponse response = _ua.sendSynchronous(request);
-        assertThat(response, isSuccess());
+		checkSuccess(response);
 	}
 	
 	/**
@@ -249,7 +260,7 @@ public abstract class UaTestCase extends TestCase
 			SipServletRequest request = _ua.createRequest(SipMethods.MESSAGE, getTo());
 			request.setHeader(MainServlet.METHOD_HEADER, "checkForFailure");
 			SipServletResponse response = _ua.sendSynchronous(request);
-			assertThat(response, isSuccess());
+			checkSuccess(response);
 		}
 		catch (Exception e)
 		{

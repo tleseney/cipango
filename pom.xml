@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.cipango</groupId>
   <artifactId>cipango-project</artifactId>
-  <version>3.0.0-SNAPSHOT</version>
+  <version>3.0.0.M2</version>
   <name>Cipango :: Project</name>
   <url>http://www.cipango.org</url>
   <packaging>pom</packaging>
@@ -22,6 +22,7 @@
     <connection>scm:git:git://github.com/cipango/cipango.git</connection>
     <url>https://github.com/cipango/cipango</url>
     <developerConnection>scm:git:ssh://git@github.com/cipango/cipango.git</developerConnection>
+    <tag>cipango-project-3.0.0.M2</tag>
   </scm>
   
   <build>
@@ -181,7 +182,7 @@
     								</goals>
     							</pluginExecutionFilter>
     							<action>
-    								<ignore></ignore>
+    								<ignore />
     							</action>
     						</pluginExecution>
     					</pluginExecutions>

@@ -127,7 +127,7 @@ public abstract class UaTestCase extends TestCase
 	
 	public String getApplicationName() 
 	{
-		return _properties.getProperty("application.name", "integration-tests");
+		return _properties.getProperty("application.name");
 	}
 	
 	/**
@@ -173,10 +173,7 @@ public abstract class UaTestCase extends TestCase
 		_ua = new TestAgent(_sipClient.getFactory().createAddress(getFrom()));
 		_sipClient.addUserAgent(_ua);
 
-		SipURI uri = _ua.getFactory().createSipURI(getApplicationName(), getRemoteHost());
-		uri.setPort(getRemotePort());
-		uri.setLrParam(true);
-		_ua.setOutboundProxy(_ua.getFactory().createAddress(uri));
+		_ua.setOutboundProxy(getOutboundProxy());
 		_ua.setTimeout(getTimeout());
 	}
 
@@ -188,6 +185,40 @@ public abstract class UaTestCase extends TestCase
 		for (Endpoint e: _endpoints)
 			e.stop();
 		Thread.sleep(10);
+	}
+	
+	private Address getOutboundProxy() throws ServletParseException
+	{
+		String property = _properties.getProperty("remote.sip.outboundProxy");
+		if (property == null)
+		{
+    		SipURI uri = _sipClient.getFactory().createSipURI(getApplicationName(), getRemoteHost());
+    		uri.setPort(getRemotePort());
+    		uri.setLrParam(true);
+    		return _sipClient.getFactory().createAddress(uri);
+		}
+		return _sipClient.getFactory().createAddress(replaceProperties(property));
+	}
+	
+	public String replaceProperties(String s)
+	{
+		int indexStart = 0;
+		while (indexStart != -1)
+		{
+			indexStart = s.indexOf("${", indexStart);
+			if (indexStart != -1)
+			{
+				int indexStop = s.indexOf('}', indexStart);
+				if (indexStop != -1)
+				{
+					String key = s.substring(indexStart + 2, indexStop);
+					if (_properties.containsKey(key))
+						s = s.replace("${" + key + "}", _properties.getProperty(key));
+				}
+				indexStart++;
+			}
+		}
+		return s;
 	}
 	
 	public TestAgent decorate(TestAgent agent)

@@ -154,7 +154,7 @@
 		<!-- Test dependencies -->
 		<dependency>
 	      <groupId>org.hamcrest</groupId>
-	      <artifactId>hamcrest-integration</artifactId>
+	      <artifactId>hamcrest-library</artifactId>
 	      <scope>test</scope>
 	    </dependency>
 		<dependency>

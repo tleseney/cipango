@@ -103,6 +103,8 @@ public abstract class AbstractChallengedMessageHandler implements
 	
 	protected void doWait(Object o, long timeout)
 	{
+		if (timeout == 0) // Ensure if timeout is zero, do not block
+			return;
 		synchronized (o)
 		{
 			try { o.wait(timeout); } catch (InterruptedException e) {}

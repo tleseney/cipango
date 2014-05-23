@@ -20,7 +20,7 @@ import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.cipango.client.Dialog;
 import org.cipango.client.MessageHandler;
@@ -136,7 +136,7 @@ public abstract class UaRunnable extends Thread
 	{
 		synchronized(_dialog)
 		{
-			try { _dialog.wait(); } catch (InterruptedException e) { }
+			try { _dialog.wait(_ua.getTimeout()); } catch (InterruptedException e) { }
 		}
 		return (SipServletRequest) _dialog.getSession().getAttribute(
 				Dialog.INITIAL_REQUEST_ATTRIBUTE);

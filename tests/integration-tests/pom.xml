@@ -103,7 +103,9 @@
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<skipTests>true</skipTests>
+					<excludes>
+						<exclude>**/integration/**</exclude>
+					</excludes>
 				</configuration>
 			</plugin>
 
@@ -256,17 +258,26 @@
 						</executions>
 					</plugin>
 					<plugin>
-						<artifactId>maven-surefire-plugin</artifactId>
+						<artifactId>maven-failsafe-plugin</artifactId>
 						<executions>
 							<execution>
-								<id>surefire-it</id>
-								<phase>integration-test</phase>
+								<id>integration-test</id>
 								<goals>
-									<goal>test</goal>
+									<goal>integration-test</goal>
 								</goals>
 								<configuration>
-									<skipTests>false</skipTests>
+									<forkedProcessTimeoutInSeconds>600</forkedProcessTimeoutInSeconds>
+									<includes>
+									 <include>**/integration/*.java</include>
+									 <include>**/*ITCase.java</include>
+									</includes>
 								</configuration>
+							</execution>
+							<execution>
+								<id>verify</id>
+								<goals>
+									<goal>verify</goal>
+								</goals>
 							</execution>
 						</executions>
 					</plugin>

@@ -31,17 +31,23 @@ import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipURI;
 
-import junit.framework.TestCase;
-
 import org.cipango.client.SipClient;
 import org.cipango.client.SipClient.Protocol;
 import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
 import org.cipango.client.test.TestAgent;
 import org.cipango.sip.SipStatus;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.TestName;
 
-public abstract class UaTestCase extends TestCase
+public abstract class UaTestCase
 {
+	@Rule 
+	public TestName _name = new TestName();
+	
 	private List<Endpoint> _endpoints = new ArrayList<Endpoint>();
 	private int _nextPort;
 	
@@ -154,15 +160,8 @@ public abstract class UaTestCase extends TestCase
 		return "sip:sipServlet@" + getDomain();
 	}
 
-	@Override
-	protected void runTest() throws Throwable 
-	{
-		decorate(_ua);
-		
-		super.runTest();
-	}
 	
-	@Override
+	@Before
 	public void setUp() throws Exception
 	{
 		Properties properties = new Properties();
@@ -175,9 +174,11 @@ public abstract class UaTestCase extends TestCase
 
 		_ua.setOutboundProxy(getOutboundProxy());
 		_ua.setTimeout(getTimeout());
+		
+		decorate(_ua);
 	}
-
-	@Override
+	
+	@After
 	public void tearDown() throws Exception
 	{
 		_ua = null;
@@ -225,7 +226,7 @@ public abstract class UaTestCase extends TestCase
 	{
 		Map<String, String> extraHeaders = agent.getExtraHeaders();
 		extraHeaders.put(MainServlet.SERVLET_HEADER, getClass().getName());
-		extraHeaders.put(MainServlet.METHOD_HEADER, getName());		
+		extraHeaders.put(MainServlet.METHOD_HEADER, _name.getMethodName());		
 		return agent;
 	}
 
@@ -241,7 +242,7 @@ public abstract class UaTestCase extends TestCase
 			byte[] b = new byte[1024];
 			while ((read = is.read(b)) != -1)
 				os.write(b, 0, read);
-			fail("Fail on HTTP request: " + connection.getURL() + " with code " + code + " "
+			Assert.fail("Fail on HTTP request: " + connection.getURL() + " with code " + code + " "
 					+ connection.getResponseMessage() + "\n" + new String(os.toByteArray()));
 		}
 	}
@@ -261,9 +262,9 @@ public abstract class UaTestCase extends TestCase
 			String error = "Test case fail on " + response.getStatus() + " "
 					+ response.getReasonPhrase();
 			if ( response.getContentLength() > 0)
-				fail(error + "\n" + new String(response.getRawContent()));
+				Assert.fail(error + "\n" + new String(response.getRawContent()));
 			else
-				fail(error);
+				Assert.fail(error);
 		}
 	}
 	

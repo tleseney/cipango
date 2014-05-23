@@ -106,6 +106,7 @@ public class ReliableTest extends UaTestCase
 	 * 8  |        200 OK |
 	 *    |<--------------|
 	 */
+	@Test
 	public void testLatePrackAnswer() throws Exception
 	{
 		SipServletRequest request = _ua.createRequest(

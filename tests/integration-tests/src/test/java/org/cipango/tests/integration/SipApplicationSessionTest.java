@@ -158,6 +158,7 @@ public class SipApplicationSessionTest extends UaTestCase
 	 *   |--------------------------->|
 	 * </pre>
 	 */
+	@Test
 	public void testSetUriLate() throws Exception
 	{
 		Call call = (Call) _ua.customize(new Call());

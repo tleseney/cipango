@@ -26,6 +26,7 @@ import org.cipango.client.SipMethods;
 import org.cipango.client.test.UaRunnable;
 import org.cipango.client.test.UasScript;
 import org.cipango.tests.UaTestCase;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class ProxyTest extends UaTestCase
@@ -80,9 +81,9 @@ public class ProxyTest extends UaTestCase
         if (request.getHeader("P-Failed") != null)
         {
 			if (request.getContentLength() > 0)
-				fail(new String(request.getRawContent()));
+				Assert.fail(new String(request.getRawContent()));
 			else
-				fail("Proxy is not record route");
+				Assert.fail("Proxy is not record route");
         }
 	}
 	

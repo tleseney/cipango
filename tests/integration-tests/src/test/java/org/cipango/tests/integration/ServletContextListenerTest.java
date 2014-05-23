@@ -18,10 +18,12 @@ import java.io.IOException;
 import javax.servlet.ServletException;
 
 import org.cipango.tests.UaTestCase;
+import org.junit.Test;
 
 public class ServletContextListenerTest extends UaTestCase
 {
 
+	@Test
 	public void testInit() throws IOException, ServletException
 	{
 		sendAndAssertMessage();
@@ -31,6 +33,7 @@ public class ServletContextListenerTest extends UaTestCase
 	 * 
 	 * Test for CIPANGO-199: SIP servlet are initialized before ServletContextListener if listener has been defined in web.xml
 	 */
+	@Test
 	public void testInitFromWeb() throws IOException, ServletException
 	{
 		sendAndAssertMessage();

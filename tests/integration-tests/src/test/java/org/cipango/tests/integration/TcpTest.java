@@ -35,10 +35,6 @@ import org.junit.Test;
 public class TcpTest extends UaTestCase
 {
 
-	public TcpTest()
-	{
-	}
-	
 	
 	/**
 	 * Ensure that a big request is sent over TCP.

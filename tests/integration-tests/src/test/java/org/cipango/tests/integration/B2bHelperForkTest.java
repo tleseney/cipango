@@ -16,6 +16,7 @@ package org.cipango.tests.integration;
 import static org.cipango.client.test.matcher.SipMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.*;
 
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
@@ -28,6 +29,7 @@ import org.cipango.client.test.TestAgent;
 import org.cipango.client.test.UaRunnable;
 import org.cipango.server.session.SessionManager.ApplicationSessionScope;
 import org.cipango.tests.UaTestCase;
+import org.junit.Test;
 
 public class B2bHelperForkTest extends UaTestCase
 {
@@ -67,6 +69,7 @@ public class B2bHelperForkTest extends UaTestCase
 	 *  
 	 *  
 	 */
+	@Test
 	public void testMultipleResponse() throws Throwable 
 	{
 
@@ -152,6 +155,7 @@ public class B2bHelperForkTest extends UaTestCase
 	 *  
 	 *  
 	 */
+	@Test
 	public void testMultipleProvisionalResponse() throws Throwable 
 	{
 		Endpoint bob = createEndpoint("bob");
@@ -242,6 +246,7 @@ public class B2bHelperForkTest extends UaTestCase
 	 *  
 	 *  
 	 */
+	@Test
 	public void testMultipleProvisionalResponse2() throws Throwable 
 	{
 		
@@ -343,6 +348,7 @@ public class B2bHelperForkTest extends UaTestCase
 	 *  </pre>
 	 *  
 	 */
+	@Test
 	public void testMultipleResponse100rel() throws Throwable 
 	{
 		Endpoint bob = createEndpoint("bob");
@@ -462,6 +468,7 @@ public class B2bHelperForkTest extends UaTestCase
 	 * </pre>
 	 * 
 	 */
+	@Test
 	public void testCancel() throws Throwable
 	{		
 		Endpoint bob = createEndpoint("bob");

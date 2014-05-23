@@ -119,7 +119,7 @@ public class AddressTest
 		assertEquals("300",a1.getParameter("expires"));
 		assertEquals("",a1.getParameter("param1"));
 		assertEquals("1.0",a1.getParameter("q"));
-		assertEquals(1.0f,a1.getQ());
+		assertEquals(1.0f,a1.getQ(), 0.0f);
 		assertEquals(300,a1.getExpires());
 	}
 	

@@ -14,7 +14,6 @@
 package org.cipango.tests.integration;
 
 
-import static org.cipango.client.test.matcher.SipMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;

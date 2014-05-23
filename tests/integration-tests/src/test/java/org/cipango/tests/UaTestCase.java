@@ -36,17 +36,23 @@ import org.cipango.client.SipClient.Protocol;
 import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
 import org.cipango.client.test.TestAgent;
-import org.cipango.sip.SipStatus;
+import org.hamcrest.Factory;
+import org.hamcrest.Matcher;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
+import org.junit.rules.Timeout;
 
 public abstract class UaTestCase
 {
 	@Rule 
 	public TestName _name = new TestName();
+	
+	// Ensure test cannot be longer than 1 minute
+	@Rule
+    public Timeout _globalTimeout= new Timeout(60000);
 	
 	private List<Endpoint> _endpoints = new ArrayList<Endpoint>();
 	private int _nextPort;
@@ -252,20 +258,13 @@ public abstract class UaTestCase
 	{
 		SipServletRequest request = _ua.createRequest(SipMethods.MESSAGE, getTo());
 		SipServletResponse response = _ua.sendSynchronous(request);
-		checkSuccess(response);
+		Assert.assertThat(response, isSuccess());
 	}
 	
-	private void checkSuccess(SipServletResponse response) throws IOException
+	@Factory
+	public static <T> Matcher<SipServletResponse> isSuccess()
 	{
-		if (!SipStatus.isSuccess(response.getStatus()))
-		{
-			String error = "Test case fail on " + response.getStatus() + " "
-					+ response.getReasonPhrase();
-			if ( response.getContentLength() > 0)
-				Assert.fail(error + "\n" + new String(response.getRawContent()));
-			else
-				Assert.fail(error);
-		}
+		return new IsSuccess();
 	}
 	
 	public void startUacScenario() throws IOException, ServletException
@@ -273,7 +272,7 @@ public abstract class UaTestCase
 		SipServletRequest request = _ua.createRequest(SipMethods.REGISTER, getTo());
 		request.addHeader(SipHeaders.CONTACT, _sipClient.getContact().toString());
 		SipServletResponse response = _ua.sendSynchronous(request);
-		checkSuccess(response);
+		Assert.assertThat(response, isSuccess());
 	}
 	
 	/**
@@ -292,7 +291,7 @@ public abstract class UaTestCase
 			SipServletRequest request = _ua.createRequest(SipMethods.MESSAGE, getTo());
 			request.setHeader(MainServlet.METHOD_HEADER, "checkForFailure");
 			SipServletResponse response = _ua.sendSynchronous(request);
-			checkSuccess(response);
+			Assert.assertThat(response, isSuccess());
 		}
 		catch (Exception e)
 		{

@@ -1,12 +1,15 @@
 package org.cipango.sip;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.jetty.util.BufferUtil;
 import org.junit.Test;
-import static junit.framework.Assert.*;
 
 public class SipMethodTest 
 {

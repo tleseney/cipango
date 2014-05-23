@@ -1,6 +1,6 @@
 package org.cipango.sip;
 
-import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 import org.eclipse.jetty.util.Utf8StringBuilder;
 import org.junit.Test;

@@ -13,7 +13,7 @@ import org.cipango.server.SipResponse;
 import org.cipango.server.handler.AbstractSipHandler;
 import org.junit.Ignore;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 @Ignore
 public class TestSipHandler extends AbstractSipHandler

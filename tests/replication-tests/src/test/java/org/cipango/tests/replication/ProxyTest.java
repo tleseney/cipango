@@ -14,12 +14,10 @@
 package org.cipango.tests.replication;
 
 
-import static org.cipango.client.test.matcher.SipMatchers.hasHeader;
 import static org.cipango.client.test.matcher.SipMatchers.isSuccess;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import javax.servlet.sip.SipServletRequest;
-import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.client.Call;
 import org.cipango.client.SipMethods;

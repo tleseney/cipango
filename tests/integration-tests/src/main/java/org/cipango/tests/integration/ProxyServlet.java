@@ -30,9 +30,8 @@ import javax.servlet.sip.TooManyHopsException;
 import javax.servlet.sip.URI;
 import javax.servlet.sip.annotation.SipServlet;
 
-import junit.framework.Assert;
-
 import org.cipango.tests.AbstractServlet;
+import org.junit.Assert;
 
 @SuppressWarnings("serial")
 @SipServlet (name="org.cipango.tests.integration.ProxyTest")

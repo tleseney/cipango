@@ -13,8 +13,8 @@
 // ========================================================================
 package org.cipango.annotations;
 
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.fail;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;

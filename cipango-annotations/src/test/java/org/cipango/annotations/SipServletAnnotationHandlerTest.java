@@ -13,7 +13,7 @@
 // ========================================================================
 package org.cipango.annotations;
 
-import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 import org.cipango.annotations.resources.AnnotedServlet;
 import org.cipango.server.servlet.SipServletHandler;

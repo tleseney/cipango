@@ -6,6 +6,7 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -209,7 +210,7 @@ public class SipGeneratorTest
 	
 	public String toString()
 	{
-		return new String(_buffer.array(), 0, _buffer.position(), StringUtil.__UTF8_CHARSET);
+		return new String(_buffer.array(), 0, _buffer.position(), StandardCharsets.UTF_8);
 	}
 	
 	private Handler parse(ByteBuffer buffer) throws IOException

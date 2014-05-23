@@ -14,11 +14,9 @@
 
 package org.cipango.util;
 
-import static junit.framework.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import org.cipango.util.StringScanner;
-import org.cipango.util.StringUtil;
-import org.eclipse.jetty.util.Scanner;
 import org.junit.Test;
 
 public class StringScannerTest 

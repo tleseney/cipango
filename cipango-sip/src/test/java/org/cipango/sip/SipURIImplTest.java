@@ -1,5 +1,10 @@
 package org.cipango.sip;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -9,7 +14,6 @@ import java.io.ObjectOutputStream;
 import javax.servlet.sip.SipURI;
 
 import org.junit.Test;
-import static junit.framework.Assert.*;
 
 public class SipURIImplTest 
 {

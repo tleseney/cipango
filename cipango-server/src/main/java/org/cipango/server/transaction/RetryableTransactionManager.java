@@ -233,6 +233,12 @@ public class RetryableTransactionManager extends TransactionManager
 		{
 			return _listener;
 		}
+
+		@Override
+		public boolean isProcessingResponse() 
+		{
+			return _activeTx.isProcessingResponse();
+		}
 		
 		@Override
 		public String toString()

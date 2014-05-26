@@ -728,11 +728,22 @@ public class Session implements SipSessionIf, Dumpable
 		{
 			// Invalidate also if transaction state is accepted as it could only
 			// happens when state is TERMINATED
-			for (Transaction transaction : _clientTransactions)
+			for (ClientTransaction transaction : _clientTransactions)
+			{
 				if (transaction.getState() != Transaction.State.COMPLETED
 						&& transaction.getState() != Transaction.State.CONFIRMED
 						&& transaction.getState() != Transaction.State.ACCEPTED)
 					return false;
+				
+				// The transaction state could have been updated but response may have
+				// not been processed by session yet.
+				if (transaction.isProcessingResponse())
+				{
+					LOG.debug("Session {} is not ready to invalidate session, as client transaction {} is processing response",
+							Session.this, transaction);
+					return false;
+				}
+			}
 			for (Transaction transaction : _serverTransactions)
 				if (transaction.getState() != Transaction.State.COMPLETED
 						&& transaction.getState() != Transaction.State.CONFIRMED

@@ -53,6 +53,8 @@ public class ClientTransactionImpl extends TransactionImpl implements ClientTran
     
     private SipConnection _connection;
     
+    private Thread _responseProcessingThread;
+    
 	public ClientTransactionImpl(SipRequest request, ClientTransactionListener listener)
     {
 		this(request, listener, request.appSession().newBranch());
@@ -199,115 +201,129 @@ public class ClientTransactionImpl extends TransactionImpl implements ClientTran
 	
 	public synchronized void handleResponse(SipResponse response) 
     {
-		int status = response.getStatus(); 
-        
-		if (isInvite()) 
-        {
-			switch (_state) 
+		_responseProcessingThread = Thread.currentThread();
+		try
+		{
+    		int status = response.getStatus(); 
+            
+    		if (isInvite()) 
             {
-			case CALLING:
-				cancelTimer(Timer.A); cancelTimer(Timer.B);
-				if (status < 200) 
+    			switch (_state) 
                 {
-					setState(State.PROCEEDING);
-					if (_pendingCancel != null)
-						doCancel(_pendingCancel);
-				} 
-                else if (200 <= status && status < 300) 
-                {
-					setState(State.ACCEPTED);
-					startTimer(Timer.M, 64L*__T1);
-				} 
-                else 
-                {
-					setState(State.COMPLETED);
-					ack(response);
-					if (isTransportReliable()) 
-						terminate();
-					else 
-						startTimer(Timer.D, __TD);
-				}
-				_listener.handleResponse(response);
-				break;
-				
-			case PROCEEDING:
-				if (200 <= status && status < 300) 
-                {
-					setState(State.ACCEPTED);
-					startTimer(Timer.M, 64L*__T1);
-				} 
-                else if (status >= 300) 
-                {
-					setState(State.COMPLETED);
-					ack(response);
-					if (isTransportReliable()) 
-						terminate();
-					else 
-						startTimer(Timer.D, __TD);
-				}
-				_listener.handleResponse(response);
-				break;
-                
-			case COMPLETED:
-				ack(response);
-				break;
-			case ACCEPTED:
-				if (!(200 <= status && status < 300))
-				{
-					LOG.debug("non 2xx response {} in Accepted state", response);
-				}
-				else
-				{
-					_listener.handleResponse(response);
-				}
-				break;
-			default:
-				LOG.debug("handleResponse (invite) && state ==" + _state);
-			}
-		} 
-        else 
-        {
-			switch (_state) 
+    			case CALLING:
+    				cancelTimer(Timer.A); cancelTimer(Timer.B);
+    				if (status < 200) 
+                    {
+    					setState(State.PROCEEDING);
+    					if (_pendingCancel != null)
+    						doCancel(_pendingCancel);
+    				} 
+                    else if (200 <= status && status < 300) 
+                    {
+    					setState(State.ACCEPTED);
+    					startTimer(Timer.M, 64L*__T1);
+    				} 
+                    else 
+                    {
+    					setState(State.COMPLETED);
+    					ack(response);
+    					if (isTransportReliable()) 
+    						terminate();
+    					else 
+    						startTimer(Timer.D, __TD);
+    				}
+    				_listener.handleResponse(response);
+    				break;
+    				
+    			case PROCEEDING:
+    				if (200 <= status && status < 300) 
+                    {
+    					setState(State.ACCEPTED);
+    					startTimer(Timer.M, 64L*__T1);
+    				} 
+                    else if (status >= 300) 
+                    {
+    					setState(State.COMPLETED);
+    					ack(response);
+    					if (isTransportReliable()) 
+    						terminate();
+    					else 
+    						startTimer(Timer.D, __TD);
+    				}
+    				_listener.handleResponse(response);
+    				break;
+                    
+    			case COMPLETED:
+    				ack(response);
+    				break;
+    			case ACCEPTED:
+    				if (!(200 <= status && status < 300))
+    				{
+    					LOG.debug("non 2xx response {} in Accepted state", response);
+    				}
+    				else
+    				{
+    					_listener.handleResponse(response);
+    				}
+    				break;
+    			default:
+    				LOG.debug("handleResponse (invite) && state ==" + _state);
+    			}
+    		} 
+            else 
             {
-			case TRYING:
-				if (status < 200) 
+    			switch (_state) 
                 {
-					setState(State.PROCEEDING);
-				} 
-                else 
-                {
-					cancelTimer(Timer.E); cancelTimer(Timer.F);
-					setState(State.COMPLETED);
-					if (isTransportReliable()) 
-						terminate(); // TIMER_K == 0
-					else 
-						startTimer(Timer.K, __T4);
-				}
-                if (!isCancel())
-                    _listener.handleResponse(response);
-				break;
-                
-			case PROCEEDING:
-				if (status >= 200) 
-                {
-                    cancelTimer(Timer.E); cancelTimer(Timer.F);
-					setState(State.COMPLETED);
-					if (isTransportReliable())
-						terminate();
-					else 
-						startTimer(Timer.K, __T4);
+    			case TRYING:
+    				if (status < 200) 
+                    {
+    					setState(State.PROCEEDING);
+    				} 
+                    else 
+                    {
+    					cancelTimer(Timer.E); cancelTimer(Timer.F);
+    					setState(State.COMPLETED);
+    					if (isTransportReliable()) 
+    						terminate(); // TIMER_K == 0
+    					else 
+    						startTimer(Timer.K, __T4);
+    				}
                     if (!isCancel())
                         _listener.handleResponse(response);
-				}
-				break;
-				
-			case COMPLETED:
-				break;
-				
-			default:
-				LOG.warn("handleResponse (non-invite) && state ==" + _state);
-			}
+    				break;
+                    
+    			case PROCEEDING:
+    				if (status >= 200) 
+                    {
+                        cancelTimer(Timer.E); cancelTimer(Timer.F);
+    					setState(State.COMPLETED);
+    					if (isTransportReliable())
+    						terminate();
+    					else 
+    						startTimer(Timer.K, __T4);
+                        if (!isCancel())
+                            _listener.handleResponse(response);
+    				}
+    				break;
+    				
+    			case COMPLETED:
+    				break;
+    				
+    			default:
+    				LOG.warn("handleResponse (non-invite) && state ==" + _state);
+    			}
+    		}
 		}
+		finally
+		{
+			_responseProcessingThread = null;
+		}
+	}
+	
+	
+	public boolean isProcessingResponse()
+	{
+		return _responseProcessingThread != null && _responseProcessingThread != Thread.currentThread();
 	}
 	
 	public boolean isServer() 

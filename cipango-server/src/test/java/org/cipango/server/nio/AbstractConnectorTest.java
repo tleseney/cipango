@@ -96,6 +96,7 @@ public abstract class AbstractConnectorTest
 			{
 				_connector.stop();
 				assertFalse(_connector.isRunning());
+				Thread.sleep(10);
 				_connector.start();
 				assertTrue(_connector.isRunning());
 				Thread.sleep(10);

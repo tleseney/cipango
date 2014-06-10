@@ -15,6 +15,7 @@
 package org.cipango.sip;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
@@ -97,6 +98,21 @@ public class ViaTest
 			assertTrue(o instanceof Via);
 			assertEquals(via, o);
 		}
+	}
+	
+	@Test
+	public void testClone() throws Exception
+	{
+		Via p = new Via(vias[0]._string);
+		p.parse();
+		p.setParameter("customParam", "1");
+		Via p2 = (Via) p.clone();
+		assertEquals(p, p2);
+		p2.setBranch("newBranch");
+		p2.setParameter("customParam", "2");
+		//System.out.println(p2);
+		//System.out.println(p);
+		assertNotEquals(p, p2);
 	}
 	
 	class ViaData

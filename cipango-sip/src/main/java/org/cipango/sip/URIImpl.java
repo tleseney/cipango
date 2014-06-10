@@ -156,7 +156,10 @@ public class URIImpl implements URI, Serializable, Modifiable
 	{
 		try 
 		{
-			return (URI) super.clone();
+			URIImpl uri = (URIImpl) super.clone();
+			if (_params != null)
+				uri._params = (HashMap<String, String>) _params.clone();
+			return uri;
 		} 
 		catch (CloneNotSupportedException _) 
 		{

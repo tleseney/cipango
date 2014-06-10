@@ -185,8 +185,8 @@ public class B2bHelper implements B2buaHelper
 					if (!session2.equals(session)
 							|| (tx.getState() == State.ACCEPTED && session.getState() != SipSession.State.CONFIRMED))
 					{
-						if (status >= 300)
-							throw new IllegalStateException("Cannot send response with status" + status 
+						if (status >= 300 && tx.getState() != State.PROCEEDING)
+							throw new IllegalStateException("Cannot send response with status " + status 
 									+ " since final response has already been sent");
 						return new SipResponse(request, status, reason, session);
 					}

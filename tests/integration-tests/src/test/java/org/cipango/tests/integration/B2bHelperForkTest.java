@@ -202,6 +202,84 @@ public class B2bHelperForkTest extends UaTestCase
 	
 	
 	/**
+	 * Should be able to create negative response on forked session
+	 * using B2bUaHelper.createResponseToOriginalRequest().
+	 * 
+	 * <pre>
+	 * SipUnit     B2bHelper      proxy       bob      carol
+	 *  |  INVITE     |             |          |          |
+	 *  |------------>|             |          |          |
+	 *  |             |INVITE       |          |          |
+	 *  |             |------------>|          |          |
+	 *  |             |             |INVITE    |          |
+	 *  |             |             |--------->|          |
+	 *  |             |             |INVITE    |          |
+	 *  |             |             |-------------------->|
+	 *  |             |             |      180 |          |
+	 *  |             |             |<---------|          |
+	 *  |             |         180 |          |          |
+	 *  |             |<------------|          |          |
+	 *  |         180 |             |          |          |
+	 *  |<------------|             |          |          |
+	 *  |             |             |          |      180 |
+	 *  |             |             |<--------------------|
+	 *  |             |         180 |          |          |
+	 *  |             |<------------|          |          |
+	 *  |         180 |             |          |          |
+	 *  |<------------|             |          |          |
+	 *  |             |             |      404 |          |
+	 *  |             |             |<---------|          |
+	 *  |             |             |ACK       |          |
+	 *  |             |             |--------->|          |
+	 *  |             |             |          |      603 |
+	 *  |             |             |<--------------------|
+	 *  |             |             | ACK      |          |
+	 *  |             |             |-------------------->|
+	 *  |             |         603 |          |          |
+	 *  |             |<------------|          |          |
+	 *  |             | ACK         |          |          |
+	 *  |             |------------>|          |          |
+	 *  |         603 |             |          |          |
+	 *  |<------------|             |          |          |
+	 *  | ACK         |             |          |          |
+	 *  |------------>|             |          |          |
+	 *  </pre>
+	 */
+	@Test
+	public void testNegativeOnForkedSessionResponse() throws Throwable 
+	{
+		Endpoint bob = createEndpoint("bob");
+		UaRunnable replyB = new NegativeReply(bob.getUserAgent(), 10, SipServletResponse.SC_NOT_FOUND);
+		Endpoint carol = createEndpoint("bob", "carol");
+		UaRunnable replyC = new NegativeReply(carol.getUserAgent(), 100, SipServletResponse.SC_DECLINE);
+		replyB.start();
+		replyC.start();
+		Thread.sleep(10);
+		
+		SipServletRequest request = _ua.createRequest(SipMethods.INVITE,  bob.getUri());
+		request.addAddressHeader(B2bHelperProxyServlet.PROXY_URIS, bob.getContact(), true);
+		request.addAddressHeader(B2bHelperProxyServlet.PROXY_URIS, carol.getContact(), true);
+		
+		Call callA = _ua.createCall(request);
+		
+		SipServletResponse response = callA.waitForResponse();
+		assertThat(response, hasStatus(SipServletResponse.SC_RINGING));
+		SipSession session1 = response.getSession();
+		
+		response = callA.waitForResponse();
+		assertThat(response, hasStatus(SipServletResponse.SC_RINGING));
+		SipSession session2 = response.getSession();
+		assertNotSame(session1.getId(), session2.getId());
+		
+		response = callA.waitForResponse();
+        assertThat(response, hasStatus(SipServletResponse.SC_DECLINE));
+       		
+		replyB.assertDone();
+		replyC.assertDone();
+	}
+	
+	
+	/**
 	 * <pre>
 	 * SipUnit     B2bHelper      proxy       bob      carol
 	 *  |  INVITE     |             |          |          |
@@ -583,6 +661,30 @@ public class B2bHelperForkTest extends UaTestCase
 			request = _dialog.waitForRequest();
 			assertThat(request.getMethod(), is(SipMethods.BYE)); // TODO ACK could be retransmit ???
 			_ua.createResponse(request, SipServletResponse.SC_OK, "OK " + getUserName()).send();
+		}	
+	}
+	
+	class NegativeReply extends UaRunnable
+	{	
+		private long _ringingWait;
+		private int _status;
+		
+		public NegativeReply(TestAgent ua, long ringingWait, int status)
+		{
+			super(ua);
+			_status = status;
+		}
+		
+		@Override
+		public void doTest() throws Throwable
+		{
+			SipServletRequest request = waitForInitialRequest();
+			assertThat(request.getMethod(), is(SipMethods.INVITE));
+			
+			Thread.sleep(_ringingWait);
+			_ua.createResponse(request, SipServletResponse.SC_RINGING, "Ringing " + getUserName()).send();
+			Thread.sleep(500);
+			_ua.createResponse(request, _status, "Decline " + getUserName()).send();
 		}	
 	}
 	

@@ -32,9 +32,12 @@ import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
 import org.cipango.client.test.UaRunnable;
 import org.cipango.tests.UaTestCase;
+import org.cipango.tests.integration.category.NotCompliantV2;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 
+@Category(NotCompliantV2.class)
 public class DoubleRecordRouteTest extends UaTestCase
 {
 	/**

@@ -273,11 +273,30 @@
 									</includes>
 								</configuration>
 							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>cipango-2</id>
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-failsafe-plugin</artifactId>
+						<executions>
 							<execution>
-								<id>verify</id>
+								<id>integration-test for Cipango 2</id>
 								<goals>
-									<goal>verify</goal>
+									<goal>integration-test</goal>
 								</goals>
+								<configuration>
+									<includes>
+									 <include>**/integration/*.java</include>
+									 <include>**/*ITCase.java</include>
+									</includes>
+									<excludedGroups>org.cipango.tests.integration.category.NotCompliantV2,org.cipango.tests.integration.category.Converged</excludedGroups>
+								</configuration>
 							</execution>
 						</executions>
 					</plugin>

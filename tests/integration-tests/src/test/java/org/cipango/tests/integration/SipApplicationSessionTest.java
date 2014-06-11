@@ -24,13 +24,17 @@ import javax.servlet.sip.SipServletResponse;
 import org.cipango.client.Call;
 import org.cipango.client.SipMethods;
 import org.cipango.tests.UaTestCase;
+import org.cipango.tests.integration.category.Converged;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.HttpStatus;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
+
+@Category(Converged.class)
 public class SipApplicationSessionTest extends UaTestCase
 {
 	public static final String ENCODED_URL_HEADER = "EncodedUrl";

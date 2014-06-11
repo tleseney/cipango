@@ -18,7 +18,9 @@ import java.io.IOException;
 import javax.servlet.ServletException;
 
 import org.cipango.tests.UaTestCase;
+import org.cipango.tests.integration.category.Converged;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 public class ServletContextListenerTest extends UaTestCase
 {
@@ -34,6 +36,7 @@ public class ServletContextListenerTest extends UaTestCase
 	 * Test for CIPANGO-199: SIP servlet are initialized before ServletContextListener if listener has been defined in web.xml
 	 */
 	@Test
+	@Category(Converged.class)
 	public void testInitFromWeb() throws IOException, ServletException
 	{
 		sendAndAssertMessage();

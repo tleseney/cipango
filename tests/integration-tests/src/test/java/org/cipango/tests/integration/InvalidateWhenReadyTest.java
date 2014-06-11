@@ -33,9 +33,11 @@ import org.cipango.client.Subscriber;
 import org.cipango.client.test.UaRunnable;
 import org.cipango.client.test.UasScript;
 import org.cipango.tests.UaTestCase;
+import org.cipango.tests.integration.category.NotCompliantV2;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 /**
  * Test invalidate when ready and session state
@@ -124,6 +126,7 @@ public class InvalidateWhenReadyTest extends UaTestCase
 	 * </pre>
 	 */
 	@Test
+	@Category(NotCompliantV2.class)
 	public void testUac4xx() throws Throwable 
 	{
 		UaRunnable call = new UasScript.RingingForbidden(_ua);
@@ -156,6 +159,7 @@ public class InvalidateWhenReadyTest extends UaTestCase
 	 * @see http://jira.cipango.org/browse/CIPANGO-191
 	 */
 	@Test
+	@Category(NotCompliantV2.class)
 	public void testUacEarlyResponse() throws Throwable 
 	{
 		Call callA;
@@ -227,6 +231,7 @@ public class InvalidateWhenReadyTest extends UaTestCase
 	 * </pre>
 	 */
 	@Test
+	@Category(NotCompliantV2.class)
 	public void testProxyNoRecordRoute() throws Throwable
 	{
 		testProxy(false);
@@ -282,6 +287,7 @@ public class InvalidateWhenReadyTest extends UaTestCase
 	 * </pre>
 	 */
 	@Test
+	@Category(NotCompliantV2.class)
 	public void testProxy4xx() throws Throwable 
 	{
 		Call callA;
@@ -415,6 +421,7 @@ public class InvalidateWhenReadyTest extends UaTestCase
 	 * </pre>
 	 */
 	@Test
+	@Category(NotCompliantV2.class)
 	public void testProxyProvisional4xx() throws Throwable 
 	{
 		Call callA;
@@ -497,6 +504,7 @@ public class InvalidateWhenReadyTest extends UaTestCase
 	 * </pre>
 	 */
 	@Test
+	@Category(NotCompliantV2.class)
 	public void testProxyParallel() throws Throwable 
 	{
 		Call callA;
@@ -571,6 +579,7 @@ public class InvalidateWhenReadyTest extends UaTestCase
 	 * </pre>
 	 */
 	@Test
+	@Category(NotCompliantV2.class)
 	public void testProxyCancel1() throws Throwable 
 	{
 		testProxyCancel(false);
@@ -618,6 +627,7 @@ public class InvalidateWhenReadyTest extends UaTestCase
 	 * </pre>
 	 */
 	@Test
+	@Category(NotCompliantV2.class)
 	public void testProxyCancel2() throws Throwable 
 	{
 		testProxyCancel(true);
@@ -859,6 +869,7 @@ public class InvalidateWhenReadyTest extends UaTestCase
 	 * </pre>
 	 */
 	@Test
+	@Category(NotCompliantV2.class)
 	public void testSubscribe() throws Throwable 
 	{
 		Dialog dialog = _ua.customize(new Dialog());
@@ -903,6 +914,7 @@ public class InvalidateWhenReadyTest extends UaTestCase
 	 * </pre>
 	 */
 	@Test
+	@Category(NotCompliantV2.class)
 	public void testSubscribe2() throws Throwable 
 	{
 		Subscriber subscriber = new Subscriber("presence", _ua.customize(new Dialog()));
@@ -954,6 +966,7 @@ public class InvalidateWhenReadyTest extends UaTestCase
 	 * </pre>
 	 */
 	@Test
+	@Category(NotCompliantV2.class)
 	public void testUacSubscribe() throws Throwable 
 	{
 		UaRunnable call = new UaRunnable(_ua)

@@ -24,8 +24,10 @@ import javax.servlet.sip.SipServletResponse;
 import org.cipango.client.Call;
 import org.cipango.client.SipMethods;
 import org.cipango.tests.UaTestCase;
+import org.cipango.tests.integration.category.NotCompliantV2;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 public class SipApplicationKeyTest extends UaTestCase
 {
@@ -227,6 +229,7 @@ public class SipApplicationKeyTest extends UaTestCase
 	 * </pre>
 	 */
 	@Test
+	@Category(NotCompliantV2.class)
 	public void testCancel() throws Throwable 
 	{
 		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, getTo());

@@ -68,6 +68,8 @@ public abstract class UaTestCase
 		{
 			_properties.load(getClass().getClassLoader()
 					.getResourceAsStream("commonTest.properties"));
+			
+			_properties.putAll(System.getProperties());
 			_nextPort = getLocalPort() + 1;
 		}
 		catch (IOException e)
@@ -94,7 +96,7 @@ public abstract class UaTestCase
 	public String getLocalHost() throws UnknownHostException
 	{
 		String host = _properties.getProperty("local.host");
-		if (host == null)
+		if (host == null || "".equals(host.trim()))
 		{
 			host = InetAddress.getLocalHost().getHostAddress();
 			_properties.setProperty("local.host", host);

@@ -45,7 +45,7 @@ import org.junit.Rule;
 import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
 
-public abstract class UaTestCase
+public abstract class UaTestCase extends Assert
 {
 	@Rule 
 	public TestName _name = new TestName();

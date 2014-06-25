@@ -36,6 +36,11 @@
 									<name>logback.configurationFile</name>
 									<value>${project.baseUri}/resources/logback.xml</value>
 								</property>
+								<property>
+									<name>jetty.home</name>
+									<value>${project.baseUri}</value>
+								</property>
+								
 							</properties>
 						</configuration>
 					</execution>

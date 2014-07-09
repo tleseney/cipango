@@ -13,8 +13,8 @@ $TTL 60
 ;$ORIGIN
 tcp-order	IN NAPTR 90   50  "s"  "SIP+D2T"     ""  _sip._tcp
 tcp-order	IN NAPTR 100  50  "s"  "SIP+D2U"     ""  _sip._udp
-same-order	IN NAPTR 90  50  "s"  "SIP+D2T"      ""  _sip._tcp
-same-order	IN NAPTR 90  50  "s"  "SIP+D2U"      ""  _sip._udp
+same-order	IN NAPTR 90  50  "s"  "SIP+D2T"      ""  _sip._tcp.same-order
+same-order	IN NAPTR 90  50  "s"  "SIP+D2U"      ""  _sip._udp.same-order
 udp-pref		IN NAPTR 90  50  "s"  "SIP+D2T"      ""  _sip._tcp
 udp-pref		IN NAPTR 90  40  "s"  "SIP+D2U"      ""  _sip._udp
 unknown-service		IN NAPTR 40  50  "s"  "http+I2R"      ""  _sip._tcp
@@ -25,6 +25,7 @@ backup			IN NAPTR 90  20  "s"  "SIP+D2T"      ""  _sip._tcp.backup-1
 backup			IN NAPTR 90  40  "s"  "SIP+D2U"      ""  _sip._udp.backup-2
 backup-udp	IN NAPTR 90  40  "s"  "SIP+D2U"      ""  _sip._udp.backup-udp
 bob					IN NAPTR 90  40  "s"  "SIP+D2U"      ""  _sip._udp.bob
+weight			IN NAPTR 90  40  "s"  "SIP+D2U"      ""  _sip._udp.weight
 
 ;@ 		IN NAPTR 5 		10 		"U" 	"E2U+sip" 	"!^.*$!sip:pbx@cipango.org!". 
 ;@ 		IN NAPTR 10 	10 		"U" 	"E2U+tel" 	"!^.*$!tel:\+43xxxxxx!". 
@@ -36,9 +37,13 @@ bob					IN NAPTR 90  40  "s"  "SIP+D2U"      ""  _sip._udp.bob
 *.0.0.1.cipango.voip. IN NAPTR 10 10 "U" "E2U+tel" "!^\\+100([0-9])$!tel:\+100\\1!".
 
 
+; _service._proto.name. SRV priority weight port target.
 _sip                    SRV 0 0 5060 i-cscf
 _sip._udp               SRV 0 0 5060 sip
 _sip._tcp               SRV 0 0 5060 sip
+_sip._udp.same-order    SRV 1 0 5061 sip
+_sip._udp.same-order    SRV 3 0 5063 sip
+_sip._tcp.same-order    SRV 2 0 5062 sip
 _sip._tcp.transport-set SRV 0 0 5070 sip
 _sip._tcp.naptr-empty	  SRV 0 0 5080 sip
 _sip._udp.naptr-empty	  SRV 0 0 5090 sip
@@ -51,6 +56,9 @@ _sip._udp.backup-udp	  SRV 5 0 45061 local
 _sip._udp.bob					  SRV 0 0 5064 local
 _sip._udp.bob					  SRV 5 0 5063 local
 
+_sip._udp.weight			  SRV 5 10 5010 local
+_sip._udp.weight			  SRV 5 30 5030 local
+_sip._udp.weight			  SRV 5 60 5060 local
 
 cipango.voip.		IN			A				192.168.2.183
 p-cscf  				IN      A       192.168.2.183

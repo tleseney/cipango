@@ -131,12 +131,15 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 				{
 					Transport transport2 = getTransport(record);
 					List<Hop> tmpHosts = resolveSrv(record.getReplacement(), transport2);
-					for (Hop hop2 : tmpHosts)
-						hop2.setPreference(record.getPreference());
-					if (hops == null)
-						hops = tmpHosts;
-					else
-						hops.addAll(tmpHosts);
+					if (tmpHosts != null)
+					{
+    					for (Hop hop2 : tmpHosts)
+    						hop2.setPreference(record.getPreference());
+    					if (hops == null)
+    						hops = tmpHosts;
+    					else
+    						hops.addAll(tmpHosts);
+					}
 				}
 			}
 			else
@@ -150,7 +153,7 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 						List<Hop> tmpHosts = resolveSrv(hop, transport2);
 						if (hops == null)
 							hops = tmpHosts;
-						else
+						else if (tmpHosts != null)
 							hops.addAll(tmpHosts);
 					}
 				}

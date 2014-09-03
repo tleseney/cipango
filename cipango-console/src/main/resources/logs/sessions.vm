@@ -29,5 +29,5 @@
 #set ($sessionManager = $request.getParameter("sesssionManager"))
 #if ($id && $sessionManager)
 	<h2>SIP Application session with ID $id</h2>
-	<pre>$esc.html($sipManager.getSipApplicationSession($id, $sessionManager))</pre>
+	<pre>$esc.html($sipManager.getSipApplicationSession($id, $sessionManager, false))</pre>
 #end

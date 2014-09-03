@@ -13,6 +13,7 @@
 // ========================================================================
 package org.cipango.deploy.providers;
 
+import org.cipango.server.session.SessionManager;
 import org.cipango.server.sipapp.SipAppContext;
 import org.eclipse.jetty.deploy.App;
 import org.eclipse.jetty.deploy.providers.WebAppProvider;
@@ -23,6 +24,7 @@ public class SipAppProvider extends WebAppProvider
 {
 	
 	private String _defaultsSipDescriptor;
+	private String _sessionManagerClass;
 	
 	@Override
     public ContextHandler createContextHandler(final App app) throws Exception
@@ -34,6 +36,22 @@ public class SipAppProvider extends WebAppProvider
         context.addBean(sipAppContext);
         if (_defaultsSipDescriptor != null)
         	sipAppContext.setDefaultsDescriptor(_defaultsSipDescriptor);
+        if (_sessionManagerClass != null)
+        {
+        	try
+        	{
+        		Class<?> clazz = Class.forName(_sessionManagerClass);
+        		if (!SessionManager.class.isAssignableFrom(clazz))
+        			throw new IllegalArgumentException("Class " + _sessionManagerClass + " is does not extends "
+        					+ SessionManager.class.getName());
+        		SessionManager sessionManager = (SessionManager) clazz.newInstance();
+        		sipAppContext.getSessionHandler().setSessionManager(sessionManager);
+        	}
+        	catch (Throwable e)
+        	{
+        		throw new IllegalArgumentException("Failed to use class " + _sessionManagerClass + " as session manager", e);
+        	}
+        }
         return context; 
     }
 
@@ -45,5 +63,15 @@ public class SipAppProvider extends WebAppProvider
 	public void setDefaultsSipDescriptor(String defaultsSipDescriptor)
 	{
 		_defaultsSipDescriptor = defaultsSipDescriptor;
+	}
+
+	public String getSessionManagerClass()
+	{
+		return _sessionManagerClass;
+	}
+
+	public void setSessionManagerClass(String sessionManagerClass)
+	{
+		_sessionManagerClass = sessionManagerClass;
 	}
 }

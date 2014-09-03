@@ -12,7 +12,7 @@
 // limitations under the License.
 // ========================================================================
 package org.cipango.diameter.io;
-import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 import java.net.InetAddress;
 import java.nio.ByteBuffer;

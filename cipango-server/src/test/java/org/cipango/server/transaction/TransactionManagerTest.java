@@ -11,7 +11,7 @@ import javax.servlet.sip.SipServlet;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.SipConnection;

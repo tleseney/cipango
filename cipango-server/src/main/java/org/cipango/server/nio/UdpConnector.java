@@ -7,6 +7,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.util.concurrent.Executor;
 
+import javax.servlet.sip.SipServletResponse;
+
 import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.MessageTooLongException;
 import org.cipango.server.SipConnection;
@@ -217,7 +219,10 @@ public class UdpConnector extends AbstractSipConnector
 			MessageBuilder builder = new MessageBuilder(getServer(), this);
 			SipParser parser = new SipParser(builder);
 			
-			parser.parseNext(buffer);
+			boolean done = parser.parseNext(buffer);
+			if (!done)
+				builder.badMessage(SipServletResponse.SC_BAD_REQUEST, "Parser in state " + parser.getState()
+						+ " after processing UDP packet");
 		}
 
 		@Override

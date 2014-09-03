@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sip-app  xmlns="http://www.jcp.org/xml/ns/sipservlet"
+					xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+					xsi:schemaLocation="http://www.jcp.org/xml/ns/sipservlet http://www.jcp.org/xml/ns/sipservlet/sip-app_1_1.xsd"
+					version="1.1">
+	
+	<servlet>
+		<servlet-name>org.cipango.tests.authentication.ProxyAuthenticationTest</servlet-name>
+		<servlet-class>org.cipango.tests.authentication.ProxyAuthenticationServlet</servlet-class>
+		<security-role-ref>
+			<role-name>FOO</role-name>
+			<role-link>user</role-link>
+		</security-role-ref>
+	</servlet>
+	
+	<security-constraint>
+		<resource-collection>
+			<resource-name>Auth resource</resource-name>
+			<servlet-name>org.cipango.tests.authentication.AuthenticationTest</servlet-name>
+		</resource-collection>
+		<auth-constraint>
+			<role-name>*</role-name>
+		</auth-constraint>
+	</security-constraint>
+	
+	<security-constraint>
+		<resource-collection>
+			<resource-name>Forbidden resource</resource-name>
+			<servlet-name>org.cipango.tests.authentication.AuthenticationTest</servlet-name>
+			<sip-method>FORBIDDEN_METHOD</sip-method>
+		</resource-collection>
+		<auth-constraint/>
+	</security-constraint>
+	
+	<security-constraint>
+		<resource-collection>
+			<resource-name>Proxy Auth resource</resource-name>
+			<servlet-name>org.cipango.tests.authentication.ProxyAuthenticationTest</servlet-name>
+		</resource-collection>
+		<proxy-authentication/>
+		<auth-constraint>
+			<role-name>*</role-name>
+		</auth-constraint>
+	</security-constraint>
+	
+	<security-constraint>
+		<resource-collection>
+			<resource-name>Method Auth resource</resource-name>
+			<sip-method>AUTH_METHOD</sip-method>
+		</resource-collection>
+		<auth-constraint>
+			<role-name>user</role-name>
+		</auth-constraint>
+	</security-constraint>
+	
+	 <login-config>
+		<auth-method>DIGEST</auth-method>
+		<realm-name>Test</realm-name>
+	</login-config>
+</sip-app>
+

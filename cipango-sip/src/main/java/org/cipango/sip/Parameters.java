@@ -3,7 +3,6 @@ package org.cipango.sip;
 import java.text.ParseException;
 import java.util.BitSet;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -120,5 +119,15 @@ public class Parameters
 				}
 			}
 		}
+	}
+
+	@Override
+	protected Object clone() throws CloneNotSupportedException 
+	{
+		Parameters parameters = (Parameters) super.clone();
+		parameters._parameters = null;
+		for (Entry<String, String> entry : getParameters())
+			parameters.setParameter(entry.getKey(), entry.getValue());
+		return parameters;
 	}
 }

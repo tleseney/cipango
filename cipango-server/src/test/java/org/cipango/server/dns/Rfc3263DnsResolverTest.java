@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 import org.cipango.dns.DnsService;
@@ -77,7 +78,8 @@ public class Rfc3263DnsResolverTest
 	}
 	
 	/**
-	 * Ensure that if two NAPTR records are present in DNS response with same order, both are returned.
+	 * Ensure that if two NAPTR records are present in DNS response with same order, 
+	 * both are returned and sorted by NAPTR preference and SRV priority.
 	 */
 	@Test
 	public void testSameOrder() throws IOException
@@ -88,17 +90,75 @@ public class Rfc3263DnsResolverTest
 		List<Hop> hops = _dnsResolver.getHops(hop);
 		
 		//System.out.println(hops);
-		assertEquals(2, hops.size());
-		List<Transport> expectedTransports = new ArrayList<Transport>(Arrays.asList(Transport.TCP, Transport.UDP));
+		assertEquals(3, hops.size());
+		Iterator<Hop> it = hops.iterator();
+		Hop hop2 = it.next();
+		assertEquals(DEFAULT_IP, hop2.getAddress());
+		assertEquals("sip.cipango.voip", hop2.getHost());
+		assertEquals(5061, hop2.getPort());
+		assertEquals(Transport.UDP, hop2.getTransport());
+		assertEquals(1, hop2.getPriority());
 		
-		for (Hop hop2 : hops)
-		{
-			assertTrue(expectedTransports.remove(hop2.getTransport()));
-			assertEquals(DEFAULT_IP, hop2.getAddress());
-			assertEquals("sip.cipango.voip", hop2.getHost());
-		}
-		assertTrue(expectedTransports.isEmpty());
+		hop2 = it.next();
+		assertEquals(DEFAULT_IP, hop2.getAddress());
+		assertEquals("sip.cipango.voip", hop2.getHost());
+		assertEquals(5062, hop2.getPort());
+		assertEquals(Transport.TCP, hop2.getTransport());
+		assertEquals(2, hop2.getPriority());
+		
+		hop2 = it.next();
+		assertEquals(DEFAULT_IP, hop2.getAddress());
+		assertEquals("sip.cipango.voip", hop2.getHost());
+		assertEquals(5063, hop2.getPort());
+		assertEquals(Transport.UDP, hop2.getTransport());
+		assertEquals(3, hop2.getPriority());
 	}
+	
+	/**
+	 * Ensure if some SRV records has different weight and same priority and preference, records
+	 * are returned statistically according to weight.
+	 * 
+	 * Test passed if on 10 000 resolutions, weight are respected with a delta max of 2%.
+	 */
+	@Test
+	public void testWeight() throws Exception
+	{
+		Hop hop = new Hop();
+		hop.setHost("weight.cipango.voip");
+		
+		double lowFisrt = 0;
+		double mediumFisrt = 0;
+		double hightFisrt = 0;
+		double total = 10000;
+		for (int i = 0; i < total; i++)
+		{
+			List<Hop> hops = _dnsResolver.getHops(hop);
+			Hop hop2 = hops.get(0);
+			if (hop2.getPort() == 5010)
+			{
+				assertEquals(10, hop2.getWeight());
+				lowFisrt++;
+			}
+			else if (hop2.getPort() == 5030)
+			{
+				assertEquals(30, hop2.getWeight());
+				mediumFisrt++;
+			}
+			else if (hop2.getPort() == 5060)
+			{
+				assertEquals(60, hop2.getWeight());
+				hightFisrt++;
+			}
+		}
+//		System.out.println("Low: " + lowFisrt/ total * 100 + "%");
+//		System.out.println("Medium: " + mediumFisrt/ total * 100 + "%");
+//		System.out.println("Hight: " + hightFisrt/ total * 100 + "%");
+		assertEquals(10.0, lowFisrt / total * 100, 2.0);
+		assertEquals(30.0, mediumFisrt / total * 100, 2.0);
+		assertEquals(60.0, hightFisrt / total * 100, 2.0);
+	}
+	
+
 	
 	/**
 	 * Ensure that if two NAPTR records are present in DNS response with same order, both are returned by preference order.
@@ -116,9 +176,11 @@ public class Rfc3263DnsResolverTest
 		hop = hops.get(0);
 		assertEquals(Transport.UDP, hop.getTransport());
 		assertEquals("sip.cipango.voip", hop.getHost());
+		assertEquals(40, hop.getPreference());
 		hop = hops.get(1);
 		assertEquals(Transport.TCP, hop.getTransport());
 		assertEquals("sip.cipango.voip", hop.getHost());
+		assertEquals(50, hop.getPreference());
 	}
 	
 	/**
@@ -149,7 +211,7 @@ public class Rfc3263DnsResolverTest
 	{
 		_dnsResolver.setEnableTransports(Arrays.asList(Transport.UDP));
 		Hop hop = new Hop();
-		hop.setHost("same-order.cipango.voip");
+		hop.setHost("unknown-service.cipango.voip");
 		
 		List<Hop> hops = _dnsResolver.getHops(hop);
 		

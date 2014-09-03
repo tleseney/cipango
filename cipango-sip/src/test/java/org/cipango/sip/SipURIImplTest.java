@@ -1,5 +1,11 @@
 package org.cipango.sip;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -7,9 +13,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
 import javax.servlet.sip.SipURI;
+import javax.servlet.sip.URI;
 
 import org.junit.Test;
-import static junit.framework.Assert.*;
 
 public class SipURIImplTest 
 {
@@ -229,6 +235,21 @@ public class SipURIImplTest
 			assertTrue(o instanceof SipURI);
 			assertEquals(uri1, o);
 			assertEquals(o, uri1);
+		}
+	}
+	
+	@Test
+	public void testClone() throws Exception
+	{
+		for (int i = 0; i < uris.length; i++) 
+		{
+			SipURI uri = sipURI(uris[i][0]);
+			uri.setParameter("param", "1");
+			URI uri2 = uri.clone();
+			assertTrue(uri2 instanceof URI);
+			assertEquals(uri, uri2);
+			uri2.setParameter("param", "2");
+			assertNotEquals(uri, uri2);
 		}
 	}
 	

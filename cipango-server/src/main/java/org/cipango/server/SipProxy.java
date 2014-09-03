@@ -551,9 +551,13 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 		SipResponse response = new SipResponse(cancel ,SipServletResponse.SC_OK, null);
 		((ServerTransaction) cancel.getTransaction()).send(response);
 
+		
         cancel();
         try 
         {
+        	if (!_started) // case no request has not been proxied
+    			_tx.getRequest().createResponse(SipServletResponse.SC_REQUEST_TERMINATED).send();
+    		
             cancel.appSession().getContext().handle(cancel);
         } 
         catch (Exception e)
@@ -943,7 +947,7 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
 				if (_request.isInvite())
 				{
 					startTimerC();
-					if (_branchTimeout < __timerC)
+					if (_branchTimeout < __timerC && _branchTimeout > 0)
 					{
 					  // We need to do it only if branch timeout is shorter, otherwise branch would be cancelled by timer C.
 					  startBranchTimeout();
@@ -985,12 +989,14 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
         		_timerC.cancel();
         	_timerC = null;
         }
+        
         public void stopBranchTimeout()
         {
           if (_branchTimeoutTask != null)
             _branchTimeoutTask.cancel();
           _branchTimeoutTask = null;
         }
+        
         public void timeoutTimerC()
         {
         	_timerC = null;
@@ -1005,7 +1011,8 @@ public class SipProxy implements Proxy, ServerTransactionListener, Serializable
         		_ctx.handleResponse(timeout);
         	}
         }
-        final void timeoutBranchTimeout()
+        
+        private void timeoutBranchTimeout()
         {
           _branchTimeoutTask = null;
           LOG.debug("Branch timedout {}", this);

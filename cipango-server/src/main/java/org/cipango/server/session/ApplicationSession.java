@@ -70,7 +70,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 	private final long _created;
 	private long _accessed;
 	
-	private int _timeoutMs = 30000;
+	private long _timeoutMs = 30000;
 	
 	private boolean _valid = true;
 	
@@ -109,10 +109,15 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 	
 	public ApplicationSession(SessionManager sessionManager, String id)
 	{
+		this(sessionManager, id, System.currentTimeMillis(), 0);
+	}
+	
+	public ApplicationSession(SessionManager sessionManager, String id, long created, long access)
+	{
 		_sessionManager = sessionManager;
 		
-		_created = System.currentTimeMillis();
-		_accessed = 0;
+		_created = created;
+		_accessed = access;
 		
 		_id = id;
 		
@@ -263,7 +268,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 		}
 	}
 	
-	public int getTimeoutMs()
+	public long getTimeoutMs()
 	{
 		return _timeoutMs;
 	}
@@ -784,6 +789,16 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
 		out.append(indent).append("- ").append(name).append(": ").append(String.valueOf(value)).append('\n');
 	}
 	
+	public Timer newTimer(long delay, boolean isPersistent, Serializable info)
+	{
+		return new Timer(this, delay, -1, false, isPersistent, info);
+	}
+	
+	public Timer newTimer(long delay, long period, boolean fixedDelay, boolean isPersistent, Serializable info)
+	{
+		return new Timer(this, delay, period, fixedDelay, isPersistent, info);
+	}
+	
     public static class Timer extends ScopedRunable implements ServletTimer, Runnable
     {
 		private Serializable _info;
@@ -793,12 +808,7 @@ public class ApplicationSession implements SipApplicationSession, AppSessionIf, 
         private final String _id;
         private long _scheduleExecutionTime = -1;
         private boolean _fixedDelay;
-        
-        public Timer(ApplicationSession session, long delay, boolean persistent, Serializable info)
-        {
-        	this(session, delay, -1, false, persistent, info);
-        }
-        
+                
         public Timer(ApplicationSession session, long delay, long period, boolean fixedDelay, boolean isPersistent, Serializable info)
         {
         	this(session, delay, period, fixedDelay, isPersistent, info, session.getSessionManager().newTimerId());

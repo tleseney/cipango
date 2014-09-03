@@ -17,13 +17,16 @@ import java.net.InetAddress;
 
 import org.cipango.server.Transport;
 
-public class Hop
+public class Hop implements Comparable<Hop>
 {
 	private String _host;
 	private int _port = -1;
 	private Transport _transport;
 	private boolean _secure;
 	private InetAddress _address;
+	private int _weight = 1;
+	private int _priority = 100;
+	private int _preference;
 	
 	public String getHost()
 	{
@@ -81,5 +84,41 @@ public class Hop
 	public void setAddress(InetAddress address)
 	{
 		_address = address;
+	}
+	public int getWeight() {
+		return _weight;
+	}
+	public void setWeight(int weight) {
+		_weight = weight;
+	}
+	public int getPriority() {
+		return _priority;
+	}
+	public void setPriority(int priority) {
+		_priority = priority;
+	}
+	public int getPreference() {
+		return _preference;
+	}
+	public void setPreference(int preference) {
+		_preference = preference;
+	}
+	
+	@Override
+	public int compareTo(Hop o)
+	{
+		int pref = getPreference() - o.getPreference();
+		if (pref != 0)
+			return pref;
+		int priority = getPriority() - o.getPriority();
+		if (priority != 0)
+			return priority;
+		int weight = getWeight() - o.getWeight();
+		if (weight != 0)
+			return weight;
+		int transport = getTransport().ordinal() - o.getTransport().ordinal();
+		if (transport != 0) // Prefer UDP
+			return transport;
+		return hashCode() - o.hashCode();
 	}
 }

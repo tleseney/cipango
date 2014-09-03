@@ -12,7 +12,9 @@
 // limitations under the License.
 // ========================================================================
 package org.cipango.sip;
-import static junit.framework.Assert.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 

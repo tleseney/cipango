@@ -15,5 +15,7 @@
     <module>load-sipapp</module>
     <module>integration-tests</module>
     <module>test-websocket</module>
+    <module>authentication-tests</module>
+    <module>replication-tests</module>
   </modules>
 </project>

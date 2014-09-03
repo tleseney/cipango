@@ -15,6 +15,15 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+        <source>1.6</source>
+        <target>1.6</target>
+        </configuration>
+      </plugin>
+    
+      <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
         <extensions>true</extensions>
@@ -23,6 +32,7 @@
             <goals>
               <goal>manifest</goal>
             </goals>
+            <phase>process-classes</phase>
            </execution>
         </executions>
       </plugin>
@@ -45,16 +55,6 @@
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-integration</artifactId>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jmock</groupId>
-      <artifactId>jmock-junit4</artifactId>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.cipango</groupId>

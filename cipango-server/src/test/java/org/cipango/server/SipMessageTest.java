@@ -1,24 +1,22 @@
 package org.cipango.server;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNull;
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.util.Iterator;
 import java.util.ListIterator;
 
 import javax.servlet.sip.Address;
 import javax.servlet.sip.Parameterable;
-import javax.servlet.sip.SipServletMessage;
-import javax.servlet.sip.SipURI;
 import javax.servlet.sip.SipServletMessage.HeaderForm;
+import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
 
 import org.cipango.server.SipMessageParserTortureTest.TestMessageBuilder;

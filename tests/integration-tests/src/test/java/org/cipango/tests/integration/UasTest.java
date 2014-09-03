@@ -13,12 +13,13 @@
 // ========================================================================
 package org.cipango.tests.integration;
 
-import static org.cipango.tests.matcher.SipMatchers.hasStatus;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.cipango.client.test.matcher.SipMatchers.hasStatus;
 
 import javax.servlet.sip.SipServletResponse;
+import javax.servlet.sip.URI;
 
 import org.cipango.client.Call;
+import org.cipango.client.SipMethods;
 import org.cipango.tests.UaTestCase;
 import org.junit.Test;
 
@@ -52,12 +53,56 @@ public class UasTest extends UaTestCase
 	@Test
 	public void testLateInvite200() throws Exception
 	{
-		Call call = _ua.createCall(_ua.getFactory().createURI(getTo()));
-		assertThat(call.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
+		testLateInvite200(true);
+	}
+	
+	/**
+	 * Test if a CANCEL is received and servlet still locks the session,
+	 * the servlet is able to sent a 200 INVITE and is CANCEL is not notified
+	 * to application.
+	 * 
+	 * <pre>
+	 * Alice                         AS
+	 *   | INVITE                     |
+	 *   |--------------------------->|
+	 *   |                        100 |
+	 *   |<---------------------------|
+	 *   | CANCEL                     |
+	 *   |--------------------------->|
+ 	 *   |                 200/INVITE |
+	 *   |<---------------------------|
+	 *   |                 481/CANCEL |
+	 *   |<---------------------------|
+	 *   |                        ACK |
+	 *   |--------------------------->|
+	 *   | BYE                        |
+	 *   |--------------------------->|
+	 *   |                        200 |
+	 *   |<---------------------------|
+	 * </pre>
+	 */
+	@Test
+	public void testLateInvite200NoRinging() throws Exception
+	{
+		testLateInvite200(false);
+	}
+	
+	public void testLateInvite200(boolean ringing) throws Exception
+	{
+		URI to = _ua.getFactory().createURI(getTo());
+		to.setParameter("ringing", String.valueOf(ringing));
+		Call call = _ua.createCall(to);
+		if (ringing)
+			assertThat(call.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
 		call.createCancel().send();
-        assertThat(call.waitForResponse(), hasStatus(SipServletResponse.SC_OK));        
+		SipServletResponse response = call.waitForResponse();
+        assertThat(response, hasStatus(SipServletResponse.SC_OK));   
+        response.createAck().send();
+        response.getSession().createRequest(SipMethods.BYE).send();
+		assertThat(call.waitForResponse(), isSuccess());
         // CANCEL response is filtered by container
         checkForFailure();
+        
 	}
 	
 	/**
@@ -67,6 +112,34 @@ public class UasTest extends UaTestCase
 	public void testBigResponse() throws Exception
 	{
 		sendAndAssertMessage();
+	}
+	
+	/**
+	 * Test if a CANCEL is received before servlet choose UAS or proxy mode.
+	 * <pre>
+	 * Alice                         AS
+	 *   | INVITE                     |
+	 *   |--------------------------->|
+	 *   |                        100 |
+	 *   |<---------------------------|
+	 *   | CANCEL                     |
+	 *   |--------------------------->|
+ 	 *   |                 200/CANCEL |
+	 *   |<---------------------------|
+	 *   |                 487/INVITE |
+	 *   |<---------------------------|
+	 *   |                        ACK |
+	 *   |--------------------------->|
+	 * </pre>
+	 */
+	@Test
+	public void testEarlyCancel() throws Exception
+	{
+		Call call = _ua.createCall(_ua.getFactory().createURI(getTo()));
+		call.createCancel().send();
+        assertThat(call.waitForResponse(), hasStatus(SipServletResponse.SC_REQUEST_TERMINATED));        
+        // CANCEL response is filtered by container
+        checkForFailure();
 	}
 	
 }

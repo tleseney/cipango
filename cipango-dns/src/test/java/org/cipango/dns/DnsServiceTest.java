@@ -13,46 +13,80 @@
 // ========================================================================
 package org.cipango.dns;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 import java.net.DatagramSocket;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.MissingResourceException;
 import java.util.Random;
 
 import junit.framework.Assert;
 
+import org.cipango.dns.bio.TcpConnector;
 import org.cipango.dns.bio.UdpConnector;
 import org.cipango.dns.record.ARecord;
 import org.cipango.dns.record.NaptrRecord;
+import org.cipango.dns.record.OptRecord;
 import org.cipango.dns.record.PtrRecord;
 import org.cipango.dns.record.Record;
 import org.cipango.dns.record.SrvRecord;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class DnsServiceTest
 {
 	private DnsService _dnsService;
-	public static final String  IPV4_ADDR = "46.105.46.188";
+	private Class<DnsConnector> _connectorClass;
+	public static final String  IPV4_ADDR = "213.186.33.5";
 	public static final String  IPV6_ADDR = "2001:41d0:2:7a93::1";
+	
 	
 	@Before
 	public void setUp() throws Exception
 	{
 		_dnsService = new DnsService();
+		_dnsService.addConnector(_connectorClass.newInstance());
 		_dnsService.start();
+	}
+	
+	@Parameters
+	public static Collection<Object[]> data() {
+		try
+		{
+			return Arrays.asList(new Object[][] {
+					{
+						UdpConnector.class
+					},
+					{
+						TcpConnector.class
+					} });
+		}
+		catch (MissingResourceException e)
+		{
+			throw new RuntimeException("Incomplete properties:" + e.getMessage());
+		}
 	}
 	
 	@After
 	public void tearDown() throws Exception
 	{
 		_dnsService.stop();
+	}
+	
+	public DnsServiceTest(Class<DnsConnector> connectorClass) throws Exception {
+		_connectorClass = connectorClass;
 	}
 	
 	
@@ -66,21 +100,73 @@ public class DnsServiceTest
 	}
 	
 	@Test
+	public void testEdns() throws Exception
+	{
+		
+		_dnsService.getResolvers()[0].setQueryOpt(new OptRecord(1280));
+		testBigRequest("EDNS");
+	}
+	
+	private void testBigRequest(String description) {
+		try {
+			InetAddress[] addr = _dnsService.lookupAllHostAddr("big.cipango.voip");
+			assertNotNull(addr);
+			assertEquals(34, addr.length);
+		} catch (UnknownHostException e) {
+			System.err.println("Could not test " + description + " : entry big.cipango.voip is not in DNS");
+			System.err.println("To be able to pass this test, you should add on your DNS server, the file "
+					+ "cipango-server/src/test/resources/org/cipango/server/dns/db.cipango.voip");
+		}
+	}
+	
+	@Test
+	public void testTruncated() throws Exception
+	{
+		_dnsService.addConnector(new TcpConnector());
+		testBigRequest("truncated flag and fallback to TCP");
+	}
+	
+	private void setLocalPorts(int min, int delta) 
+	{
+		DnsConnector connector = _dnsService.getDefaultConnector();
+		if (connector instanceof UdpConnector)
+			((UdpConnector) connector).setPort(min);
+		else 
+		{
+			TcpConnector tcpConnector = (TcpConnector) connector;
+			// Use delta to prevent exception due to BindException if test is run multiple times
+			tcpConnector.setMinPort(new Random().nextInt(delta) + min);
+			tcpConnector.setMaxPort(tcpConnector.getMinPort() + delta);
+		}
+	}
+	
+	@Test
 	public void testNewConnection() throws Exception
 	{
-		UdpConnector connector = (UdpConnector) _dnsService.getDefaultConnector();
-		connector.setPort(10053);
-		connector.setTimeout(4000);
+		AbstractConnector connector = (AbstractConnector) _dnsService.getDefaultConnector();
+		setLocalPorts(10053, 10);
+		connector.setTimeout(1100);
 		InetAddress[] addr = _dnsService.lookupAllHostAddr("jira.cipango.org");
 		assertNotNull(addr);
-				
+		
+		System.out.println("Waiting 1 second for connection timeout");
+		int currentPort = 0;
+		if (connector instanceof TcpConnector) {
+			currentPort = ((TcpConnector) connector).getCurrentPort();
+		}
 		Thread.sleep(4500);
 		// After timeout, no socket should be open.
-		DatagramSocket socket = new DatagramSocket(_dnsService.getDefaultConnector().getPort());
-		socket.close();
+		if (connector instanceof UdpConnector) {
+			DatagramSocket socket = new DatagramSocket(10053);
+			socket.close();
+		}
 		
 		addr = _dnsService.lookupAllHostAddr("confluence.cipango.org");
 		assertNotNull(addr);
+		
+		if (connector instanceof TcpConnector) {
+			assertTrue(((TcpConnector) connector).getCurrentPort() != currentPort);
+		}
 	}
 	
 	
@@ -88,12 +174,14 @@ public class DnsServiceTest
 	@Test
 	public void testConcurrent() throws Exception
 	{
-		_dnsService.getDefaultConnector().setPort(10053);
-		Load[] loads = new Load[4];
+		setLocalPorts(10053, 50);
+		// In TCP, with some server there could be more latency with some DNS servers
+		_dnsService.getResolvers()[0].setTimeout(4000); 
+		Load[] loads = new Load[5];
 		Random random = new Random(); // Use random to prevent cache
 		for (int i = 0; i < loads.length; i++)
 		{
-			loads[i] = new Load("test" + random.nextInt() + ".cipango.org", 5);
+			loads[i] = new Load("test" + random.nextInt() + ".cipango.org", 4);
 			new Thread(loads[i]).start();
 		}
 	
@@ -166,23 +254,67 @@ public class DnsServiceTest
 	
 	@Test
 	public void testPtr() throws Exception
-	{
+	{	
 		List<Record> records = _dnsService.lookup(new PtrRecord(InetAddress.getByName(IPV4_ADDR)));
 		assertEquals(1, records.size());
 		PtrRecord ptr = (PtrRecord) records.get(0);
-		assertEquals("46-105-46-188.ovh.net", ptr.getPrtdName().toString());
+		assertEquals("redirect.ovh.net", ptr.getPrtdName().toString());
 		//System.out.println(records);
+	}
+		
+	@Test
+	public void testGetHostByAddr() throws Exception
+	{
+		assertEquals("redirect.ovh.net", _dnsService.getHostByAddr(InetAddress.getByName(IPV4_ADDR).getAddress()));
+	}
+	
+	@Test
+	public void testLookupAllHostAddrPreferIpv4() throws Exception
+	{
+		_dnsService.setPreferIpv6(false);
+		
+		assertEquals(IPV4_ADDR, _dnsService.lookupAllHostAddr("jira.cipango.org")[0].getHostAddress());
+		// Check if no IPv4 records is found, IPv6 are returned 
+		testLookupAllHostAddrOnlyIpVersion(true, "ipv6.google.com");
+	}
+	
+	@Test
+	public void testLookupAllHostAddrPreferIpv6() throws Exception
+	{
+		_dnsService.setPreferIpv6(true);
+		assertEquals(InetAddress.getByName(IPV6_ADDR), _dnsService.lookupAllHostAddr("cipango.org")[0]);
+		// Check if no IPv6 records is found, IPv4 are returned 
+		testLookupAllHostAddrOnlyIpVersion(false, "ipv4.google.com");
 	}
 	
 
-	public void testPtrIpv6() throws Exception
+	public void testLookupAllHostAddrOnlyIpVersion(boolean onlyIpv6, String domain) throws Exception
 	{
-		//new PtrRecord(InetAddress.getByName(IPV6_ADDR));
-		List<Record> records = _dnsService.lookup(new PtrRecord(InetAddress.getByName(IPV6_ADDR)));
-		assertEquals(1, records.size());
-		PtrRecord ptr = (PtrRecord) records.get(0);
-		assertEquals("46-105-46-188.ovh.net", ptr.getPrtdName().toString());
-		//System.out.println(records);
+		try {
+			InetAddress[] addresses = _dnsService.lookupAllHostAddr(domain);
+			assertNotNull(addresses);
+			assertTrue(addresses.length > 0);
+			for (InetAddress addr : addresses)
+			{
+				if (onlyIpv6)
+					assertTrue("Got IPv4 addr " + addr + " when expect only IPv6 addr", addr instanceof Inet6Address);
+				else
+					assertTrue("Got IPv6 addr " + addr + " when expect only IPv4 addr", addr instanceof Inet4Address);
+			}
+		} 
+		catch (UnknownHostException e)
+		{
+			try 
+			{
+				InetAddress.getAllByName(domain);
+				throw new Exception("Got UnknownHostException when IPv6 addr exist", e);
+			}
+			catch (UnknownHostException e2)
+			{
+				System.err.println("Domain " + domain + " is no more active, could not check if able to "
+						+ "get IPv6 address if no IPv4 addr is found") ;
+			}
+		}
 	}
 	
 	@Test
@@ -192,12 +324,12 @@ public class DnsServiceTest
 		badResolver.setHost("127.0.0.1");
 		badResolver.setPort(45877);
 		badResolver.setTimeout(500);
-		badResolver.setAttemps(2);
+		badResolver.setAttempts(2);
 		Resolver[] resolvers = new Resolver[2];
 		resolvers[0] = badResolver;
 		resolvers[1] = _dnsService.getResolvers()[0];
 		_dnsService.setResolvers(resolvers);
-		InetAddress[] addr = _dnsService.lookupAllHostAddr("www.cipango.org");
+		InetAddress[] addr = _dnsService.lookupAllHostAddr("jira.cipango.org");
 		assertNotNull(addr);
 		assertEquals(1, addr.length);
 		assertEquals(IPV4_ADDR, addr[0].getHostAddress());
@@ -220,15 +352,20 @@ public class DnsServiceTest
 	{
 		_dnsService.addEtcHosts(getClass().getResourceAsStream("/hosts"));
 		_dnsService.lookupAllHostAddr("space.cipango.test");
-		assertIpEqual("space.cipango.test", "192.168.1.1");
-		assertIpEqual("tab.cipango.test", "192.168.1.2");
-		assertIpEqual("multiple.cipango.test", "192.168.1.3");
-		assertIpEqual("multiple", "192.168.1.3");
-		assertIpEqual("comment.cipango.test", "192.168.1.4");
-		assertIpEqual("comment", "192.168.1.4");
+		assertIpEqual("space.cipango.test", "192.168.1.1", true);
+		assertIpEqual("tab.cipango.test", "192.168.1.2", true);
+		assertIpEqual("multiple.cipango.test", "192.168.1.3", false);
+		assertIpEqual("multiple", "192.168.1.3", false);
+		assertIpEqual("comment.cipango.test", "192.168.1.4", false);
+		assertIpEqual("comment", "192.168.1.4", false);
+		
+		assertIpEqual("ip6-localhost", "::1", false);
+		assertIpEqual("ip6-loopback", "::1", false);
+		assertIpEqual("ip6.cipango.test", "fe00::0", true);
+		
 	}
 	
-	private void assertIpEqual(String name, String expectedIp) throws UnknownHostException
+	private void assertIpEqual(String name, String expectedIp, boolean checkReverse) throws UnknownHostException
 	{
 		InetAddress[] actual = _dnsService.lookupAllHostAddr(name);
 		if (actual == null || actual.length == 0)
@@ -239,6 +376,9 @@ public class DnsServiceTest
 		
 		InetAddress expectedAddr = InetAddress.getByName(expectedIp);
 		assertEquals(expectedAddr, actual[0]);
+		
+		if (checkReverse)
+			assertEquals(name, _dnsService.getHostByAddr(expectedAddr.getAddress()));
 	}
 		
 	class Load implements Runnable
@@ -269,6 +409,7 @@ public class DnsServiceTest
 				catch (Exception e) 
 				{
 					_exceptions.add(e);
+					e.printStackTrace();
 				}
 			}
 			synchronized (this)

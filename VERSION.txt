@@ -1,3 +1,21 @@
+
+cipango-3.0.0.M3 - 24 June 2014
+Bug
+    [CIPANGO-210] - Exception is thrown when B2bUaHelper.createResponseToOriginalRequest() is called with negative response
+    [CIPANGO-211] - Via and Address parameters are not well cloned
+
+
+cipango-3.0.0.M2 - 7 May 2014
+Bug
+    [CIPANGO-119] - setProxyTimeout duration in parallel
+    [CIPANGO-204] - Invalidate when ready mechanism does not work with SUBSCRIBE sessions
+    [CIPANGO-205] - Can't find Contact Header in REGISTER if a contact parameter is quoted
+    [CIPANGO-207] - Got ParseException on tel:#123#;phone-context=atlanta.com
+    [CIPANGO-209] - CANCEL is not processed when no response has been sent
+Improvement
+    [CIPANGO-120] - setProxyTimeout - CANCELs
+
+
 cipango-3.0.0.M1 - 24 May 2013
 Bug
     [CIPANGO-190] - for v1.0 Servlet application, SipSession.getInvalidateWhenReady is true by default

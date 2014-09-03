@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2010-2012 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,8 +13,7 @@
 // ========================================================================
 package org.cipango.tests.integration;
 
-import static org.cipango.tests.matcher.SipMatchers.isSuccess;
-import static org.hamcrest.MatcherAssert.assertThat;
+
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -27,7 +26,9 @@ import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
 import org.cipango.client.test.UaRunnable;
 import org.cipango.tests.UaTestCase;
+import org.cipango.tests.integration.category.NotCompliantV2;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 public class UacTest extends UaTestCase
 {
@@ -119,6 +120,7 @@ public class UacTest extends UaTestCase
 	 * @see TcpTest#testBigRequest()
 	 */
 	@Test
+	@Category(NotCompliantV2.class)
 	public void testBigRequestFallback() throws Throwable
 	{
 		UaRunnable call = new UaRunnable(_ua)

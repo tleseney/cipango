@@ -20,13 +20,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
-import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
 
+import org.cipango.dns.bio.TcpConnector;
 import org.cipango.dns.bio.UdpConnector;
 import org.cipango.dns.record.ARecord;
 import org.cipango.dns.record.AaaaRecord;
@@ -37,8 +38,10 @@ import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.component.ContainerLifeCycle;
+import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 @ManagedObject("DNS Service")
 public class DnsService extends ContainerLifeCycle implements DnsClient
@@ -48,28 +51,40 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 	private Name[] _searchList;
 	private Resolver[] _resolvers;
 	private DnsConnector[] _connectors;
+	private DnsConnector _tcpConnector;
 	private boolean _preferIpv6 = false;
 	
 	private Map<Name, InetAddress[]> _staticHostsByName = new HashMap<Name, InetAddress[]>();
 	private Map<Name, String> _staticHostsByAddr = new HashMap<Name, String>();
+	
+	private Executor _executor;
 
+	@SuppressWarnings("restriction")
 	@Override
 	protected void doStart() throws Exception
 	{
+		if (_executor == null) {
+			QueuedThreadPool executor = new QueuedThreadPool(10, 1, 2000);
+			executor.setName("qtp-dns");
+			executor.setMinThreads(1);
+			executor.setDaemon(true);
+			setExecutor(executor);
+		}
+		
 		if (_resolvers == null || _resolvers.length == 0)
 		{
 			sun.net.dns.ResolverConfiguration resolverConfiguration = sun.net.dns.ResolverConfiguration
 					.open();
 			List<String> servers = resolverConfiguration.nameservers();
-			int attemps = resolverConfiguration.options().attempts();
+			int attempts = resolverConfiguration.options().attempts();
 			int retrans = resolverConfiguration.options().retrans();
 
 			for (String server : servers)
 			{
 				Resolver resolver = new Resolver();
 				resolver.setHost(server);
-				if (attemps != -1)
-					resolver.setAttemps(attemps);
+				if (attempts != -1)
+					resolver.setAttempts(attempts);
 				if (retrans != -1)
 					resolver.setTimeout(retrans);
 				addResolver(resolver);
@@ -77,7 +92,13 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 		}
 
 		if (_connectors == null || _connectors.length == 0)
-			addConnector(new UdpConnector());
+		{
+			setConnectors(new DnsConnector[] { new UdpConnector(), new TcpConnector() });
+		}
+		
+		for (DnsConnector connector : _connectors)
+			if (connector.getExecutor() == null)
+				connector.setExecutor(_executor);
 
 		if (_searchList == null)
 		{
@@ -97,6 +118,18 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 		super.doStart();
 	}
 	
+	@Override
+	protected void doStop() throws Exception
+	{
+		if (_connectors != null)
+		{
+			for (int i = 0; i < _connectors.length; i++)
+				if (_connectors[i] instanceof LifeCycle)
+					((LifeCycle) _connectors[i]).stop();
+		}
+		super.doStop();
+	}
+	
 	public InetAddress[] lookupAllHostAddr(String host) throws UnknownHostException
 	{
 		try
@@ -109,14 +142,27 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 				return array;
 			
 			List<Record> records = null;
-			if (_preferIpv6)
-				records = lookup(new AaaaRecord(name));
-			if (records == null)
-				records = lookup(new ARecord(name));
-			if (records == null && !_preferIpv6)
-				records = lookup(new AaaaRecord(name));
-			if (records == null)
-				throw new UnknownHostException(host);
+			try
+			{
+				records = lookup( _preferIpv6 ? new AaaaRecord(name) : new ARecord(name));
+			}
+			catch (IOException e)
+			{
+				try 
+				{
+					records = lookup( _preferIpv6 ? new ARecord(name) : new AaaaRecord(name));
+				}
+				catch (UnknownHostException e2)
+				{
+					throw e2;
+				}
+				catch (Exception e2)
+				{
+					UnknownHostException e3 = new UnknownHostException(host);
+					e3.initCause(e2);
+					throw e3;
+				}
+			}
 	
 			array = new InetAddress[records.size()];
 			for (int i = 0; i < records.size(); i++)
@@ -141,6 +187,27 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 				throw (UnknownHostException) e;
 			LOG.debug(e);
 			throw new UnknownHostException(host);
+		}
+	}
+	
+	public String getHostByAddr(byte[] addr) throws UnknownHostException {
+		try
+		{
+			Name name = PtrRecord.getReverseName(InetAddress.getByAddress(addr));
+			String reverse = _staticHostsByAddr.get(name);
+			if (reverse != null)
+				return reverse;
+			
+    		PtrRecord ptrRecord = new PtrRecord(name);
+    		List<Record> records = new Lookup(this, ptrRecord).resolve();
+    		PtrRecord result = (PtrRecord) records.get(0);
+    		return result.getPrtdName().toString();
+		}
+		catch (IOException e) {
+			if (e instanceof UnknownHostException)
+				throw (UnknownHostException) e;
+			LOG.debug(e);
+			throw new UnknownHostException();
 		}
 	}
 
@@ -175,14 +242,14 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 
 	public DnsMessage resolve(DnsMessage query) throws IOException
 	{
-		SocketTimeoutException e = null;
+		IOException e = null;
 		for (Resolver resolver : _resolvers)
 		{
 			try
 			{
 				return resolver.resolve(query);
 			}
-			catch (SocketTimeoutException e1)
+			catch (IOException e1)
 			{
 				e = e1;
 			}
@@ -209,6 +276,10 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 			return null;
 		return _connectors[0];
 	}
+	
+	public DnsConnector getTcpConnector() {
+		return _tcpConnector;
+	}
 
 	@ManagedAttribute(value="Resolvers", readonly=true)
 	public Resolver[] getResolvers()
@@ -225,15 +296,33 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 	public void setConnectors(DnsConnector[] connectors)
 	{
 		updateBeans(_connectors, connectors);
+		_tcpConnector = null;
+		if (connectors != null)
+		{
+			for (int i = 0; i < connectors.length; i++)
+			{
+				if (connectors[i].getExecutor() == null)
+					connectors[i].setExecutor(_executor);
+				if (connectors[i].isTcp())
+				{
+					_tcpConnector = connectors[i];
+					break;
+				}
+			}
+		}
 		_connectors = connectors;
 	}
 
 	public void setResolvers(Resolver[] resolvers)
 	{
 		updateBeans(_resolvers, resolvers);
-		for (int i = 0; i < resolvers.length; i++)
-			resolvers[i].setDnsClient(this);
+		if (resolvers != null) 
+		{
+			for (int i = 0; i < resolvers.length; i++)
+				resolvers[i].setDnsClient(this);
+		}
 		_resolvers = resolvers;
+		
 	}
 	
 	protected void addEtcHosts()
@@ -339,6 +428,17 @@ public class DnsService extends ContainerLifeCycle implements DnsClient
 	public void setPreferIpv6(boolean preferIpv6)
 	{
 		_preferIpv6 = preferIpv6;
+	}
+
+	public Executor getExecutor()
+	{
+		return _executor;
+	}
+
+	public void setExecutor(Executor executor)
+	{
+		updateBean(_executor, executor);
+		_executor = executor;
 	}
 
 }

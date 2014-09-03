@@ -13,8 +13,7 @@
 // ========================================================================
 package org.cipango.tests.integration;
 
-import static org.cipango.tests.matcher.SipMatchers.isSuccess;
-import static org.hamcrest.MatcherAssert.assertThat;
+
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -32,9 +31,12 @@ import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
 import org.cipango.client.test.UaRunnable;
 import org.cipango.tests.UaTestCase;
+import org.cipango.tests.integration.category.NotCompliantV2;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 
+@Category(NotCompliantV2.class)
 public class DoubleRecordRouteTest extends UaTestCase
 {
 	/**

@@ -26,7 +26,7 @@ import org.junit.Test;
 public class SystemDnsResolverTest
 {
 	private DnsResolver _dnsResolver;
-	public static final String  IPV4_ADDR = "46.105.46.188";
+	public static final String  IPV4_ADDR = "213.186.33.5";
 		
 	@Before
 	public void setUp() throws Exception

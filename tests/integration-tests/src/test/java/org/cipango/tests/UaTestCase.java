@@ -13,13 +13,12 @@
 // ========================================================================
 package org.cipango.tests;
 
-import static org.cipango.tests.matcher.SipMatchers.isSuccess;
-import static org.hamcrest.MatcherAssert.assertThat;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -32,16 +31,29 @@ import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipURI;
 
-import junit.framework.TestCase;
-
 import org.cipango.client.SipClient;
 import org.cipango.client.SipClient.Protocol;
 import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
 import org.cipango.client.test.TestAgent;
+import org.hamcrest.Factory;
+import org.hamcrest.Matcher;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.TestName;
+import org.junit.rules.Timeout;
 
-public abstract class UaTestCase extends TestCase
+public abstract class UaTestCase extends Assert
 {
+	@Rule 
+	public TestName _name = new TestName();
+	
+	// Ensure test cannot be longer than 1 minute
+	@Rule
+    public Timeout _globalTimeout= new Timeout(60000);
+	
 	private List<Endpoint> _endpoints = new ArrayList<Endpoint>();
 	private int _nextPort;
 	
@@ -56,6 +68,8 @@ public abstract class UaTestCase extends TestCase
 		{
 			_properties.load(getClass().getClassLoader()
 					.getResourceAsStream("commonTest.properties"));
+			
+			_properties.putAll(System.getProperties());
 			_nextPort = getLocalPort() + 1;
 		}
 		catch (IOException e)
@@ -79,9 +93,15 @@ public abstract class UaTestCase extends TestCase
 		return _properties.getProperty("local.domain");	
 	}
 	
-	public String getLocalHost()
+	public String getLocalHost() throws UnknownHostException
 	{
-		return _properties.getProperty("local.host");
+		String host = _properties.getProperty("local.host");
+		if (host == null || "".equals(host.trim()))
+		{
+			host = InetAddress.getLocalHost().getHostAddress();
+			_properties.setProperty("local.host", host);
+		}
+		return host;
 	}
 	
 	public int getLocalPort()
@@ -101,7 +121,7 @@ public abstract class UaTestCase extends TestCase
 
 	public String getHttpBaseUrl()
 	{
-		return "http://" + getRemoteHost() + ":" + _properties.getProperty("remote.http.port") + "/integration-tests";
+		return "http://" + getRemoteHost() + ":" + _properties.getProperty("remote.http.port") + "/" + getApplicationName();
 	}
 	
 	public Protocol getSipDefaultProtocol()
@@ -119,6 +139,11 @@ public abstract class UaTestCase extends TestCase
 		return createEndpoint(user, null);
 	}
 	
+	public String getApplicationName() 
+	{
+		return _properties.getProperty("application.name");
+	}
+	
 	/**
 	 * As Cipango-client filter initial requests on To URI, in forked tests, the user should be set same value.
 	 * To be able to differentiate them an alias can be set.
@@ -130,21 +155,21 @@ public abstract class UaTestCase extends TestCase
 		_endpoints.add(e);
 		return e;
 	}
+	
+	public Endpoint createEndpoint(String user, int port)
+	{
+		Endpoint e = new Endpoint(user, getDomain(), port);
+		_endpoints.add(e);
+		return e;
+	}
 
 	public String getTo()
 	{
 		return "sip:sipServlet@" + getDomain();
 	}
 
-	@Override
-	protected void runTest() throws Throwable 
-	{
-		decorate(_ua);
-		
-		super.runTest();
-	}
 	
-	@Override
+	@Before
 	public void setUp() throws Exception
 	{
 		Properties properties = new Properties();
@@ -155,14 +180,13 @@ public abstract class UaTestCase extends TestCase
 		_ua = new TestAgent(_sipClient.getFactory().createAddress(getFrom()));
 		_sipClient.addUserAgent(_ua);
 
-		SipURI uri = _ua.getFactory().createSipURI(null, getRemoteHost());
-		uri.setPort(getRemotePort());
-		uri.setLrParam(true);
-		_ua.setOutboundProxy(_ua.getFactory().createAddress(uri));
+		_ua.setOutboundProxy(getOutboundProxy());
 		_ua.setTimeout(getTimeout());
+		
+		decorate(_ua);
 	}
-
-	@Override
+	
+	@After
 	public void tearDown() throws Exception
 	{
 		_ua = null;
@@ -172,11 +196,45 @@ public abstract class UaTestCase extends TestCase
 		Thread.sleep(10);
 	}
 	
+	private Address getOutboundProxy() throws ServletParseException
+	{
+		String property = _properties.getProperty("remote.sip.outboundProxy");
+		if (property == null)
+		{
+    		SipURI uri = _sipClient.getFactory().createSipURI(getApplicationName(), getRemoteHost());
+    		uri.setPort(getRemotePort());
+    		uri.setLrParam(true);
+    		return _sipClient.getFactory().createAddress(uri);
+		}
+		return _sipClient.getFactory().createAddress(replaceProperties(property));
+	}
+	
+	public String replaceProperties(String s)
+	{
+		int indexStart = 0;
+		while (indexStart != -1)
+		{
+			indexStart = s.indexOf("${", indexStart);
+			if (indexStart != -1)
+			{
+				int indexStop = s.indexOf('}', indexStart);
+				if (indexStop != -1)
+				{
+					String key = s.substring(indexStart + 2, indexStop);
+					if (_properties.containsKey(key))
+						s = s.replace("${" + key + "}", _properties.getProperty(key));
+				}
+				indexStart++;
+			}
+		}
+		return s;
+	}
+	
 	public TestAgent decorate(TestAgent agent)
 	{
 		Map<String, String> extraHeaders = agent.getExtraHeaders();
 		extraHeaders.put(MainServlet.SERVLET_HEADER, getClass().getName());
-		extraHeaders.put(MainServlet.METHOD_HEADER, getName());		
+		extraHeaders.put(MainServlet.METHOD_HEADER, _name.getMethodName());		
 		return agent;
 	}
 
@@ -192,7 +250,7 @@ public abstract class UaTestCase extends TestCase
 			byte[] b = new byte[1024];
 			while ((read = is.read(b)) != -1)
 				os.write(b, 0, read);
-			fail("Fail on HTTP request: " + connection.getURL() + " with code " + code + " "
+			Assert.fail("Fail on HTTP request: " + connection.getURL() + " with code " + code + " "
 					+ connection.getResponseMessage() + "\n" + new String(os.toByteArray()));
 		}
 	}
@@ -202,7 +260,13 @@ public abstract class UaTestCase extends TestCase
 	{
 		SipServletRequest request = _ua.createRequest(SipMethods.MESSAGE, getTo());
 		SipServletResponse response = _ua.sendSynchronous(request);
-        assertThat(response, isSuccess());
+		Assert.assertThat(response, isSuccess());
+	}
+	
+	@Factory
+	public static <T> Matcher<SipServletResponse> isSuccess()
+	{
+		return new IsSuccess();
 	}
 	
 	public void startUacScenario() throws IOException, ServletException
@@ -210,7 +274,7 @@ public abstract class UaTestCase extends TestCase
 		SipServletRequest request = _ua.createRequest(SipMethods.REGISTER, getTo());
 		request.addHeader(SipHeaders.CONTACT, _sipClient.getContact().toString());
 		SipServletResponse response = _ua.sendSynchronous(request);
-        assertThat(response, isSuccess());
+		Assert.assertThat(response, isSuccess());
 	}
 	
 	/**
@@ -229,7 +293,7 @@ public abstract class UaTestCase extends TestCase
 			SipServletRequest request = _ua.createRequest(SipMethods.MESSAGE, getTo());
 			request.setHeader(MainServlet.METHOD_HEADER, "checkForFailure");
 			SipServletResponse response = _ua.sendSynchronous(request);
-			assertThat(response, isSuccess());
+			Assert.assertThat(response, isSuccess());
 		}
 		catch (Exception e)
 		{

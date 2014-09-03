@@ -1,6 +1,6 @@
 package org.cipango.util;
 
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertTrue;
 
 import java.util.PriorityQueue;
 import java.util.Random;

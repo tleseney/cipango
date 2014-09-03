@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2007-2012 NEXCOM Systems
+// Copyright 2006-2013 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,8 +13,7 @@
 // ========================================================================
 package org.cipango.tests.integration;
 
-import static org.cipango.tests.matcher.SipMatchers.isSuccess;
-import static org.hamcrest.MatcherAssert.assertThat;
+
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
@@ -24,13 +23,17 @@ import javax.servlet.sip.SipServletResponse;
 import org.cipango.client.Call;
 import org.cipango.client.SipMethods;
 import org.cipango.tests.UaTestCase;
+import org.cipango.tests.integration.category.Converged;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.HttpStatus;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
+
+@Category(Converged.class)
 public class SipApplicationSessionTest extends UaTestCase
 {
 	public static final String ENCODED_URL_HEADER = "EncodedUrl";
@@ -157,6 +160,7 @@ public class SipApplicationSessionTest extends UaTestCase
 	 *   |--------------------------->|
 	 * </pre>
 	 */
+	@Test
 	public void testSetUriLate() throws Exception
 	{
 		Call call = (Call) _ua.customize(new Call());

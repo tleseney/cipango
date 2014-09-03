@@ -23,6 +23,7 @@
             <goals>
               <goal>manifest</goal>
             </goals>
+            <phase>process-classes</phase>
            </execution>
         </executions>
       </plugin>
@@ -44,11 +45,6 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-integration</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

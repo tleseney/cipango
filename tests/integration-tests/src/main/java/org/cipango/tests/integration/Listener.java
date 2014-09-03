@@ -34,7 +34,7 @@ public class Listener implements SipServletListener, TimerListener
 
 	private static final List<String> __servlets = new ArrayList<String>();
 
-	private static final int SERVLETS_COUNT = 17;
+	private static final int SERVLETS_COUNT = 10;
 
 	private static Timer __timer = null;
 

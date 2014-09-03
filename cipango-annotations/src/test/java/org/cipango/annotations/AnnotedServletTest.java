@@ -13,8 +13,7 @@
 // ========================================================================
 package org.cipango.annotations;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.*;
+import static org.junit.Assert.*;
 
 import java.util.EventListener;
 import java.util.Iterator;

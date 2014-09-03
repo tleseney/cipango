@@ -1,8 +1,9 @@
 package org.cipango.sip;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+
 import java.text.ParseException;
 import java.util.Iterator;
 
@@ -82,6 +83,18 @@ public class ParametrableImplTest
 		addr.removeParameter("p");
 		Parameterable p = new ParameterableImpl(addr.toString());
 		assertEquals(p, addr);
+	}
+	
+	@Test
+	public void testClone() throws Exception
+	{
+		ParameterableImpl p = new ParameterableImpl(CONTENT_TYPE);
+		Parameterable p2 = p.clone();
+		assertEquals(p, p2);
+		p2.setParameter("access-type", "newVal");
+		//System.out.println(p2);
+		//System.out.println(p);
+		assertNotEquals(p, p2);
 	}
 	
 }

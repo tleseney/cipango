@@ -13,7 +13,12 @@
 // ========================================================================
 package org.cipango.tests.integration;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
@@ -26,7 +31,6 @@ import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipSession;
-import javax.servlet.sip.SipURI;
 import javax.servlet.sip.UAMode;
 import javax.servlet.sip.annotation.SipServlet;
 
@@ -60,7 +64,7 @@ public class B2bHelperForkServlet extends AbstractServlet
 				request.getApplicationSession().setAttribute(Role.SESSION_UAS_1.toString(), request.getSession());
 				newRequest.getSession().setAttribute("test", "same");
 				newRequest.setHeader(MainServlet.SERVLET_HEADER, B2bHelperProxyServlet.class.getName());
-				newRequest.pushRoute(getOwnUri());
+				newRequest.pushRoute(getOwnUri(request));
 			}
 			else
 			{

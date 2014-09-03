@@ -30,7 +30,7 @@ import org.junit.Ignore;
 public class TestAgent extends UserAgent
 {
 
-	private final Map<String, String> _extraHeaders = new HashMap<>();
+	private final Map<String, String> _extraHeaders = new HashMap<String, String>();
 	private String _alias;
 	
 	public TestAgent(Address aor)

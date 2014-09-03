@@ -1,16 +1,19 @@
 package org.cipango.sip;
 
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 
 import org.cipango.sip.SipParser.State;
-import org.cipango.util.StringUtil;
 import org.eclipse.jetty.util.BufferUtil;
 import org.junit.Before;
 import org.junit.Test;
-
-import static junit.framework.Assert.*;
-import static org.junit.Assert.assertEquals;
 
 public class SipParserTest 
 {
@@ -49,7 +52,7 @@ public class SipParserTest
 	@Test
 	public void testLine1() throws Exception
 	{
-		ByteBuffer buffer = BufferUtil.toBuffer("INVITE sip:alice@\ua743 SIP/2.0\r\n" + "\r\n", StringUtil.__UTF8_CHARSET);
+		ByteBuffer buffer = BufferUtil.toBuffer("INVITE sip:alice@\ua743 SIP/2.0\r\n" + "\r\n", StandardCharsets.UTF_8);
 		
 		Handler handler = new Handler();
 		SipParser parser = new SipParser(handler);
@@ -585,7 +588,7 @@ public class SipParserTest
 		@Override
 		public boolean messageComplete(ByteBuffer content) 
 		{
-			_content = BufferUtil.toString(content, StringUtil.__UTF8_CHARSET);
+			_content = BufferUtil.toString(content, StandardCharsets.UTF_8);
 			return true;
 		}
 

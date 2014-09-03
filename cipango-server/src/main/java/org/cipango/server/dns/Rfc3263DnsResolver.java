@@ -20,11 +20,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.Random;
-import java.util.Iterator; 
 
 import org.cipango.dns.DnsService;
 import org.cipango.dns.Name;
@@ -46,8 +48,8 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 	
 	private DnsService _dnsService;
 	private boolean _useNaptr = true;
-	private final List<String> _enableNaptrTransports = new ArrayList<String>();
-	private final List<Transport> _enableTransports = new ArrayList<Transport>();
+	private final Set<String> _enableNaptrTransports = new HashSet<String>();
+	private final Set<Transport> _enableTransports = new HashSet<Transport>();
 	private final Random _random = new Random();
 
 	public Rfc3263DnsResolver()
@@ -129,10 +131,15 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 				{
 					Transport transport2 = getTransport(record);
 					List<Hop> tmpHosts = resolveSrv(record.getReplacement(), transport2);
-					if (hops == null)
-						hops = tmpHosts;
-					else
-						hops.addAll(tmpHosts);
+					if (tmpHosts != null)
+					{
+    					for (Hop hop2 : tmpHosts)
+    						hop2.setPreference(record.getPreference());
+    					if (hops == null)
+    						hops = tmpHosts;
+    					else
+    						hops.addAll(tmpHosts);
+					}
 				}
 			}
 			else
@@ -146,7 +153,7 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 						List<Hop> tmpHosts = resolveSrv(hop, transport2);
 						if (hops == null)
 							hops = tmpHosts;
-						else
+						else if (tmpHosts != null)
 							hops.addAll(tmpHosts);
 					}
 				}
@@ -158,6 +165,8 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 		
 		if (hops == null || hops.isEmpty())
 			hops = lookupAllHostAddr(hop, transport);
+		
+		hops = sortRecords(hops);
 		
 		return hops;
 	}
@@ -204,10 +213,10 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 	
 	private List<Hop> resolveSrv(Name srvName, Transport transport)
 	{
-		Collection<SrvRecord> records;
+		List<Record> records;
 		try
 		{
-			records = sortSrv(_dnsService.lookup(new SrvRecord(srvName)));
+			records = _dnsService.lookup(new SrvRecord(srvName));
 		}
 		catch (Exception e1)
 		{
@@ -217,8 +226,9 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 		
 		
 		List<Hop> hops = new ArrayList<Hop>();
-		for (SrvRecord record : records)
+		for (Record srvRecord : records)
 		{
+			SrvRecord record = (SrvRecord) srvRecord;
 			try
 			{
 				InetAddress[] addresses = _dnsService.lookupAllHostAddr(record.getTarget().toString());
@@ -229,6 +239,8 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 					hop.setPort(record.getPort());
 					hop.setAddress(address);
 					hop.setTransport(transport);
+					hop.setPriority(record.getPriority());
+					hop.setWeight(record.getWeight());
 					hops.add(hop);
 				}
 			}
@@ -251,29 +263,28 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 	 * @param original
 	 * @return
 	 */
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	protected Collection<SrvRecord> sortSrv(List<Record> original)
+	protected List<Hop> sortRecords(List<Hop> list)
 	{
-	  List<SrvRecord> list = new ArrayList(original);
-	  
 	  Collections.sort(list);
 	  // At this point we have sorted list by priority, weight (and hash code).
 	  // Now we need to randomize result according to weights within the same priority.
 	  
-	  ArrayList<SrvRecord> result = new ArrayList<SrvRecord>(list.size());
+	  ArrayList<Hop> result = new ArrayList<Hop>(list.size());
 	  while (!list.isEmpty())
 	  {
 	    // Get total weight for all (remaining) top-priority records.
 	    final int priority = list.get(0).getPriority();
+	    final int preference = list.get(0).getPreference();
 	    int totalWeight = 0;
 	    int count = 0;
-	    for (SrvRecord r : list)
+	    for (Hop r : list)
 	    {
-	      if (r.getPriority() != priority) break;
+	      if (r.getPriority() != priority || r.getPreference() != preference) 
+	    	  break;
 	      totalWeight += r.getWeight();
 	      count++;
 	    }
-	    if (count == 1)
+	    if (count == 1 || totalWeight <= 0)
 	    {
 	      // Optimization: if there is only one top-priority record left, don't need to generate random numbers.
 	      result.add(list.remove(0));
@@ -282,9 +293,9 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 	    // select random number between 0 (inclusive) and totalWeight (exclusive):
 	    int w = _random.nextInt(totalWeight);
 	    // Now find the record which was selected by random number:
-	    for (final Iterator<SrvRecord> i = list.iterator(); i.hasNext();)
+	    for (final Iterator<Hop> i = list.iterator(); i.hasNext();)
 	    {
-	      final SrvRecord r = i.next(); // It's guaranteed that r has top priority.
+	      final Hop r = i.next(); // It's guaranteed that r has top priority.
 	      w -= r.getWeight();
 	      if (w < 0)
 	      {
@@ -301,7 +312,7 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 	  return result;
 	}
 
-	public List<String> getEnableNaptrTransports()
+	public Set<String> getEnableNaptrTransports()
 	{
 		return _enableNaptrTransports;
 	}
@@ -319,7 +330,7 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 	@ManagedAttribute(value="Enabled transport", readonly=true)
 	public Collection<Transport> getEnableTransports()
 	{
-		return Collections.unmodifiableList(_enableTransports);
+		return Collections.unmodifiableSet(_enableTransports);
 	}
 
 	@ManagedAttribute("DNS service")

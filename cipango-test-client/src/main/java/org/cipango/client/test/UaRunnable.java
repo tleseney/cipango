@@ -20,7 +20,7 @@ import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.cipango.client.Dialog;
 import org.cipango.client.MessageHandler;
@@ -87,10 +87,10 @@ public abstract class UaRunnable extends Thread
 		return _ua.getAlias();
 	}
 	
-	public void assertDone() throws Throwable
+	public void assertDone() throws Exception
 	{
 		if (_e != null)
-			throw _e;
+			throwException();
 		if (_isDone)
 			return;
 		
@@ -105,9 +105,20 @@ public abstract class UaRunnable extends Thread
 			}
 		}
 		if (_e != null)
-			throw _e;
+			throwException();
 		if (!_isDone)
 			Assert.fail(getUserName() + " not done");
+	}
+	
+	private void throwException() throws Exception
+	{
+		if (_e != null)
+		{
+			if (_e instanceof Exception)
+				throw (Exception) _e;
+			if (_e instanceof Error)
+				throw (Error) _e;
+		}
 	}
 	
 	/**
@@ -125,7 +136,7 @@ public abstract class UaRunnable extends Thread
 	{
 		synchronized(_dialog)
 		{
-			try { _dialog.wait(); } catch (InterruptedException e) { }
+			try { _dialog.wait(_ua.getTimeout()); } catch (InterruptedException e) { }
 		}
 		return (SipServletRequest) _dialog.getSession().getAttribute(
 				Dialog.INITIAL_REQUEST_ATTRIBUTE);

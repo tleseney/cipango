@@ -125,9 +125,16 @@ public class Session implements SipSessionIf, Dumpable
 	
 	public Session(ApplicationSession applicationSession, String id, String callId, Address local, Address remote)
 	{
+		this(applicationSession, id, callId, local, remote, System.currentTimeMillis(), 0);
+	}
+	
+	protected Session(ApplicationSession applicationSession, String id, String callId, Address local, Address remote, 
+			long created, long lastAccessed)
+	{
 		_applicationSession = applicationSession;
 		_id = id;
-		_created = System.currentTimeMillis();
+		_created = created;
+		_lastAccessed = lastAccessed;
 		_callId = callId;
 		_localParty = local;
 		_remoteParty = remote;
@@ -264,7 +271,7 @@ public class Session implements SipSessionIf, Dumpable
 			tag = _applicationSession.newUASTag();
 			_localParty.setParameter(AddressImpl.TAG, tag);
 		}
-		_dialog = new DialogInfo();
+		_dialog = newDialogInfo();
 	}
 	
 	public void createUA(UAMode mode)
@@ -274,7 +281,12 @@ public class Session implements SipSessionIf, Dumpable
 			throw new IllegalStateException("Session is " + _role);
 		
 		_role = mode == UAMode.UAC ? Role.UAC : Role.UAS;
-		_dialog = new DialogInfo();
+		_dialog = newDialogInfo();
+	}
+	
+	protected DialogInfo newDialogInfo()
+	{
+		return new DialogInfo();
 	}
 	
 	public void sendResponse(SipResponse response, boolean reliable) throws IOException
@@ -716,11 +728,22 @@ public class Session implements SipSessionIf, Dumpable
 		{
 			// Invalidate also if transaction state is accepted as it could only
 			// happens when state is TERMINATED
-			for (Transaction transaction : _clientTransactions)
+			for (ClientTransaction transaction : _clientTransactions)
+			{
 				if (transaction.getState() != Transaction.State.COMPLETED
 						&& transaction.getState() != Transaction.State.CONFIRMED
 						&& transaction.getState() != Transaction.State.ACCEPTED)
 					return false;
+				
+				// The transaction state could have been updated but response may have
+				// not been processed by session yet.
+				if (transaction.isProcessingResponse())
+				{
+					LOG.debug("Session {} is not ready to invalidate session, as client transaction {} is processing response",
+							Session.this, transaction);
+					return false;
+				}
+			}
 			for (Transaction transaction : _serverTransactions)
 				if (transaction.getState() != Transaction.State.COMPLETED
 						&& transaction.getState() != Transaction.State.CONFIRMED

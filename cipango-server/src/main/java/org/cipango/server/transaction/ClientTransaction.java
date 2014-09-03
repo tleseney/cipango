@@ -40,6 +40,11 @@ public interface ClientTransaction extends Transaction
 	public void terminate();
 	
 	public SipResponse create408();
+	
+	/**
+	 * Returns true if another thread is in ClientTransaction.handleResponse()
+	 */
+	public boolean isProcessingResponse();
 
 }
 

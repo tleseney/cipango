@@ -158,11 +158,7 @@ public class SessionManager extends AbstractLifeCycle
 	
 	public ApplicationSession createApplicationSession()
 	{
-		String id = _sessionIdManager.newId();
-
-		ApplicationSession appSession = new ApplicationSession(this, id);
-		addApplicationSession(appSession);
-		return appSession;
+		return createApplicationSession(_sessionIdManager.newId());
 	}
 	
 	public ApplicationSession createApplicationSession(String id)
@@ -190,6 +186,11 @@ public class SessionManager extends AbstractLifeCycle
 			getSipAppContext().fire(appSession, _applicationSessionListeners, __appSessionCreated,  new SipApplicationSessionEvent(appSession));
 		
 		return appSession;
+	}
+	
+	protected ConcurrentHashMap<String, ApplicationSession> getAppSessions()
+	{
+		return _appSessions;
 	}
 	
 	public ApplicationSession getApplicationSession(String id)

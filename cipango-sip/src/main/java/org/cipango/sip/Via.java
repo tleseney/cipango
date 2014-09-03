@@ -262,7 +262,9 @@ public class Via extends Parameters implements Parameterable, Serializable
 	{
 		try
 		{
-			return (Via) super.clone();
+			Via via = (Via) super.clone();
+			via._params = _params.clone();
+			return via;
 		}
 		catch (CloneNotSupportedException e)
 		{

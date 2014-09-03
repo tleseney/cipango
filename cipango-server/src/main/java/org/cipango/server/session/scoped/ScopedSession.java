@@ -14,6 +14,7 @@
 
 package org.cipango.server.session.scoped;
 
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Enumeration;
@@ -31,8 +32,9 @@ import org.cipango.server.session.Session;
 import org.cipango.server.session.SessionManager.ApplicationSessionScope;
 import org.cipango.server.session.SessionManager.SipSessionIf;
 
-public class ScopedSession extends ScopedObject implements SipSessionIf
+public class ScopedSession extends ScopedObject implements SipSessionIf, Serializable
 {
+	private static final long serialVersionUID = 1L;
 	private Session _session;
 
 	public ScopedSession(Session session)

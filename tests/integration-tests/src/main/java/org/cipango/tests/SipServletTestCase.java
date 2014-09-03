@@ -200,13 +200,14 @@ public class SipServletTestCase extends SipServlet
 		getServletContext().setAttribute(getFailureKey(), content);
 	}
 	
-	protected SipURI getOwnUri()
+	protected SipURI getOwnUri(SipServletRequest request)
 	{
 		@SuppressWarnings("unchecked")
 		List<SipURI> l = (List<SipURI>) getServletContext().getAttribute(OUTBOUND_INTERFACES);
 		SipURI uri = l.get(0);
 		uri = (SipURI) uri.clone();
-		uri.setUser("cipango-servlet-test");
+		if (request != null)
+			uri.setUser(request.getApplicationSession().getApplicationName());
 		uri.setLrParam(true);
 		return uri;
 	}

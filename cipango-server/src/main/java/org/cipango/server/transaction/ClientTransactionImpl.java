@@ -53,6 +53,8 @@ public class ClientTransactionImpl extends TransactionImpl implements ClientTran
     
     private SipConnection _connection;
     
+    private Thread _responseProcessingThread;
+    
 	public ClientTransactionImpl(SipRequest request, ClientTransactionListener listener)
     {
 		this(request, listener, request.appSession().newBranch());
@@ -200,6 +202,9 @@ public class ClientTransactionImpl extends TransactionImpl implements ClientTran
 	
 	public synchronized void handleResponse(SipResponse response) 
     {
+    _responseProcessingThread = Thread.currentThread();
+    try
+		{
 		int status = response.getStatus(); 
         
 		if (isInvite()) 
@@ -317,6 +322,17 @@ public class ClientTransactionImpl extends TransactionImpl implements ClientTran
 				LOG.warn("handleResponse (non-invite) && state ==" + _state);
 			}
 		}
+		}
+		finally
+		{
+			_responseProcessingThread = null;
+		}
+	}
+	
+	
+	public boolean isProcessingResponse()
+	{
+		return _responseProcessingThread != null && _responseProcessingThread != Thread.currentThread();
 	}
 	
 	public boolean isServer() 

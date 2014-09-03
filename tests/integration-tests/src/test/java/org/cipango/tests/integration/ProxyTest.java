@@ -13,9 +13,8 @@
 // ========================================================================
 package org.cipango.tests.integration;
 
-import static org.cipango.tests.matcher.SipMatchers.hasStatus;
-import static org.cipango.tests.matcher.SipMatchers.isSuccess;
-import static org.hamcrest.MatcherAssert.assertThat;
+
+import static org.cipango.client.test.matcher.SipMatchers.hasStatus;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -293,5 +292,33 @@ public class ProxyTest extends UaTestCase
 		assertThat(call.waitForResponse(), hasStatus(SipServletResponse.SC_ACCEPTED));
 		
 		checkForFailure();
+	}
+	
+	/**
+	 * Test if a CANCEL is received when servlet is in proxy mode but has not proxy any request.
+	 * <pre>
+	 * Alice                         AS
+	 *   | INVITE                     |
+	 *   |--------------------------->|
+	 *   |                        100 |
+	 *   |<---------------------------|
+	 *   | CANCEL                     |
+	 *   |--------------------------->|
+ 	 *   |                 200/CANCEL |
+	 *   |<---------------------------|
+	 *   |                 487/INVITE |
+	 *   |<---------------------------|
+	 *   |                        ACK |
+	 *   |--------------------------->|
+	 * </pre>
+	 */
+	@Test
+	public void testEarlyCancel() throws Exception
+	{
+		Call call = _ua.createCall(_ua.getFactory().createURI(getTo()));
+		call.createCancel().send();
+        assertThat(call.waitForResponse(), hasStatus(SipServletResponse.SC_REQUEST_TERMINATED));        
+        // CANCEL response is filtered by container
+        checkForFailure();
 	}
 }

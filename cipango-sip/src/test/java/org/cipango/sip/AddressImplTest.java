@@ -1,15 +1,18 @@
 package org.cipango.sip;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import java.io.Serializable;
 import java.text.ParseException;
 
 import javax.servlet.sip.Address;
+import javax.servlet.sip.Parameterable;
 import javax.servlet.sip.SipURI;
 import javax.servlet.sip.URI;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
-import static org.junit.Assert.*;
 
 import org.junit.Test;
 
@@ -109,6 +112,19 @@ public class AddressImplTest
 			assertEquals(address, o);
 			assertEquals(o, address);
 		}
+	}
+	
+	@Test
+	public void testClone() throws Exception
+	{
+		Address p = new AddressImpl(addrs[0][0], true);
+		p.setParameter("tag2", "tag1");
+		Address p2 = (Address) p.clone();
+		assertEquals(p, p2);
+		p2.setParameter("tag2", "newTag");
+		//System.out.println(p2);
+		//System.out.println(p);
+		assertNotEquals(p, p2);
 	}
 	
 	/**

@@ -572,7 +572,7 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			Proxy proxy = request.getProxy();
 			proxy.setRecordRoute(true);
 			proxy.setSupervised(true);
-			request.pushRoute(getOwnUri());
+			request.pushRoute(getOwnUri(request));
 			request.setHeader(MainServlet.SERVLET_HEADER, ProxyTwoServlet.class.getName());
 			proxy.proxyTo(request.getRequestURI());	
 			assertThat(session, hasState(State.INITIAL));

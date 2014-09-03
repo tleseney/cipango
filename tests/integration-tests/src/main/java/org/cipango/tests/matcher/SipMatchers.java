@@ -10,6 +10,11 @@ import org.hamcrest.Description;
 import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
 
+/**
+ * 
+ * Shoud use {@link org.cipango.client.test.matcher.SipMatchers}
+ */
+@Deprecated
 public class SipMatchers
 {
 	public static void describeErrorFromResponse(SipServletResponse response,

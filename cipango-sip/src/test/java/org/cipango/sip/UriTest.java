@@ -13,14 +13,16 @@
 // ========================================================================
 
 package org.cipango.sip;
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNull;
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.text.ParseException;
 
+import javax.servlet.sip.Address;
 import javax.servlet.sip.URI;
 
 import org.junit.Test;
@@ -111,6 +113,21 @@ public class UriTest
 			assertTrue(o instanceof URI);
 			assertEquals(uri, o);
 			assertEquals(o, uri);
+		}
+	}
+	
+	@Test
+	public void testClone() throws Exception
+	{
+		for (int i = 0; i < EQUALS.length; i++) 
+		{
+			URI uri = URIFactory.parseURI(EQUALS[i][0]);
+			uri.setParameter("param", "1");
+			URI uri2 = uri.clone();
+			assertTrue(uri2 instanceof URI);
+			assertEquals(uri, uri2);
+			uri2.setParameter("param", "2");
+			assertNotEquals(uri, uri2);
 		}
 	}
 }

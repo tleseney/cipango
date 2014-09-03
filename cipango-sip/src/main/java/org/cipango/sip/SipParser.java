@@ -1,6 +1,11 @@
 package org.cipango.sip;
 
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.CoderResult;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.util.BitSet;
 
@@ -58,9 +63,15 @@ public class SipParser
 	private static final Logger LOG = Log.getLogger(SipParser.class);
 	private static final BitSet COMMA_QUOTE_BS = StringUtil.toBitSet(",\"");
 	
+	private final static Charset UTF8 = Charset.forName("UTF8");
+	private final CharsetDecoder _charsetDecoder =  UTF8.newDecoder();
+	private final CharBuffer _oneChar = CharBuffer.allocate(1);
+	
 	public SipParser(SipMessageHandler eventHandler)
 	{
 		_handler = eventHandler;
+		_charsetDecoder.onMalformedInput(CodingErrorAction.REPLACE);
+		_charsetDecoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
 	}
 	
 	public State getState()
@@ -291,7 +302,7 @@ public class SipParser
 		
 		while (_state.ordinal() < State.END.ordinal() && buffer.hasRemaining() && !returnFromParse)
 		{
-			byte ch = buffer.get();
+			final char ch = readChar(buffer);
 			if (_eol == SipGrammar.CR && ch == SipGrammar.LF)
 			{
 				_eol = SipGrammar.LF;
@@ -372,7 +383,7 @@ public class SipParser
 							
 							if (ch == SipGrammar.CR || ch == SipGrammar.LF)
 							{
-								consumeCRLF(ch, buffer);
+								consumeCRLF((byte)ch, buffer);// it's ok, CR/LF are mapped properly in UTF8.
 								if (_contentLength == 0)
 								{
 									returnFromParse |= _handler.headerComplete();
@@ -387,18 +398,19 @@ public class SipParser
 							}
 							else
 							{
-								if (buffer.remaining() > 6 && buffer.hasArray())
-								{
-									_header = SipHeader.lookAheadGet(buffer.array(),buffer.arrayOffset()+buffer.position()-1,buffer.arrayOffset()+buffer.limit());
-									
-									if (_header != null)
-									{
-										_headerString = _header.asString();
-										buffer.position(buffer.position()+_headerString.length());
-										_state = buffer.get(buffer.position()-1) == ':' ? State.HEADER_VALUE : State.HEADER_NAME;
-										break;
-									}
-								}
+							  //Optimizations really do not work for UTF8.
+//								if (buffer.remaining() > 6 && buffer.hasArray())
+//								{
+//									_header = SipHeader.lookAheadGet(buffer.array(),buffer.arrayOffset()+buffer.position()-1,buffer.arrayOffset()+buffer.limit());
+//									
+//									if (_header != null)
+//									{
+//										_headerString = _header.asString();
+//										buffer.position(buffer.position()+_headerString.length());
+//										_state = buffer.get(buffer.position()-1) == ':' ? State.HEADER_VALUE : State.HEADER_NAME;
+//										break;
+//									}
+//								}
 								_state = State.HEADER_NAME;
 								_string.setLength(0);
 								_string.append((char) ch);
@@ -413,7 +425,7 @@ public class SipParser
 					{
 						case SipGrammar.CR:
 						case SipGrammar.LF:
-							consumeCRLF(ch, buffer);
+							consumeCRLF((byte)ch, buffer);// CR/LF are properly mapped in UTF8.
 							_headerString = takeLengthString();
 							_header = SipHeader.CACHE.get(_headerString);
 							_state = State.HEADER;
@@ -456,7 +468,7 @@ public class SipParser
 					{
 						case SipGrammar.CR:
 						case SipGrammar.LF:
-							consumeCRLF(ch, buffer);
+							consumeCRLF((byte)ch, buffer);// CR/LF are properly mapped in UTF8.
 							_headerString = takeString();
 							_length = -1;
 							_header = SipHeader.CACHE.get(_headerString);
@@ -488,7 +500,7 @@ public class SipParser
 					{
 						case SipGrammar.CR:
 						case SipGrammar.LF:
-							consumeCRLF(ch, buffer);
+							consumeCRLF((byte)ch, buffer);// CR/LF are properly mapped in UTF8.
 							
 							if (_length > 0)
 							{
@@ -514,7 +526,7 @@ public class SipParser
 					{
 						case SipGrammar.CR:
 						case SipGrammar.LF:
-							consumeCRLF(ch, buffer);
+							consumeCRLF((byte)ch, buffer);// CR/LF are properly mapped in UTF8.
 							
 							if (_length > 0)
 							{
@@ -554,6 +566,7 @@ public class SipParser
 					_uri = null;
 					_header = null;
 					_contentLength = -1;
+					// UTF8 is not the best place for optimizations, but method and version are ASCII, so it's ok.
 					quickStart(buffer);
 					break;
 					
@@ -670,6 +683,24 @@ public class SipParser
 		}
 	}
 	
+	private char readChar(ByteBuffer buffer)
+	{
+    _oneChar.clear();
+    final int savedPos = buffer.position();
+    CoderResult result = _charsetDecoder.decode(buffer, _oneChar, true); // yes, in case if message is broken in the middle of UTF8 char we may get a problem.
+    if (_oneChar.position() != 0)
+    {
+      // We may be consuming data
+      return _oneChar.get(0);
+    }
+    if (buffer.position() == savedPos)
+    {
+      // Prevent infinite loop. Just take one character out if none was taken
+      buffer.get();
+    }
+    return '?';
+	}
+	
 	public void reset()
 	{
 		_state = State.START;
@@ -677,6 +708,7 @@ public class SipParser
 		_methodString = null;
 		_uri = null;
 		_status = 0;
+		_charsetDecoder.reset();
 	}
 	
 	public String toString()

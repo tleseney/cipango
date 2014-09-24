@@ -74,6 +74,20 @@ public class SipURIImplTest
 		return uri;
 	}
 	
+	
+	@Test
+	public void testConstructor() throws Exception
+	{
+		SipURIImpl uri = new SipURIImpl("2001:cafe::1", 5060);
+		assertEquals("sip:[2001:cafe::1]:5060", uri.toString());
+		
+		uri = new SipURIImpl("alice", "2001:cafe::1", 5060);
+		assertEquals("sip:alice@[2001:cafe::1]:5060", uri.toString());
+		
+		uri = new SipURIImpl("2001:cafe::1", -1);
+		assertEquals("sip:[2001:cafe::1]", uri.toString());
+	}
+	
 	@Test
 	public void testPerf() throws Exception
 	{

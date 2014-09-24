@@ -76,14 +76,14 @@ public class SipURIImpl implements SipURI, Serializable, Modifiable
 	public SipURIImpl(String user, String host, int port)
 	{
 		_user = user;
-		_host = host;
+		setHost(host);
 		_port = port;
 		_modified = false;
 	}
 	
 	public SipURIImpl(String host, int port)
 	{
-		_host = host;
+		setHost(host);
 		_port = port;
 		_modified = false;
 	}

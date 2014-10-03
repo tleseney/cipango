@@ -32,7 +32,8 @@ public class ViaTest
 		new ViaData("SIP/2.0/UDP 192.0.2.1:5060;received=192.0.2.207;branch=z9hG4bK77asjd" , "UDP", "192.0.2.1", 5060,  new String[][]  { {"branch", "z9hG4bK77asjd" }, {"received" , "192.0.2.207"} }),
 		new ViaData("SIP/2.0/UDP 192.0.2.1:5060;received=192.0.2.207" , "UDP", "192.0.2.1", 5060,   new String[][]  {{"received", "192.0.2.207"}}),
 		new ViaData("SIP  /   2.0   /   UDP 	 192.0.2.1:5060   ;     received   =   192.0.2.207 ; foo = \"bar\"" , "UDP", "192.0.2.1", 5060,  new String[][]  {{"received", "192.0.2.207"}, {"foo", "bar"}}),
-		new ViaData("SIP/2.0/UDP [2001:db8::9:1]:5060;branch=z9hG4bKas3-111", "UDP", "2001:db8::9:1", 5060, null)
+		new ViaData("SIP/2.0/UDP [2001:db8::9:1]:5060;branch=z9hG4bKas3-111", "UDP", "2001:db8::9:1", 5060, null),
+		new ViaData("SIP/2.0/UDP cipango.org;received=2001:1111:5678:bbb1:0:0:0:5" , "UDP", "cipango.org", -1,   new String[][]  {{"received", "2001:1111:5678:bbb1:0:0:0:5"}}),
 	};
 	
 	@Test
@@ -52,6 +53,20 @@ public class ViaTest
 				assertEquals(p.getValue(), via.getParameter(p.getKey()));
 			}
 
+		}
+	}
+	
+	@Test
+	public void testToString() throws Exception
+	{
+		for (int i = 0; i < vias.length; i++)
+		{
+			Via via = new Via(vias[i]._string);
+			via.parse();
+			
+			if (i != 2 && i != 4) // 2 multiple params 4 extra spaces
+				assertEquals(vias[i]._string, via.toString());
+			System.out.println(via.toString());
 		}
 	}
 	

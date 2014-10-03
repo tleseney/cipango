@@ -42,7 +42,7 @@ public class HasStatus extends TypeSafeMatcher<SipServletResponse>
 	@Override
 	protected void describeMismatchSafely(SipServletResponse item, Description mismatchDescription)
 	{
-		mismatchDescription.appendText(" got " + item.getStatus());
+		mismatchDescription.appendText(" got ").appendValue(item.getStatus()).appendText(" ").appendText(item.getReasonPhrase());
 	}
 
 }

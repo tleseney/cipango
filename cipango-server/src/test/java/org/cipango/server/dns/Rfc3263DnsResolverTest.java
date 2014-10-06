@@ -172,12 +172,16 @@ public class Rfc3263DnsResolverTest
 		List<Hop> hops = _dnsResolver.getHops(hop);
 		
 		//System.out.println(hops);
-		assertEquals(2, hops.size());
+		assertEquals(3, hops.size());
 		hop = hops.get(0);
+		assertEquals(Transport.TCP, hop.getTransport());
+		assertEquals("sip2.cipango.voip", hop.getHost());
+		assertEquals(30, hop.getPreference());
+		hop = hops.get(1);
 		assertEquals(Transport.UDP, hop.getTransport());
 		assertEquals("sip.cipango.voip", hop.getHost());
 		assertEquals(40, hop.getPreference());
-		hop = hops.get(1);
+		hop = hops.get(2);
 		assertEquals(Transport.TCP, hop.getTransport());
 		assertEquals("sip.cipango.voip", hop.getHost());
 		assertEquals(50, hop.getPreference());

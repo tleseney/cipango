@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
@@ -161,12 +162,13 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 		}
 		else
 			hops = resolveSrv(hop, transport);
-		
-		
+				
 		if (hops == null || hops.isEmpty())
 			hops = lookupAllHostAddr(hop, transport);
 		
 		hops = sortRecords(hops);
+		
+		removeDuplicate(hops);
 		
 		return hops;
 	}
@@ -250,6 +252,29 @@ public class Rfc3263DnsResolver extends ContainerLifeCycle implements DnsResolve
 			}
 		}
 		return hops;
+	}
+	
+	/**
+	 * Remove duplicates hops having same host and same port whatever transport used.
+	 * If duplicates if found, first found in list is keep. Order remains unchanged.
+	 */
+	protected void removeDuplicate(List<Hop> hops)
+	{
+		if (hops == null || hops.size() <= 1)
+			return;
+		Set<String> keys = new HashSet<String>();
+		Iterator<Hop> it = hops.iterator();
+		while (it.hasNext()) {
+			Hop hop = it.next();
+			String key = hop.getAddress().getHostAddress() + ":" + hop.getPort();
+			if (keys.contains(key))
+			{
+				LOG.debug("Remove hop {} has a hop with key {} already exist in list", hop, key);
+				it.remove();
+			}
+			else
+				keys.add(key);
+		}
 	}
 	
 	/**

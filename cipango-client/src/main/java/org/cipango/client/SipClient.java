@@ -174,6 +174,11 @@ public class SipClient extends AbstractLifeCycle
 		return null;
 	}
 	
+	protected SipServer getServer()
+	{
+		return _server;
+	}
+	
 	@SuppressWarnings("serial")
 	class ClientServlet extends SipServlet
 	{

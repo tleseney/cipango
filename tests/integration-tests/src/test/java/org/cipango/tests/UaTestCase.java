@@ -35,7 +35,10 @@ import org.cipango.client.SipClient;
 import org.cipango.client.SipClient.Protocol;
 import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
+import org.cipango.client.test.SipTestClient;
 import org.cipango.client.test.TestAgent;
+import org.cipango.client.test.matcher.HasStatus;
+import org.hamcrest.Description;
 import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
 import org.junit.After;
@@ -47,17 +50,18 @@ import org.junit.rules.Timeout;
 
 public abstract class UaTestCase extends Assert
 {
+	
 	@Rule 
 	public TestName _name = new TestName();
 	
-	// Ensure test cannot be longer than 1 minute
+	// Limit test duration
 	@Rule
-    public Timeout _globalTimeout= new Timeout(60000);
+    public Timeout _globalTimeout;
 	
 	private List<Endpoint> _endpoints = new ArrayList<Endpoint>();
 	private int _nextPort;
 	
-	protected SipClient _sipClient;
+	protected SipTestClient _sipClient;
 	protected TestAgent _ua;
 	protected Properties _properties;
 	
@@ -66,11 +70,24 @@ public abstract class UaTestCase extends Assert
 		_properties = new Properties();
 		try
 		{
-			_properties.load(getClass().getClassLoader()
-					.getResourceAsStream("commonTest.properties"));
+			// Load default configuration
+			InputStream is = UaTestCase.class.getClassLoader()
+					.getResourceAsStream("org/cipango/tests/default.properties");
+			if (is != null)
+				_properties.load(is);
+			else
+				throw new NullPointerException("Missing default.properties");
+			
+			is = UaTestCase.class.getClassLoader()
+					.getResourceAsStream("commonTest.properties");
+			if (is != null)
+				_properties.load(is);
+			else
+				throw new NullPointerException("Missing commonTest.properties");
 			
 			_properties.putAll(System.getProperties());
 			_nextPort = getLocalPort() + 1;
+			_globalTimeout= new Timeout(getInt("test.max.duration"));
 		}
 		catch (IOException e)
 		{
@@ -172,9 +189,10 @@ public abstract class UaTestCase extends Assert
 	@Before
 	public void setUp() throws Exception
 	{
-		Properties properties = new Properties();
-		properties.putAll(_properties);
-		_sipClient = new SipClient(getLocalHost(), getLocalPort());
+		_sipClient = new SipTestClient();
+		_sipClient.addConnector(getSipDefaultProtocol(), getLocalHost(), getLocalPort());
+		_sipClient.setMessageLogger(_properties.getProperty("log.directory"), getClass(), _name.getMethodName(),
+				"Alice");
 		_sipClient.start();
 
 		_ua = new TestAgent(_sipClient.getFactory().createAddress(getFrom()));
@@ -269,6 +287,30 @@ public abstract class UaTestCase extends Assert
 		return new IsSuccess();
 	}
 	
+	@Factory
+	public static <T> Matcher<SipServletResponse> hasStatus(int status)
+	{
+		return new HasStatus(status)
+		{
+			@Override
+			protected void describeMismatchSafely(SipServletResponse item, Description mismatchDescription)
+			{
+				super.describeMismatchSafely(item, mismatchDescription);
+				
+				if (item.getContentLength() > 0)
+				{
+					try
+					{
+						mismatchDescription.appendText("\n" + new String(item.getRawContent()));
+					}
+					catch (IOException ignore)
+					{	
+					}		
+				}
+			}
+		};
+	}
+	
 	public void startUacScenario() throws IOException, ServletException
 	{
 		SipServletRequest request = _ua.createRequest(SipMethods.REGISTER, getTo());
@@ -303,7 +345,7 @@ public abstract class UaTestCase extends Assert
 	
 	public class Endpoint
 	{
-		private SipClient _client;
+		private SipTestClient _client;
 		private String _user;
 		private String _uri;
 		private int _port;
@@ -366,21 +408,22 @@ public abstract class UaTestCase extends Assert
 			}
 		}
 
-		protected SipClient getOrCreateClient()
+		public SipClient getOrCreateClient()
 		{
 			return getOrCreateClient(getSipDefaultProtocol());
 		}
 		
-		protected SipClient getOrCreateClient(SipClient.Protocol protocol)
+		public SipClient getOrCreateClient(SipClient.Protocol protocol)
 		{
 			if (_client == null)
 			{
 				try
 	    		{
-	    			_client = new SipClient();
+	    			_client = new SipTestClient();
 	    			_client.addConnector(protocol, getLocalHost(), _port);
-	    			_client.start();
-	    		} catch (Exception e) {
+	    			_client.setMessageLogger(_properties.getProperty("log.directory"),
+	    					UaTestCase.this.getClass(), _name.getMethodName(), getAlias());
+	    			_client.start();	    		} catch (Exception e) {
 	    			throw new RuntimeException(e);
 	    		}
 			}

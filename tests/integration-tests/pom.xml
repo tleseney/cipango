@@ -137,6 +137,8 @@
 							<excludes>
 								<!-- Exclude integration test servlets -->
 								<exclude>**/integration/**</exclude>
+								<exclude>commonTest.properties</exclude>
+								<exclude>logback.xml</exclude>
 							</excludes>
 						</configuration>
 					</execution>

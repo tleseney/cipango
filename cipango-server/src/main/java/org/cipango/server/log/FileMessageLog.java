@@ -15,6 +15,7 @@
 package org.cipango.server.log;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
@@ -26,6 +27,7 @@ import org.eclipse.jetty.util.StringUtil;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.annotation.ManagedOperation;
+import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
@@ -43,28 +45,28 @@ public class FileMessageLog extends AbstractMessageLog implements AccessLog
     private Object _lock = new Object();
     	
 	protected void doStart() throws Exception 
-    {	
+    {
 		try
 		{		
 			if (_filename != null) 
 			{
 				File file = new File(_filename);
 				file.getParentFile().mkdirs();
-				_out = new RolloverFileOutputStream(_filename, _append, _retainDays);
+				if (!_append && _retainDays == -1)
+					_out = new FileOutputStream(_filename);
+				else
+					_out = new RolloverFileOutputStream(_filename, _append, _retainDays);
 			}
 			else 
 				_out = System.out;
 	        			
 			super.doStart();
 	        
-	        LOG.info("Access log started in {}", 
-	                _out instanceof RolloverFileOutputStream ? 
-	                        ((RolloverFileOutputStream) _out).getDatedFilename() :
-	                            "stdout");
+	        LOG.info("Access log started in {}", _filename != null ? _filename : "stdout");
 		}
 		catch (Exception e) 
 		{
-			LOG.warn("Unable to log SIP messages: " + e.getMessage());
+			LOG.warn("Unable to log SIP messages", e);
 		}
 	}
 	

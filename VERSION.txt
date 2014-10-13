@@ -1,4 +1,12 @@
 
+cipango-3.0.0.M4 - 13 October 2014
+Bug
+     Rfc3263DnsResolver: Fix sorting issue in case of NAPTR records with same order and preference but different priority
+     DNS failover: Remove duplicates hops having same host and same port
+     Fix bad sipUri.toString() when URI is created with Ipv6 host
+Improvement
+     Test client
+
 cipango-3.0.0.M3 - 24 June 2014
 Bug
     [CIPANGO-210] - Exception is thrown when B2bUaHelper.createResponseToOriginalRequest() is called with negative response

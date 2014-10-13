@@ -13,16 +13,20 @@
 // ========================================================================
 package org.cipango.client.test;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.servlet.ServletException;
 import javax.servlet.sip.Address;
 import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
+import javax.servlet.sip.URI;
 
 import org.cipango.client.Call;
 import org.cipango.client.Dialog;
+import org.cipango.client.SipMethods;
 import org.cipango.client.UserAgent;
 import org.junit.Ignore;
 
@@ -105,6 +109,14 @@ public class TestAgent extends UserAgent
 	public Map<String, String> getExtraHeaders()
 	{
 		return _extraHeaders;
+	}
+
+	public Call createCall(UserAgent remoteUa) throws IOException, ServletException {
+		Call call = (Call) customize(new Call());
+		SipServletRequest request = call.createInitialRequest(SipMethods.INVITE, getAor(),  remoteUa.getAor());
+		request.setRequestURI(remoteUa.getContact().getURI());
+		call.start(request);
+		return call;
 	}
 
 }

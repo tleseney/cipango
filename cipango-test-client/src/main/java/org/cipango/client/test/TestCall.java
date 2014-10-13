@@ -13,6 +13,7 @@
 // ========================================================================
 package org.cipango.client.test;
 
+import javax.servlet.sip.Address;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.URI;
 
@@ -47,6 +48,13 @@ public class TestCall extends Call
 	{
 		return _agent.decorate(super.createInitialRequest(method, local, remote));
 	}
+	
+
+	@Override
+	public SipServletRequest createInitialRequest(String method, Address local, Address remote) 
+	{
+		return _agent.decorate(super.createInitialRequest(method, local, remote));
+	}
 
 	@Override
 	public SipServletRequest createAck()
@@ -65,4 +73,5 @@ public class TestCall extends Call
 	{
 		return _agent.decorate(super.createRequest(method));
 	}
+
 }

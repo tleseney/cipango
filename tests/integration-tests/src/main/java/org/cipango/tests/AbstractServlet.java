@@ -61,6 +61,10 @@ public abstract class AbstractServlet extends SipServletTestCase
 				__logger.info((request.isInitial() ? "Starting test " : "continue test ")
 						+ getServletSimpleName() + "." + methodName + "()" 
 						+ (request.isInitial() ? "" : " on " + request.getMethod()));
+				
+				if (methodName.endsWith("]") && methodName.contains("["))
+					methodName = methodName.substring(0, methodName.indexOf('['));
+				
 				Method method = getClass().getDeclaredMethod(methodName, SipServletRequest.class);
 				method.invoke(this, request);
 			}	

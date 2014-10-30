@@ -202,6 +202,9 @@ public class SipServletTestCase extends SipServlet
 	
 	protected SipURI getOwnUri(SipServletRequest request)
 	{
+		if (request != null && request.getPoppedRoute() != null)
+			return (SipURI) request.getPoppedRoute().getURI();
+		
 		@SuppressWarnings("unchecked")
 		List<SipURI> l = (List<SipURI>) getServletContext().getAttribute(OUTBOUND_INTERFACES);
 		SipURI uri = l.get(0);

@@ -67,25 +67,9 @@ public abstract class UaTestCase extends Assert
 	
 	public UaTestCase()
 	{
-		_properties = new Properties();
 		try
 		{
-			// Load default configuration
-			InputStream is = UaTestCase.class.getClassLoader()
-					.getResourceAsStream("org/cipango/tests/default.properties");
-			if (is != null)
-				_properties.load(is);
-			else
-				throw new NullPointerException("Missing default.properties");
-			
-			is = UaTestCase.class.getClassLoader()
-					.getResourceAsStream("commonTest.properties");
-			if (is != null)
-				_properties.load(is);
-			else
-				throw new NullPointerException("Missing commonTest.properties");
-			
-			_properties.putAll(System.getProperties());
+			_properties = loadProperties();
 			_nextPort = getLocalPort() + 1;
 			_globalTimeout= new Timeout(getInt("test.max.duration"));
 		}
@@ -93,6 +77,37 @@ public abstract class UaTestCase extends Assert
 		{
 			throw new RuntimeException(e);
 		}
+	}
+	
+	public static Properties loadProperties() throws IOException
+	{
+		Properties properties = new Properties();
+		// Load default configuration
+		InputStream is = UaTestCase.class.getClassLoader()
+				.getResourceAsStream("org/cipango/tests/default.properties");
+		if (is != null)
+			properties.load(is);
+		else
+			throw new NullPointerException("Missing default.properties");
+		
+		is = UaTestCase.class.getClassLoader()
+				.getResourceAsStream("commonTest.properties");
+		if (is != null)
+			properties.load(is);
+		else
+			throw new NullPointerException("Missing commonTest.properties");
+		
+		properties.putAll(System.getProperties());
+		
+		
+		String host = properties.getProperty("local.host");
+		if (host == null || "".equals(host.trim()))
+		{
+			host = InetAddress.getLocalHost().getHostAddress();
+			properties.setProperty("local.host", host);
+		}
+		
+		return properties;
 	}
 
 	public int getTimeout()
@@ -112,13 +127,7 @@ public abstract class UaTestCase extends Assert
 	
 	public String getLocalHost() throws UnknownHostException
 	{
-		String host = _properties.getProperty("local.host");
-		if (host == null || "".equals(host.trim()))
-		{
-			host = InetAddress.getLocalHost().getHostAddress();
-			_properties.setProperty("local.host", host);
-		}
-		return host;
+		return _properties.getProperty("local.host");
 	}
 	
 	public int getLocalPort()
@@ -408,12 +417,12 @@ public abstract class UaTestCase extends Assert
 			}
 		}
 
-		public SipClient getOrCreateClient()
+		public SipTestClient getOrCreateClient()
 		{
 			return getOrCreateClient(getSipDefaultProtocol());
 		}
 		
-		public SipClient getOrCreateClient(SipClient.Protocol protocol)
+		public SipTestClient getOrCreateClient(SipClient.Protocol protocol)
 		{
 			if (_client == null)
 			{

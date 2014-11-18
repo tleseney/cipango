@@ -63,9 +63,9 @@ public abstract class UaRunnable extends Thread
 		finally
 		{
 			_isDone = true;
-			synchronized (_isDone)
+			synchronized (this)
 			{
-				_isDone.notify();
+				this.notify();
 			}
 		}
 	}
@@ -94,11 +94,11 @@ public abstract class UaRunnable extends Thread
 		if (_isDone)
 			return;
 		
-		synchronized (_isDone)
+		synchronized (this)
 		{
 			try
 			{
-				_isDone.wait(2000);
+				this.wait(2000);
 			}
 			catch (InterruptedException e)
 			{
@@ -138,6 +138,11 @@ public abstract class UaRunnable extends Thread
 		{
 			try { _dialog.wait(_ua.getTimeout()); } catch (InterruptedException e) { }
 		}
+		return getInitialRequest();
+	}
+	
+	public SipServletRequest getInitialRequest()
+	{
 		return (SipServletRequest) _dialog.getSession().getAttribute(
 				Dialog.INITIAL_REQUEST_ATTRIBUTE);
 	}

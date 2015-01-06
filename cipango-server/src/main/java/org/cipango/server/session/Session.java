@@ -1324,7 +1324,7 @@ public class Session implements SipSessionIf, Dumpable
 			}
 			// NOTIFY is target refresh according to bug 699 in RFC 6665
 			return message.isInvite() || message.isSubscribe() || message.isNotify() 
-					|| message.isNotify() || message.isMethod(SipMethod.REFER);
+					|| message.isUpdate() || message.isMethod(SipMethod.REFER);
 		}
 		
 		protected void setRemoteTarget(SipMessage message) 

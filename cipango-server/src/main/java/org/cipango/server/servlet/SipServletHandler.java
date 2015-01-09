@@ -288,7 +288,7 @@ public class SipServletHandler extends AbstractSipHandler
 		if (_appContext != null && _appContext.getWebAppContext() != null)
 		{
 			for (Decorator decorator : _appContext.getWebAppContext().getDecorators())
-				decorator.destroyServletInstance(servlet);
+				decorator.destroy(servlet);
 		}
 	}
 }

@@ -13,30 +13,12 @@
 
 package org.cipango.annotations;
 
-import java.util.EventListener;
-
-import javax.servlet.Filter;
-import javax.servlet.Servlet;
-import javax.servlet.ServletException;
-
-import org.cipango.server.servlet.SipServletHolder;
 import org.eclipse.jetty.annotations.AnnotationIntrospector;
-import org.eclipse.jetty.annotations.DeclareRolesAnnotationHandler;
-import org.eclipse.jetty.annotations.PostConstructAnnotationHandler;
-import org.eclipse.jetty.annotations.PreDestroyAnnotationHandler;
-import org.eclipse.jetty.annotations.ResourcesAnnotationHandler;
-import org.eclipse.jetty.annotations.RunAsAnnotationHandler;
-import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler.Decorator;
-import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.webapp.WebAppContext;
 
-/**
- * WebAppDecoratorWrapper
- *
- *
- */
-public class AnnotationDecorator implements Decorator, org.cipango.server.sipapp.SipAppContext.Decorator
+
+public class AnnotationDecorator implements Decorator
 {
     AnnotationIntrospector _introspector = new AnnotationIntrospector();
     
@@ -46,124 +28,28 @@ public class AnnotationDecorator implements Decorator, org.cipango.server.sipapp
     public AnnotationDecorator(WebAppContext context)
     {
         _introspector.registerHandler(new ResourceAnnotationHandler(context));
-        _introspector.registerHandler(new ResourcesAnnotationHandler(context));
-        _introspector.registerHandler(new RunAsAnnotationHandler(context));
-        _introspector.registerHandler(new PostConstructAnnotationHandler(context));
-        _introspector.registerHandler(new PreDestroyAnnotationHandler(context));
-        _introspector.registerHandler(new DeclareRolesAnnotationHandler(context));
-    }
-
-    /* ------------------------------------------------------------ */
-    /**
-     * @param filter
-     * @throws ServletException
-     * @see org.eclipse.jetty.servlet.ServletContextHandler.Decorator#decorateFilterHolder(org.eclipse.jetty.servlet.FilterHolder)
-     */
-    public void decorateFilterHolder(FilterHolder filter) throws ServletException
-    {
-    }
-    
-    /* ------------------------------------------------------------ */
-    /**
-     * @param <T>
-     * @param filter
-     * @return
-     * @throws ServletException
-     * @see org.eclipse.jetty.servlet.ServletContextHandler.Decorator#decorateFilterInstance(javax.servlet.Filter)
-     */
-    public <T extends Filter> T decorateFilterInstance(T filter) throws ServletException
-    {
-        introspect(filter);
-        return filter;
-    }
-    
-    /* ------------------------------------------------------------ */
-    /**
-     * @param <T>
-     * @param listener
-     * @return
-     * @throws ServletException
-     * @see org.eclipse.jetty.servlet.ServletContextHandler.Decorator#decorateListenerInstance(java.util.EventListener)
-     */
-    public <T extends EventListener> T decorateListenerInstance(T listener) throws ServletException
-    {
-        introspect(listener);
-        return listener;
-    }
-
-    /* ------------------------------------------------------------ */
-    /**
-     * @param servlet
-     * @throws ServletException
-     * @see org.eclipse.jetty.servlet.ServletContextHandler.Decorator#decorateServletHolder(org.eclipse.jetty.servlet.ServletHolder)
-     */
-    public void decorateServletHolder(ServletHolder servlet) throws ServletException
-    {
-    }
-
-    /* ------------------------------------------------------------ */
-    /**
-     * @param <T>
-     * @param servlet
-     * @return
-     * @throws ServletException
-     * @see org.eclipse.jetty.servlet.ServletContextHandler.Decorator#decorateServletInstance(javax.servlet.Servlet)
-     */
-    public <T extends Servlet> T decorateServletInstance(T servlet) throws ServletException
-    {
-        introspect(servlet);
-        return servlet;
-    }
-
-    /* ------------------------------------------------------------ */
-    /**
-     * @param f
-     * @see org.eclipse.jetty.servlet.ServletContextHandler.Decorator#destroyFilterInstance(javax.servlet.Filter)
-     */
-    public void destroyFilterInstance(Filter f)
-    {
-    }
-
-    /* ------------------------------------------------------------ */
-    /**
-     * @param s
-     * @see org.eclipse.jetty.servlet.ServletContextHandler.Decorator#destroyServletInstance(javax.servlet.Servlet)
-     */
-    public void destroyServletInstance(Servlet s)
-    {
-    }
-
-    
-    
-
-  
-    /* ------------------------------------------------------------ */
-    /**
-     * @param f
-     * @see org.eclipse.jetty.servlet.ServletContextHandler.Decorator#destroyListenerInstance(java.util.EventListener)
-     */
-    public void destroyListenerInstance(EventListener f)
-    {
     }
 
     /**
-     * Look for annotations that can be discovered with introspection:
-     * <ul>
-     * <li> Resource
-     * <li> Resources
-     * <li> PostConstruct
-     * <li> PreDestroy
-     * <li> ServletSecurity?
-     * </ul>
-     * @param o
+     * Look only for annotation @Resource as other annotations will be processed by
+     * org.eclipse.jetty.annotations.AnnotationDecorator
      */
     protected void introspect (Object o)
     {
         _introspector.introspect(o.getClass());
     }
 
+
 	@Override
-	public void decorateServletHolder(SipServletHolder servlet) throws ServletException
+	public <T> T decorate(T o) 
 	{
+		introspect(o);
+        return o;
+	}
+
+	@Override
+	public void destroy(Object o) 
+	{
+		
 	}
 }

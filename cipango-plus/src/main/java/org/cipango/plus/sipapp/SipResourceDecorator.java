@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2010 NEXCOM Systems
+// Copyright 2010-2015 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,24 +13,16 @@
 // ========================================================================
 package org.cipango.plus.sipapp;
 
-import java.util.EventListener;
-
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
-import javax.servlet.Filter;
-import javax.servlet.Servlet;
-import javax.servlet.ServletException;
 
-import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.sipapp.SipAppContext;
-import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler.Decorator;
-import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 
-public class SipResourceDecorator implements org.cipango.server.sipapp.SipAppContext.Decorator, Decorator
+public class SipResourceDecorator implements Decorator
 {
 	private static final Logger LOG = Log.getLogger(SipResourceDecorator.class);
 	
@@ -114,58 +106,14 @@ public class SipResourceDecorator implements org.cipango.server.sipapp.SipAppCon
 		}
 	}
 
-
-	public <T extends Servlet> T decorateServletInstance(T servlet) throws ServletException
-	{
+	@Override
+	public <T> T decorate(T o) {
 		init();
-		return servlet;
-	}
-
-	public <T extends EventListener> T decorateListenerInstance(T listener) throws ServletException
-	{
-		init();
-		return listener;
-	}
-
-
-	public void decorateServletHolder(SipServletHolder servlet) throws ServletException
-	{
-		init();
-	}
-
-	public void destroyServletInstance(Servlet s)
-	{
-	}
-
-	public void destroyListenerInstance(EventListener f)
-	{		
+		return o;
 	}
 
 	@Override
-	public <T extends Filter> T decorateFilterInstance(T filter) throws ServletException
-	{
-		// TODO Auto-generated method stub
-		return null;
+	public void destroy(Object o) {
 	}
 
-	@Override
-	public void decorateFilterHolder(FilterHolder filter) throws ServletException
-	{
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void decorateServletHolder(ServletHolder servlet) throws ServletException
-	{
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void destroyFilterInstance(Filter f)
-	{
-		// TODO Auto-generated method stub
-		
-	}
 }

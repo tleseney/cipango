@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2012 NEXCOM Systems
+// Copyright 2012-2015 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ import java.util.Arrays;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.cipango.annotations.AnnotationConfiguration;
 import org.cipango.server.AbstractSipConnector;
 import org.cipango.server.SipConnector;
 import org.cipango.server.SipServer;
@@ -172,7 +173,7 @@ public abstract class AbstractCipangoMojo extends AbstractJettyMojo
 		if (configs != null)
 		{
 			for (Configuration c : configs)
-				if (c instanceof SipXmlConfiguration || c instanceof MavenAnnotationConfiguration)
+				if (c instanceof SipXmlConfiguration || c instanceof AnnotationConfiguration)
 					return true;
 			return false;
 		}
@@ -218,17 +219,27 @@ public abstract class AbstractCipangoMojo extends AbstractJettyMojo
 		else if (!isSipConfigSet())
 		{
 			webApp.setConfigurations(ArrayUtil.addToArray(webApp.getConfigurations(), new SipXmlConfiguration(), Configuration.class));
-			if (annotationsEnabled)
-				webApp.setConfigurations(ArrayUtil.addToArray(webApp.getConfigurations(), new MavenAnnotationConfiguration(), Configuration.class));
+			if (annotationsEnabled) 
+			{
+				// As org.cipango.annotations.AnnotationConfiguration extends org.eclipse.jetty.annotations.AnnotationConfiguration
+				// remove this configuration
+				Configuration[] configs = webApp.getConfigurations();
+				for (Configuration c : webApp.getConfigurations())
+					if (c instanceof org.eclipse.jetty.annotations.AnnotationConfiguration)
+						configs = ArrayUtil.removeFromArray(configs, c);
+				
+				webApp.setConfigurations(
+						ArrayUtil.addToArray(configs, new AnnotationConfiguration(), Configuration.class));
+			}
 		}
-	
+
 		
 		super.configureWebApplication();
 		
 		
 		if (sipDefaultXml != null)
             sipApp.setDefaultsDescriptor(sipDefaultXml.getCanonicalPath());
-        
+		
         getLog().info("Sip defaults = "+(sipApp.getDefaultsDescriptor()==null?" cipango default":sipApp.getDefaultsDescriptor()));
         getLog().info("Sip overrides = "+(sipApp.getOverrideDescriptors()==null?" none":sipApp.getOverrideDescriptors()));
 

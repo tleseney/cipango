@@ -49,8 +49,7 @@ public abstract class AbstractMessageLog extends AbstractLifeCycle implements Ac
     {	
 		try
 		{
-			_logDateCache = new DateCache(_logDateFormat, _logLocale);
-			_logDateCache.setTimeZoneID(_logTimeZone);
+			_logDateCache = new DateCache(_logDateFormat, _logLocale, _logTimeZone);
 			
 			_generator = new SipMessageGenerator();
 			_buffer = ByteBuffer.allocate(64 * 1024);

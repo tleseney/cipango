@@ -84,9 +84,9 @@ public class MetaData
      * These are from WEB-INF/classes or the ??container path??
      * @param annotations
      */
-    public void addDiscoveredAnnotations(List<DiscoveredAnnotation> annotations)
+    public void addDiscoveredAnnotation(DiscoveredAnnotation annotation)
     {
-        _annotations.addAll(annotations);
+        _annotations.add(annotation);
     }
     
     public void addDescriptorProcessor(DescriptorProcessor p)

@@ -53,8 +53,7 @@ public class FileMessageLogger extends AbstractLifeCycle implements DiameterMess
 	
 	protected void doStart() throws Exception 
     {	
-		_logDateCache = new DateCache(_logDateFormat, _logLocale);
-		_logDateCache.setTimeZoneID(_logTimeZone);
+		_logDateCache = new DateCache(_logDateFormat, _logLocale, _logTimeZone);
 		
 		if (_filename != null) 
 			_out = new RolloverFileOutputStream(_filename, _append, _retainDays);

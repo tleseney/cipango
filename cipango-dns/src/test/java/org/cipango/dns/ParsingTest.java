@@ -191,7 +191,7 @@ public class ParsingTest
 		assertEquals(Type.AAAA, record.getType());
 		assertEquals("cipango.org", record.getName().toString());
 		assertEquals(DnsClass.IN, record.getDnsClass());
-		assertEquals(InetAddress.getByName(DnsServiceTest.IPV6_ADDR),
+		assertEquals(InetAddress.getByName("2001:41d0:2:7a93::1"),
 				((AaaaRecord) record).getAddress());
 	}
 	

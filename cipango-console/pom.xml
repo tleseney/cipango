@@ -52,8 +52,8 @@
       <version>1.3.2</version>
     </dependency>
     <dependency>
-      <groupId>org.eclipse.jetty.orbit</groupId>
-      <artifactId>javax.servlet</artifactId>
+      <groupId>javax.servlet</groupId>
+      <artifactId>javax.servlet-api</artifactId>
       <scope>provided</scope>
     </dependency>
 		<dependency>
@@ -97,10 +97,6 @@
 				<exclusion>
           <groupId>commons-validator</groupId>
           <artifactId>commons-validator</artifactId>
-        </exclusion>
-				<exclusion>
-          <groupId>commons-logging</groupId>
-          <artifactId>commons-logging</artifactId>
         </exclusion>
 				<exclusion>
           <groupId>commons-chain</groupId>

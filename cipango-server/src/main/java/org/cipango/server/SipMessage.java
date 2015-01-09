@@ -544,6 +544,12 @@ public abstract class SipMessage implements SipServletMessage
 			return length;
 		}
 	}
+	
+	
+	public long getContentLengthLong() 
+	{
+		return getContentLength();
+	}
 
 	@Override
 	public String getContentType() 

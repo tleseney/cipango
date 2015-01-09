@@ -16,6 +16,7 @@ package org.cipango.annotations;
 import static org.junit.Assert.*;
 
 import java.util.EventListener;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
@@ -24,11 +25,16 @@ import org.cipango.server.servlet.SipServletHandler;
 import org.cipango.server.servlet.SipServletHolder;
 import org.cipango.server.sipapp.SipAppContext;
 import org.eclipse.jetty.annotations.AnnotationParser;
+import org.eclipse.jetty.annotations.AnnotationConfiguration.ParserTask;
+import org.eclipse.jetty.annotations.AnnotationParser.Handler;
 import org.eclipse.jetty.plus.annotation.Injection;
 import org.eclipse.jetty.plus.annotation.InjectionCollection;
 import org.eclipse.jetty.security.ConstraintSecurityHandler;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.util.resource.FileResource;
 import org.eclipse.jetty.util.resource.Resource;
+import org.eclipse.jetty.util.statistic.CounterStatistic;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,7 +50,9 @@ public class AnnotedServletTest
 		_context = new SipAppContext();
 		_webAppContext = new WebAppContext();
 		_context.setWebAppContext(_webAppContext);
+		_webAppContext.setServer(new Server());
 		_webAppContext.setSecurityHandler(new ConstraintSecurityHandler());
+		((LifeCycle)_webAppContext.getServer().getThreadPool()).start();
 	}
 	
 	@Test
@@ -55,19 +63,22 @@ public class AnnotedServletTest
         	@Override
     		public void parseContainerPath(WebAppContext arg0, AnnotationParser arg1) throws Exception
     		{
-
+        		 _containerPathStats = new CounterStatistic();
     		}
 
     		@Override
     		public void parseWebInfClasses(WebAppContext context, AnnotationParser parser) throws Exception
     		{
     			Resource r = new FileResource(AnnotedServletTest.class.getResource("resources"));
-    	        parser.parseDir(r , new SimpleResolver());
+    			ParserTask task = new ParserTask(parser, new HashSet<Handler>(_discoverableAnnotationHandlers), r, new SimpleResolver());
+                _parserTasks.add(task);
+                _webInfClassesStats = new CounterStatistic();
     		}
 
     		@Override
     		public void parseWebInfLib(WebAppContext arg0, AnnotationParser arg1) throws Exception
     		{
+    			_webInfLibStats = new CounterStatistic();
     		}
         };
         annotConfiguration.preConfigure(_webAppContext);

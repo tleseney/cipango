@@ -103,5 +103,11 @@
       <artifactId>cipango-dns</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+    <groupId>org.eclipse.jetty.toolchain</groupId>
+	  <artifactId>jetty-schemas</artifactId>
+	  <version>3.1.M0</version>
+	  <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>

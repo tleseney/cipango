@@ -86,6 +86,7 @@ import org.cipango.sip.SipURIImpl;
 import org.cipango.sip.URIFactory;
 import org.cipango.util.StringUtil;
 import org.eclipse.jetty.server.handler.HandlerWrapper;
+import org.eclipse.jetty.servlet.ServletContextHandler.Decorator;
 import org.eclipse.jetty.util.ArrayUtil;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
@@ -209,7 +210,7 @@ public class SipAppContext extends SipHandlerWrapper
 			{
 				if (getServletHandler().getServlets() != null)
 					for (SipServletHolder holder : getServletHandler().getServlets())
-						decorator.decorateServletHolder(holder);
+						decorator.decorate(holder);
 			}
 		}
 		catch (Throwable e)
@@ -1057,10 +1058,4 @@ public class SipAppContext extends SipHandlerWrapper
 		}	
     }
 	
-	public interface Decorator extends org.eclipse.jetty.servlet.ServletContextHandler.Decorator
-	{
-		void decorateServletHolder(SipServletHolder servlet) throws ServletException;
-	}
-
-
 }

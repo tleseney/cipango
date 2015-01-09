@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2010-2012 NEXCOM Systems
+// Copyright 2006-2015 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,16 +13,19 @@
 // ========================================================================
 package org.cipango.deploy.providers;
 
+import org.cipango.server.SipServer;
 import org.cipango.server.session.SessionManager;
 import org.cipango.server.sipapp.SipAppContext;
 import org.eclipse.jetty.deploy.App;
 import org.eclipse.jetty.deploy.providers.WebAppProvider;
 import org.eclipse.jetty.server.handler.ContextHandler;
+import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.webapp.WebAppContext;
 
 public class SipAppProvider extends WebAppProvider
 {
-	
+	private static final Logger LOG = Log.getLogger(SipAppProvider.class);
 	private String _defaultsSipDescriptor;
 	private String _sessionManagerClass;
 	
@@ -30,7 +33,14 @@ public class SipAppProvider extends WebAppProvider
     public ContextHandler createContextHandler(final App app) throws Exception
     {
         WebAppContext context = (WebAppContext) super.createContextHandler(app);
-                
+        
+        if (getConfigurationClasses() == null)
+        {
+        	SipServer server = getDeploymentManager().getServer().getBean(SipServer.class);
+        	LOG.debug("Using SipApp configuration: {}", server.defaultConfiguration());
+        	context.setConfigurationClasses(server.defaultConfiguration());
+        }
+        
         SipAppContext sipAppContext = new SipAppContext();
         sipAppContext.setWebAppContext(context, true);
         context.addBean(sipAppContext);

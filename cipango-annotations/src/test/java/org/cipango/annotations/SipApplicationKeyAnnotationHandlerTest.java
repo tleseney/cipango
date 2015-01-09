@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2010 NEXCOM Systems
+// Copyright 2010-2015 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,10 @@ package org.cipango.annotations;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
@@ -32,7 +36,7 @@ public class SipApplicationKeyAnnotationHandlerTest
 {
 	private SipAppContext _context;
 	private AnnotationParser _parser;
-	private SipApplicationKeyAnnotationHandler _handler;
+	private TestSipApplicationKeyAnnotationHandler _handler;
 
 	@Before
 	public void setUp() throws Exception
@@ -41,8 +45,7 @@ public class SipApplicationKeyAnnotationHandlerTest
 		WebAppContext webAppContext = new WebAppContext();
 		_context.setWebAppContext(webAppContext);
 		_parser = new AnnotationParser();
-		_handler = new SipApplicationKeyAnnotationHandler(webAppContext);
-        _parser.registerHandler(_handler);
+		_handler = new TestSipApplicationKeyAnnotationHandler(webAppContext);
 	}
 
 	@Test
@@ -55,8 +58,10 @@ public class SipApplicationKeyAnnotationHandlerTest
 	@SuppressWarnings("rawtypes")
 	private void parse(Class clazz) throws Exception
 	{
-		 _parser.parse(clazz.getName(), new SimpleResolver());
-		 for (DiscoveredAnnotation annotation : _handler.getAnnotationList())
+		List<String> classes = new ArrayList<String>();
+        classes.add(clazz.getName());
+		 _parser.parse(Collections.singleton(_handler), classes, new SimpleResolver());
+		 for (DiscoveredAnnotation annotation : _handler._list)
 			 annotation.apply();
 	}
 
@@ -79,6 +84,24 @@ public class SipApplicationKeyAnnotationHandlerTest
 	}
 	
 
+}
+
+
+class TestSipApplicationKeyAnnotationHandler extends SipApplicationKeyAnnotationHandler
+{
+	List<DiscoveredAnnotation> _list = new ArrayList<DiscoveredAnnotation>();
+
+	public TestSipApplicationKeyAnnotationHandler(WebAppContext context) {
+		super(context);
+	}
+
+	@Override
+	public void addAnnotation(DiscoveredAnnotation a) 
+	{
+		_list.add(a);
+		super.addAnnotation(a);
+	}
+	
 }
 
 class SimpleResolver implements ClassNameResolver

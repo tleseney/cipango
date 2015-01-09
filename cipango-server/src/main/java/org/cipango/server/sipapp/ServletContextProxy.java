@@ -349,4 +349,10 @@ public class ServletContextProxy implements ServletContext
 		_context.setSessionTrackingModes(arg0);
 	}
 
+	@Override
+	public String getVirtualServerName() 
+	{
+		return _context.getVirtualServerName();
+	}
+
 }

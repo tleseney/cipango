@@ -514,5 +514,11 @@ public class SipResponse extends SipMessage implements SipServletResponse
 	{
 		_proxyBranch = proxyBranch;
 	}
+
+	@Override
+	public void setContentLengthLong(long len) 
+	{
+		throw new UnsupportedOperationException();
+	}
 	
 }

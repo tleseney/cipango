@@ -39,11 +39,11 @@ public class ResourceAnnotationHandlerTest
 	@Test		
 	public void testBadResource() throws Exception
 	{
-		_decorator.decorateServletInstance(new BadRessource());
+		_decorator.decorate(new BadRessource());
 		
 		assertNull(_injections.getInjections(BadRessource.class.getName()));
 		
-		_decorator.decorateServletInstance(new BadRessource2());
+		_decorator.decorate(new BadRessource2());
 		assertNull(_injections.getInjections(BadRessource2.class.getName()));
 	}
 
@@ -51,7 +51,7 @@ public class ResourceAnnotationHandlerTest
 	public void testSipFactory() throws Exception
 	{
 		_context.setName("org.cipango.kaleo");
-		_decorator.decorateListenerInstance(new ListenerRessource());
+		_decorator.decorate(new ListenerRessource());
 	
 		List<Injection> injections = _injections.getInjections(ListenerRessource.class.getName());
 		assertEquals(1, injections.size());

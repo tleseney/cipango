@@ -113,7 +113,7 @@ public class VelocityConsoleServlet extends VelocityLayoutServlet
 		if (!connection.isConnectionValid() && !_localConnection.isConnectionValid())
 		{
 			response.sendError(503 ,"JMX is not enabled, unable to use cipango console. Please start Cipango with:\n" +
-			"\tjava -jar start.jar --pre=etc/jetty-jmx.xml");
+			"\tjava -jar start.jar --module=jmx");
 			return;
 		}
 		

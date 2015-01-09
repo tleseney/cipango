@@ -56,18 +56,19 @@ public class SipDescriptor extends Descriptor
     {
         XmlParser xmlParser = new WebDescriptor(null).newParser();
         
-        URL jsp21xsd = Loader.getResource(Servlet.class, "org/cipango/server/sipapp/jsp_2_1.xsd", true);
+        URL jsp21xsd = Loader.getResource(Servlet.class, "org/cipango/server/sipapp/jsp_2_1.xsd");
         redirect(xmlParser,"jsp_2_1.xsd",jsp21xsd);
         
         //set up cache of DTDs and schemas locally        
-        URL dtd10 = Loader.getResource(SipServlet.class,"javax/servlet/sip/resources/sip-app_1_0.dtd", true);
-		URL sipapp11xsd = Loader.getResource(SipServlet.class,"javax/servlet/sip/resources/sip-app_1_1.xsd", true);
-        URL javaee5xsd = Loader.getResource(Servlet.class, "javax/servlet/resources/javaee_5.xsd", true);
+        URL dtd10 = Loader.getResource(SipServlet.class,"javax/servlet/sip/resources/sip-app_1_0.dtd");
+		URL sipapp11xsd = Loader.getResource(SipServlet.class,"javax/servlet/sip/resources/sip-app_1_1.xsd");
+        URL javaee5xsd = Loader.getResource(Servlet.class, "javax/servlet/resources/javaee_5.xsd");
         
 		redirect(xmlParser, "-//Java Community Process//DTD SIP Application 1.0//EN", dtd10);
 		redirect(xmlParser, "javaee_5.xsd", javaee5xsd);
 		redirect(xmlParser, "sip-app_1_1.xsd", sipapp11xsd);
 		redirect(xmlParser, "http://www.jcp.org/xml/ns/sipservlet/sip-app_1_1.xsd", sipapp11xsd);
+
 		return xmlParser;
     }
     

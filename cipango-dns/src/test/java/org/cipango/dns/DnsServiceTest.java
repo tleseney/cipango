@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2006-2013 NEXCOM Systems
+// Copyright 2006-2015 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,7 +13,11 @@
 // ========================================================================
 package org.cipango.dns;
 
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.net.DatagramSocket;
 import java.net.Inet4Address;
@@ -27,8 +31,6 @@ import java.util.List;
 import java.util.MissingResourceException;
 import java.util.Random;
 
-import junit.framework.Assert;
-
 import org.cipango.dns.bio.TcpConnector;
 import org.cipango.dns.bio.UdpConnector;
 import org.cipango.dns.record.ARecord;
@@ -38,6 +40,7 @@ import org.cipango.dns.record.PtrRecord;
 import org.cipango.dns.record.Record;
 import org.cipango.dns.record.SrvRecord;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,7 +53,7 @@ public class DnsServiceTest
 	private DnsService _dnsService;
 	private Class<DnsConnector> _connectorClass;
 	public static final String  IPV4_ADDR = "213.186.33.5";
-	public static final String  IPV6_ADDR = "2001:41d0:2:7a93::1";
+	public static final String  IPV6_ADDR = "2001:41d0:1:1b00:87:98:255:2";
 	
 	
 	@Before
@@ -59,6 +62,10 @@ public class DnsServiceTest
 		_dnsService = new DnsService();
 		_dnsService.addConnector(_connectorClass.newInstance());
 		_dnsService.start();
+		
+		Assume.assumeThat(
+				"jira.cipango.org DNS entry does not point to right IP address",
+				InetAddress.getByName("jira.cipango.org"), is(InetAddress.getByName(IPV4_ADDR)));
 	}
 	
 	@Parameters
@@ -369,10 +376,10 @@ public class DnsServiceTest
 	{
 		InetAddress[] actual = _dnsService.lookupAllHostAddr(name);
 		if (actual == null || actual.length == 0)
-			Assert.fail("Got no records for " + name);
+			fail("Got no records for " + name);
 		
 		if (actual.length != 1)
-			Assert.fail("Got multiple records for " + name + ": " + Arrays.asList(actual));
+			fail("Got multiple records for " + name + ": " + Arrays.asList(actual));
 		
 		InetAddress expectedAddr = InetAddress.getByName(expectedIp);
 		assertEquals(expectedAddr, actual[0]);

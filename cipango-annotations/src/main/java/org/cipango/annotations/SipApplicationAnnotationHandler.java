@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2010 NEXCOM Systems
+// Copyright 2010-2015 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,10 +13,9 @@
 // ========================================================================
 package org.cipango.annotations;
 
-import java.util.List;
-
-import org.eclipse.jetty.annotations.AbstractDiscoverableAnnotationHandler;
-import org.eclipse.jetty.annotations.AnnotationParser.Value;
+import org.eclipse.jetty.annotations.AnnotationParser.ClassInfo;
+import org.eclipse.jetty.annotations.AnnotationParser.FieldInfo;
+import org.eclipse.jetty.annotations.AnnotationParser.MethodInfo;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.webapp.WebAppContext;
@@ -31,34 +30,32 @@ public class SipApplicationAnnotationHandler extends AbstractDiscoverableAnnotat
 		super(context);
 	}
 	
-	public void handleClass(String className, int version, int access, String signature, String superName,
-			String[] interfaces, String annotation, List<Value> values)
+	public void handle(ClassInfo info, String annotationName)
 	{
+		if (annotationName == null || !"javax.servlet.sip.annotation.SipApplication".equals(annotationName))
+            return;
 		if (_className == null)
-			_className = className;
+			_className = info.getClassName();
 		else
 			throw new IllegalStateException("More than one javax.servlet.sip.annotation.SipApplication annotation. Got class "
-					+ className + " and " + _className);
-		
-		addAnnotation(new SipApplicationAnnotation(_context, className));
+					+ info.getClassName() + " and " + _className);
+		addAnnotation(new SipApplicationAnnotation(_context, info.getClassName()));
 	}
 
-	public void handleMethod(String className, String methodName, int access, String desc, String signature,
-			String[] exceptions, String annotation, List<Value> values)
+	public void handle(MethodInfo info, String annotationName)
 	{
-		LOG.warn ("@SipApplication annotation ignored on method: "+className+"."+methodName+" "+signature);
+		if (annotationName == null || !"javax.servlet.sip.annotation.SipApplication".equals(annotationName))
+            return;
+		LOG.warn ("@SipApplication annotation ignored on method: "
+				+info.getClassInfo().getClassName()+"."+info.getMethodName()+" "+info.getSignature());
 	}
 
-	public void handleField(String className, String fieldName, int access, String fieldType,
-			String signature, Object value, String annotation, List<Value> values)
+	public void handle(FieldInfo info, String annotationName)
 	{
-		LOG.warn ("@SipApplication annotation not applicable for fields: "+className+"."+fieldName);
-	}
-
-	@Override
-	public String getAnnotationName()
-	{
-		return "javax.servlet.sip.annotation.SipApplication";
+		if (annotationName == null || !"javax.servlet.sip.annotation.SipApplication".equals(annotationName))
+            return;
+		LOG.warn ("@SipApplication annotation not applicable for fields: "
+				+info.getClassInfo().getClassName()+"."+info.getFieldName());
 	}
 
 }

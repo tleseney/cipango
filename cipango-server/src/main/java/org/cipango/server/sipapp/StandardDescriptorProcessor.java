@@ -32,7 +32,7 @@ import org.cipango.server.sipapp.rules.NotRule;
 import org.cipango.server.sipapp.rules.OrRule;
 import org.cipango.server.sipapp.rules.SubdomainRule;
 import org.eclipse.jetty.security.UserDataConstraint;
-import org.eclipse.jetty.servlet.Holder.Source;
+import org.eclipse.jetty.servlet.BaseHolder.Source;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.webapp.Descriptor;

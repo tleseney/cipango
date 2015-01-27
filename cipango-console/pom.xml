@@ -8,6 +8,9 @@
   <artifactId>cipango-console</artifactId>
   <name>Cipango :: console</name>
   <packaging>war</packaging>
+  <properties>
+    <bundle-symbolic-name>${project.groupId}.console</bundle-symbolic-name>
+  </properties>
 
   <build>
     <plugins>

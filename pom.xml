@@ -48,20 +48,40 @@
           </execution>
         </executions>
       </plugin>
+      <!-- Build helper maven plugin sets the parsedVersion.osgiVersion property -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>set-osgi-version</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>parse-version</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>manifest</goal>
+            </goals>
+           </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
         <configuration>
-          <archive>
-            <manifestEntries>
-              <mode>development</mode>
-              <url>${project.url}</url>
-              <implementation-version>${project.version}</implementation-version>
-              <package>org.cipango</package>
-            </manifestEntries>
-          </archive>
+         <archive>
+            <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+         </archive>
         </configuration>
-      </plugin>
+     </plugin>
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -102,6 +122,11 @@
           <version>2.5</version>
         </plugin>
         <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>1.5</version>
+        </plugin>
+        <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-antrun-plugin</artifactId>
           <version>1.6</version>
@@ -133,17 +158,36 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-source-plugin</artifactId>
-          <version>2.1</version>
+          <version>2.1.2</version>
         </plugin>
         <plugin>
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-bundle-plugin</artifactId>
-          <version>2.1.0</version>
+          <version>2.3.7</version>
+          <extensions>true</extensions>
+          <configuration>
+            <supportedProjectTypes>
+              <supportedProjectType>jar</supportedProjectType>
+              <supportedProjectType>maven-plugin</supportedProjectType>        
+              <supportedProjectType>war</supportedProjectType>
+            </supportedProjectTypes>
+            <instructions>
+              <Bundle-SymbolicName>${bundle-symbolic-name}</Bundle-SymbolicName>
+              <Bundle-Description>Cipango module for ${project.name}</Bundle-Description>
+              <Bundle-RequiredExecutionEnvironment>JavaSE-1.7</Bundle-RequiredExecutionEnvironment>
+              <Bundle-DocURL>http://confluence.cipango.org/</Bundle-DocURL>
+              <Bundle-Vendor>Cipango Project</Bundle-Vendor>
+              <Bundle-Classpath>.</Bundle-Classpath>
+              <Export-Package>${bundle-symbolic-name}.*;version="${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}"</Export-Package>
+              <Bundle-Copyright>Copyright (c) 2006-2015 NEXCOM Systems.</Bundle-Copyright>
+              <_versionpolicy>[$(version;==;$(@)),$(version;+;$(@)))</_versionpolicy>
+            </instructions>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
-          <version>2.2</version>
+          <version>2.3.1</version>
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>

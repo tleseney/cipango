@@ -22,34 +22,14 @@
             <goals>
               <goal>manifest</goal>
             </goals>
-            <phase>process-classes</phase>
             <configuration>
               <instructions>
-                <Import-Package>javax.servlet.*;version="2.6.0",org.slf4j;version="[1.5,2.0)";resolution:=optional,org.slf4j.impl;version="[1.5,2.0)";resolution:=optional,*</Import-Package>
+                <Import-Package>javax.servlet.*;version="[2.6.0,3.2)",*</Import-Package>
               </instructions>
             </configuration>
            </execution>
         </executions>
       </plugin>
-      <plugin>
-        <!--
-        Required for OSGI
-        -->
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <configuration>
-          <archive>
-            <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
-          </archive>
-        </configuration>
-      </plugin>
-<!--      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-        <configuration>
-          <onlyAnalyze>org.eclipse.jetty.util.*</onlyAnalyze>
-        </configuration>
-      </plugin> -->
     </plugins>
   </build>
   <dependencies>

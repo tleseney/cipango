@@ -20,7 +20,7 @@
         <extensions>true</extensions>
         <configuration>
           <instructions>
-            <Import-Package>org.eclipse.jetty.jmx.*;version="[9,10)";resolution:=optional,*</Import-Package>
+            <Import-Package>javax.servlet.sip.*;version="1.1",javax.servlet.*;version="[2.6.0,3.2)",org.eclipse.jetty.jmx.*;version="[9,10)";resolution:=optional,*</Import-Package>
           </instructions>
         </configuration>
         <executions>
@@ -28,19 +28,8 @@
             <goals>
               <goal>manifest</goal>
             </goals>
-            <phase>process-classes</phase>
           </execution>
         </executions>
-      </plugin>
-      
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <configuration>
-          <archive>
-            <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
-          </archive>
-        </configuration>
       </plugin>
 
       <plugin>

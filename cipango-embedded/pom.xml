@@ -8,6 +8,9 @@
   <artifactId>cipango-embedded-examples</artifactId>
   <packaging>jar</packaging>
   <name>Cipango :: Embedded examples</name>
+  <properties>
+    <bundle-symbolic-name>${project.groupId}.embedded-examples</bundle-symbolic-name>
+  </properties>
     
   <dependencies>
     <dependency>

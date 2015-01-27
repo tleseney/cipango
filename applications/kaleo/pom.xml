@@ -9,6 +9,9 @@
 	<artifactId>cipango-kaleo</artifactId>
 	<name>Cipango :: Applications :: Kaleo</name>
 	<packaging>war</packaging>
+	<properties>
+		<bundle-symbolic-name>${project.groupId}.kaleo</bundle-symbolic-name>
+	</properties>
 
 	<build>
 		<testResources>

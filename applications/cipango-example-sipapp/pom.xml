@@ -9,6 +9,9 @@
   <artifactId>cipango-example-sipapp</artifactId>
   <packaging>war</packaging>
   <name>Cipango :: Applications :: Example sipapp</name>
+  <properties>
+    <bundle-symbolic-name>${project.groupId}.example</bundle-symbolic-name>
+  </properties>
 
   <build>
     <finalName>${project.artifactId}</finalName>

@@ -1,9 +1,20 @@
+/========================================================================
+//Copyright 2006-2015 NEXCOM Systems
+//------------------------------------------------------------------------
+//Licensed under the Apache License, Version 2.0 (the "License");
+//you may not use this file except in compliance with the License.
+//You may obtain a copy of the License at 
+//http://www.apache.org/licenses/LICENSE-2.0
+//Unless required by applicable law or agreed to in writing, software
+//distributed under the License is distributed on an "AS IS" BASIS,
+//WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//See the License for the specific language governing permissions and
+//limitations under the License.
+//========================================================================
 package org.cipango.sip.labs;
 
-import java.net.InetAddress;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.EnumMap;
 import java.util.Iterator;
 import java.util.List;
@@ -11,7 +22,8 @@ import java.util.List;
 import javax.servlet.sip.SipURI;
 
 import org.cipango.sip.SipScheme;
-import org.eclipse.jetty.util.StringMap;
+import org.eclipse.jetty.util.ArrayTrie;
+import org.eclipse.jetty.util.Trie;
 import org.eclipse.jetty.util.TypeUtil;
 import org.eclipse.jetty.util.UrlEncoded;
 
@@ -21,7 +33,7 @@ public class SipURIImpl2 implements SipURI
 	enum State { USER, PASSWORD, HOST, PORT, PARAMETERS, HEADERS }
 	enum Host { IPV4, NAME, IPV6 }
 
-	private static final StringMap CACHE = new StringMap(true);
+	private static Trie<Param> CACHE = new ArrayTrie<Param>();
 	
 	static 
 	{

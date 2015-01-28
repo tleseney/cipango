@@ -1,10 +1,28 @@
+// ========================================================================
+// Copyright 2006-2015 NEXCOM Systems
+// ------------------------------------------------------------------------
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at 
+// http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ========================================================================
 package org.cipango.sip;
 
 import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.ListIterator;
+import java.util.Locale;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
 import javax.servlet.sip.Address;
 import javax.servlet.sip.Parameterable;
@@ -12,12 +30,11 @@ import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.SipServletMessage.HeaderForm;
 
 import org.eclipse.jetty.util.BufferUtil;
-import org.eclipse.jetty.util.StringMap;
 import org.eclipse.jetty.util.StringUtil;
 
 public class SipFields implements Iterable<SipFields.Field>
 {
-	private final StringMap<Field> _map = new StringMap<SipFields.Field>(true);
+	private final Map<String, Field> _map = new LinkedHashMap<String, Field>();
 	
 	public SipFields()
 	{
@@ -29,14 +46,19 @@ public class SipFields implements Iterable<SipFields.Field>
 		_map.putAll(other._map);
 	}
 	
+	private String normalizeName(String name) 
+	{
+		return name.toLowerCase(Locale.ENGLISH);
+	}
+
 	public Field getField(SipHeader header)
 	{
-		return _map.get(header.toString());
+		return _map.get(normalizeName(header.toString()));
 	}
 	
 	public Field getField(String name)
 	{
-		return _map.get(name);
+		return _map.get(normalizeName(name));
 	}
 	
 	public Field getField(SipHeader header, String name)
@@ -49,7 +71,7 @@ public class SipFields implements Iterable<SipFields.Field>
 	
 	public boolean containsKey(String name)
 	{
-		return _map.containsKey(name);
+		return _map.containsKey(normalizeName(name));
 	}
 	
 	public String getString(String name)
@@ -83,18 +105,18 @@ public class SipFields implements Iterable<SipFields.Field>
 		
 		Field field = new Field(name, value);
 		
-		Field f = _map.get(name);
+		Field f = _map.get(normalizeName(name));
 		
 		if (f == null)
 		{
-			_map.put(name, field);
+			putInternal(field);
 		}
 		else
 		{
 			if (first)
 			{
 				field._next = f;
-				_map.put(name, field);
+				putInternal(field);
 			}
 			else 
 			{
@@ -120,7 +142,12 @@ public class SipFields implements Iterable<SipFields.Field>
 	public void set(String name, Object value)
 	{
 		name = SipHeader.getFormattedName(name);
-		_map.put(name, new Field(name, value));
+		putInternal(new Field(name, value));
+	}
+	
+	private void putInternal(Field field)
+	{
+		_map.put(normalizeName(field._name), field);
 	}
 	
 	public void set(SipHeader header, Object value)
@@ -136,16 +163,16 @@ public class SipFields implements Iterable<SipFields.Field>
 		
 		Field next = field._next;
 		if (next != null)
-			_map.put(next._name, next);
+			putInternal(next);
 		else
-			_map.remove(field._name);
+			remove(field._name);
 		
 		return field._value;
 	}
 	
 	public void remove(String name)
 	{
-		_map.remove(name);
+		_map.remove(normalizeName(name));
 	}
 	
 	public void copy(SipFields source, SipHeader header)
@@ -153,7 +180,7 @@ public class SipFields implements Iterable<SipFields.Field>
 		Field field = source.getField(header);
 		if (field != null)
 		{
-			_map.put(field._name, copy(field));
+			putInternal(copy(field));
 		}
 	}
 	
@@ -212,7 +239,10 @@ public class SipFields implements Iterable<SipFields.Field>
 	
     public Iterator<String> getNames()
     {
-    	return _map.keySet().iterator();
+    	Set<String> result = new LinkedHashSet<>();
+        for (Field field : _map.values())
+            result.add(field._name);
+        return result.iterator();
     }
 
     public ListIterator<Parameterable> getParameterableValues(SipHeader header, String name) throws ServletParseException

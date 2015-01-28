@@ -1,5 +1,5 @@
 //========================================================================
-//Copyright 2008-2012 NEXCOM Systems
+//Copyright 2006-2015 NEXCOM Systems
 //------------------------------------------------------------------------
 //Licensed under the Apache License, Version 2.0 (the "License");
 //you may not use this file except in compliance with the License.
@@ -19,7 +19,8 @@ import java.util.Random;
 import java.util.StringTokenizer;
 
 import org.cipango.util.StringUtil;
-import org.eclipse.jetty.util.StringMap;
+import org.eclipse.jetty.util.ArrayTrie;
+import org.eclipse.jetty.util.Trie;
 import org.eclipse.jetty.util.security.Credential;
 
 @SuppressWarnings("serial")
@@ -44,7 +45,7 @@ public class Authorization extends Credential
 		@Override public String toString() { return _string; }
 	}
 	
-	static StringMap<Param> CACHE = new StringMap<Param>(true);
+	static Trie<Param> CACHE = new ArrayTrie<Param>();
 	
 	static 
 	{

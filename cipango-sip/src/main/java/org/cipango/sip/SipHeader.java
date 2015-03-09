@@ -67,7 +67,7 @@ public enum SipHeader
 	MIN_EXPIRES("Min-Expires"),
 	MIN_SE("Min-SE"),
 	ORGANIZATION("Organization"),
-	P_ACCESS_NETWORK_INFO("P-Access-Network-Info"),
+	P_ACCESS_NETWORK_INFO("P-Access-Network-Info", Type.PARAMETERABLE, false, true, false),
 	P_ASSERTED_IDENTITY("P-Asserted-Identity", Type.STRING, false, true, false),
 	P_ASSOCIATED_URI("P-Associated-URI", Type.STRING, false, true, false),
 	P_CALLED_PARTY_ID("P-Called-Party-ID"),

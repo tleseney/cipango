@@ -58,7 +58,7 @@ public abstract class UaTestCase extends Assert
 	@Rule
     public Timeout _globalTimeout;
 	
-	private List<Endpoint> _endpoints = new ArrayList<Endpoint>();
+	protected List<Endpoint> _endpoints = new ArrayList<Endpoint>();
 	private int _nextPort;
 	
 	protected SipTestClient _sipClient;

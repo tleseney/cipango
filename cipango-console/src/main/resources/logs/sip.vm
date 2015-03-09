@@ -50,7 +50,7 @@
 		#if ($logger.Messages && $logger.Messages.size() > 0)
 			<div id="callflow">
 				#set ($height = 100 + $logger.Messages.size() * 25)
-				<embed src="message.svg?messageFilter=$esc.url($logger.MessageFilter)&maxMessages=$logger.MaxMessages" width="790" height="$height" type="image/svg+xml" pluginspage="http://www.adobe.com/svg/viewer/install/"/>
+				<embed src="../message.svg?messageFilter=$esc.url($logger.MessageFilter)&maxMessages=$logger.MaxMessages" width="790" height="$height" type="image/svg+xml" pluginspage="http://www.adobe.com/svg/viewer/install/"/>
 			</div>
 			
 			<div id="messageLog">

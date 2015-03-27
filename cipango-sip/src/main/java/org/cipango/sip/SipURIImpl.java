@@ -73,18 +73,18 @@ public class SipURIImpl implements SipURI, Serializable, Modifiable
 		}
 	}
 	
-	private boolean _secure = false;
+	private transient boolean _secure = false;
 
-	private String _user;
-	private String _password;
+	private transient String _user;
+	private transient String _password;
 	
-	private String _host;
-	private int _port = -1;
+	private transient String _host;
+	private transient int _port = -1;
 		
-	private EnumMap<Param, String> _params;
-	private Map<String, String> _otherParameters;
+	private transient EnumMap<Param, String> _params;
+	private transient Map<String, String> _otherParameters;
 	
-	private Map<String, String> _headers;
+	private transient Map<String, String> _headers;
 	private transient boolean _modified;
 	
 	public SipURIImpl(String user, String host, int port)

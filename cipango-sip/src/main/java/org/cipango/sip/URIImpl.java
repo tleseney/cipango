@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2008-2009 NEXCOM Systems
+// Copyright 2008-2015 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,10 +34,10 @@ public class URIImpl implements URI, Serializable, Modifiable
 	private static final BitSet SCHEME_BS = StringUtil.toBitSet(StringUtil.ALPHA + StringUtil.DIGITS + "+-.");
 
 		
-	private String _uri;
-	private String _scheme;
-	private String _file;
-	private HashMap<String, String> _params = new HashMap<String, String>();
+	private transient String _uri;
+	private transient String _scheme;
+	private transient String _file;
+	private transient HashMap<String, String> _params = new HashMap<String, String>();
 	private transient boolean _modified;
 	
 	protected URIImpl() { }

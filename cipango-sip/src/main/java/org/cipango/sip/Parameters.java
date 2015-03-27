@@ -30,7 +30,7 @@ public class Parameters
 	private final static BitSet END_PNAME = StringUtil.toBitSet(" \t;=");
 	private final static BitSet END_PVALUE = StringUtil.toBitSet(" \t;");
 	
-	private Map<String, String> _parameters;
+	private transient Map<String, String> _parameters;
 
 	public String getParameter(String name) 
 	{

@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2008-2012 NEXCOM Systems
+// Copyright 2008-2015 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39,13 +39,13 @@ public class AddressImpl extends Parameters implements Address, Serializable
 	
 	private static final BitSet DISPLAY_NAME_BS = StringUtil.toBitSet(StringUtil.TOKEN + " ");
 	
-	private String _displayName;
-	private String _string;
-	private boolean _wildcard;
+	private transient String _displayName;
+	private transient String _string;
+	private transient boolean _wildcard;
 	
-	private String _tag;
+	private transient String _tag;
 	
-	private URI _uri;
+	private transient URI _uri;
 	
 	public AddressImpl(String string) 
 	{

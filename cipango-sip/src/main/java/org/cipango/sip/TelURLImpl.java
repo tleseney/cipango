@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2008-2009 NEXCOM Systems
+// Copyright 2008-2015 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
-import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.TelURL;
 
 import org.cipango.util.StringUtil;
@@ -35,10 +34,10 @@ public class TelURLImpl implements TelURL, Serializable, Modifiable
 {	
 	private static final long serialVersionUID = 1l;
 	
-	private String _uri;
-	private String _scheme;
-	private String _number;
-	private HashMap<String, String> _params;
+	private transient String _uri;
+	private transient String _scheme;
+	private transient String _number;
+	private transient HashMap<String, String> _params;
 	private transient boolean _modified;
 	
 	public static final String PHONE_CONTEXT = "phone-context";

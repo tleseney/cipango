@@ -323,7 +323,7 @@ public abstract class UaTestCase extends Assert
 	public void startUacScenario() throws IOException, ServletException
 	{
 		SipServletRequest request = _ua.createRequest(SipMethods.REGISTER, getTo());
-		request.addHeader(SipHeaders.CONTACT, _sipClient.getContact().toString());
+		request.setAddressHeader(SipHeaders.CONTACT, _sipClient.getFactory().createAddress(_sipClient.getContact().clone()));
 		SipServletResponse response = _ua.sendSynchronous(request);
 		Assert.assertThat(response, isSuccess());
 	}

@@ -239,12 +239,15 @@ public class Session implements SipSessionIf, Dumpable
 		if (isUA())
 			throw new IllegalStateException("Session is " + _role);
 		
-		_role = Role.PROXY_RECORD_ROUTE;
-		
-		// In proxy local and remote party are inversed.
-		Address tmp = _remoteParty;
-		_remoteParty = _localParty;
-		_localParty = tmp;	
+		if (!isProxy())
+		{
+    		_role = Role.PROXY_RECORD_ROUTE;
+    		
+    		// In proxy local and remote party are inversed.
+    		Address tmp = _remoteParty;
+    		_remoteParty = _localParty;
+    		_localParty = tmp;
+		}
 	}
 	
 	public void setRecordRoute(boolean recordRoute)

@@ -1,3 +1,10 @@
+cipango-3.0.0 - 24 June 2015
+Bug
+    [CIPANGO-213] - Servlet is not invoked on MESSAGE responses if sent over TCP
+    remote and local party are inverted in proxy mode on subsequent requests
+    integration-tests client: Fix contact is wrongly set if it contains parameters
+Improvement
+    Reduce serialization size of following objects: Address, SipURI, TelURL and URI
 
 cipango-3.0.0.M4 - 13 October 2014
 Bug

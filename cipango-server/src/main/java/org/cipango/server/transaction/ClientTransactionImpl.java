@@ -228,7 +228,7 @@ public class ClientTransactionImpl extends TransactionImpl implements ClientTran
     					setState(State.COMPLETED);
     					ack(response);
     					if (isTransportReliable()) 
-    						terminate();
+    						startTimer(Timer.D, 0); // Use a timer of 0 in order to execute timer after listener has handled response
     					else 
     						startTimer(Timer.D, __TD);
     				}
@@ -246,7 +246,7 @@ public class ClientTransactionImpl extends TransactionImpl implements ClientTran
     					setState(State.COMPLETED);
     					ack(response);
     					if (isTransportReliable()) 
-    						terminate();
+    						startTimer(Timer.D, 0); // Use a timer of 0 in order to execute timer after listener has handled response
     					else 
     						startTimer(Timer.D, __TD);
     				}
@@ -284,7 +284,7 @@ public class ClientTransactionImpl extends TransactionImpl implements ClientTran
     					cancelTimer(Timer.E); cancelTimer(Timer.F);
     					setState(State.COMPLETED);
     					if (isTransportReliable()) 
-    						terminate(); // TIMER_K == 0
+    						startTimer(Timer.K, 0); // Use a timer of 0 in order to execute timer after listener has handled response
     					else 
     						startTimer(Timer.K, __T4);
     				}
@@ -298,7 +298,7 @@ public class ClientTransactionImpl extends TransactionImpl implements ClientTran
                         cancelTimer(Timer.E); cancelTimer(Timer.F);
     					setState(State.COMPLETED);
     					if (isTransportReliable())
-    						terminate();
+    						startTimer(Timer.K, 0); // Use a timer of 0 in order to execute timer after listener has handled response
     					else 
     						startTimer(Timer.K, __T4);
                         if (!isCancel())

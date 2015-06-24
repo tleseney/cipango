@@ -159,6 +159,27 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 		}
 	}
 	
+	public void testUacMessageTcp(SipServletRequest request) throws Exception
+	{
+		SipServletRequest message = getSipFactory().createRequest(getSipFactory().createApplicationSession(),
+				"MESSAGE", request.getTo(), request.getFrom());
+		SipSession session = message.getSession();
+		session.setHandler(getServletName());
+		message.setRequestURI(request.getAddressHeader("Contact").getURI().clone());
+		message.getRequestURI().setParameter("transport", "tcp");
+
+		getServletContext().setAttribute(getFailureKey(), "Servlet not invoked with response for testUacMessageTcp");
+		message.send();
+		
+		request.createResponse(SipServletResponse.SC_OK).send();
+	}
+	
+	public void testUacMessageTcp(SipServletResponse response) throws Exception
+	{
+		getServletContext().removeAttribute(getFailureKey());
+		assertThat(response.getSession(), hasState(State.INITIAL));
+	}
+	
 	public void testUacEarlyResponse(SipServletRequest request) throws Exception
 	{
 		SipSession session = request.getSession();

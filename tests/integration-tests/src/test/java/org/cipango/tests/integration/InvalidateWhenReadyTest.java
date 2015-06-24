@@ -26,6 +26,7 @@ import javax.servlet.sip.SipServletResponse;
 
 import org.cipango.client.Call;
 import org.cipango.client.Dialog;
+import org.cipango.client.SipClient;
 import org.cipango.client.SipHeaders;
 import org.cipango.client.SipMethods;
 import org.cipango.client.Subscriber;
@@ -129,6 +130,41 @@ public class InvalidateWhenReadyTest extends UaTestCase
 	public void testUac4xx() throws Throwable 
 	{
 		UaRunnable call = new UasScript.RingingForbidden(_ua);
+		call.start();
+		startUacScenario();
+		call.join(2000);
+		call.assertDone();
+		checkForFailure();
+	}
+	
+	/**
+	 * Ensures that servlet is notified for a response received over TCP (i.e. session is not invalidated too early).
+	 * <pre>
+	 * Alice                         AS
+	 *   | REGISTER                   |
+	 *   |--------------------------->|
+	 *   |                        200 |
+	 *   |<---------------------------|
+	 *   |                    MESSAGE |
+	 *   |<---------------------------|
+	 *   | 200                        |
+	 *   |--------------------------->|
+	 * </pre>
+	 */
+	@Test
+	public void testUacMessageTcp() throws Throwable 
+	{
+		_sipClient.addConnector(SipClient.Protocol.TCP, getLocalHost(), getLocalPort());
+		_ua.getOutboundProxy().getURI().setParameter("transport", "tcp");
+		UaRunnable call = new UaRunnable(_ua) {
+
+			@Override
+			public void doTest() throws Throwable {
+				SipServletRequest request = waitForInitialRequest();
+				_ua.createResponse(request, SipServletResponse.SC_OK).send();
+			}
+			
+		};
 		call.start();
 		startUacScenario();
 		call.join(2000);

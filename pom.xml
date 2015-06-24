@@ -99,7 +99,17 @@
           <failIfNoTests>false</failIfNoTests>
         </configuration>
       </plugin>
+      
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <configuration>
+          <additionalparam>${javadoc.doclint.none}</additionalparam>
+        </configuration>
+      </plugin>
+      
     </plugins>
+    
 
     <extensions>
       <extension>
@@ -454,5 +464,17 @@
       <url>http://repository.cipango.org/</url>
     </repository>
   </repositories>
+  
+  <profiles>
+      <profile>
+        <id>java8-disable-strict-javadoc</id>
+        <activation>
+            <jdk>[1.8,)</jdk>
+        </activation>
+        <properties>
+            <javadoc.doclint.none>-Xdoclint:none</javadoc.doclint.none>
+        </properties>
+    </profile>
+  </profiles>
 </project>
 

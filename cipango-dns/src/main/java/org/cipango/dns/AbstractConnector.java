@@ -113,11 +113,16 @@ public abstract class AbstractConnector extends AbstractLifeCycle implements Dns
 	
 	protected DnsMessage waitAnswer(DnsMessage request, int timeout)
 	{
+		MsgContainer messages;
+		synchronized (_queries)
+		{
+			messages = _queries.get(request.getHeaderSection().getId());
+		}
 		synchronized (request)
 		{
-			try { request.wait(timeout); } catch (InterruptedException e) {}				
+			if (messages == null || messages.getAnswer() == null)
+				try { request.wait(timeout); } catch (InterruptedException e) {}				
 		}
-		MsgContainer messages;
 		synchronized (_queries)
 		{
 

@@ -1,3 +1,8 @@
+cipango-3.0.1 - 30 June 2015
+Bug
+    Cipango-DNS: fix issue when DNS answer is received very fastly
+    Cipango-client: Fix concurrent issues 
+    
 cipango-3.0.0 - 24 June 2015
 Bug
     [CIPANGO-213] - Servlet is not invoked on MESSAGE responses if sent over TCP

@@ -19,9 +19,9 @@ import javax.servlet.ServletException;
 import javax.servlet.sip.SipApplicationSession;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
+import javax.servlet.sip.SipSession;
 
 import org.junit.Assert;
-
 import org.cipango.client.Dialog;
 import org.cipango.client.MessageHandler;
 import org.cipango.server.session.ApplicationSession;
@@ -136,15 +136,18 @@ public abstract class UaRunnable extends Thread
 	{
 		synchronized(_dialog)
 		{
-			try { _dialog.wait(_ua.getTimeout()); } catch (InterruptedException e) { }
+			if (getInitialRequest() == null)
+				try { _dialog.wait(_ua.getTimeout()); } catch (InterruptedException e) { }
 		}
 		return getInitialRequest();
 	}
 	
 	public SipServletRequest getInitialRequest()
 	{
-		return (SipServletRequest) _dialog.getSession().getAttribute(
-				Dialog.INITIAL_REQUEST_ATTRIBUTE);
+		SipSession session = _dialog.getSession();
+		if (session == null)
+			return null;
+		return (SipServletRequest) session.getAttribute(Dialog.INITIAL_REQUEST_ATTRIBUTE);
 	}
 
 	public Dialog getDialog()

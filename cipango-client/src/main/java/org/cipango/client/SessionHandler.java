@@ -172,10 +172,15 @@ public class SessionHandler extends AbstractChallengedMessageHandler
 	
 	protected SipServletResponse waitForResponse(boolean markRead)
 	{
+		return waitForResponse(markRead, getTimeout());
+	}
+	
+	protected SipServletResponse waitForResponse(boolean markRead, long duration)
+	{
 		SipServletResponse response = getUnreadResponse();
 		if (response == null)
 		{
-			doWait(_responses);
+			doWait(_responses, duration);
 			response = getUnreadResponse();
 		}
 		if (markRead)
@@ -189,8 +194,7 @@ public class SessionHandler extends AbstractChallengedMessageHandler
 
 		while (System.currentTimeMillis() <= end)
 		{
-			doWait(_responses, end - System.currentTimeMillis());
-			SipServletResponse response = waitForResponse(false);
+			SipServletResponse response = waitForResponse(false, end - System.currentTimeMillis());
 			if (response.getStatus() >= 200)
 			{
 				setRead(response);

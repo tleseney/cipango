@@ -254,7 +254,10 @@ public class ClientTransactionImpl extends TransactionImpl implements ClientTran
     				break;
                     
     			case COMPLETED:
-    				ack(response);
+    				if (response.getStatus() >= 300)
+    					ack(response);
+    				else
+    					LOG.debug("Unexpected response {} in Completed state", response);
     				break;
     			case ACCEPTED:
     				if (!(200 <= status && status < 300))

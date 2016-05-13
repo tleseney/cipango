@@ -407,7 +407,7 @@ public class B2bHelper implements B2buaHelper
 			throw new IllegalArgumentException("SipSession " + session + " is terminated");
 	}
 	
-	private static List<Session> findCloneSessions(Session session, boolean uac)
+	public static List<Session> findCloneSessions(Session session, boolean uac)
 	{
 		Iterator<?> it = session.appSession().getSessions("sip");
 		List<Session> l = new ArrayList<Session>();

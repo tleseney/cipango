@@ -14,10 +14,7 @@
 package org.cipango.tests.integration;
 
 
-import static org.cipango.client.test.matcher.SipMatchers.hasStatus;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 
 import java.util.concurrent.Semaphore;
 
@@ -878,6 +875,199 @@ public class InvalidateWhenReadyTest extends UaTestCase
 		callA.createAck().send();
 
 		Thread.sleep(500);
+		callA.createBye().send();
+		assertThat(callA.waitForResponse(), isSuccess());
+
+		callB.assertDone();
+		callC.assertDone();
+
+		checkForFailure();
+
+	}
+	
+	/**
+	 * Ensures that in case of forks, sessions for which no final response
+	 * has been received are invalidated when initial transaction is terminated.
+	 * 
+	 * Alice         B2B       Proxy       Bob           Carol
+	 *   | INVITE     |          |           |              |
+	 *   |----------->|          |           |              |
+	 *   |            | INVITE   |           |              |
+	 *   |            |--------->|           |              |
+	 *   |            |          | INVITE    |              |
+	 *   |            |          |---------->|              |
+	 *   |            |          | INVITE    |              |
+	 *   |            |          |------------------------->|
+	 *   |            |          |       180 |              |
+	 *   |            |          |<----------|              |
+	 *   |            |      180 |           |              |
+	 *   |            |<---------|           |              |
+	 *   |        180 |          |           |              |
+	 *   |<-----------|          |           |              |
+	 *   |            |          |       180 |              |
+	 *   |            |          |<-------------------------|
+	 *   |            |      180 |           |              |
+	 *   |            |<---------|           |              |
+	 *   |        180 |          |           |              |
+	 *   |<-----------|          |           |              |
+	 *   |            |          |       404 |              |
+	 *   |            |          |<----------|              |
+	 *   |            |          | ACK       |              |
+	 *   |            |          |---------->|              |
+	 *   |            |          |           |          200 |
+	 *   |            |          |<-------------------------|
+	 *   |            |      200 |           |              |
+	 *   |            |<---------|           |              |
+	 *   |        200 |          |           |              |
+	 *   |<-----------|          |           |              |
+	 *   | ACK        |          |           |              |
+	 *   |----------->|          |           |              |
+	 *   |            | ACK      |           |              |
+	 *   |            |------------------------------------>|
+	 *   
+	 *   waits 32 seconds to ensures that initial tx is terminated
+	 *   
+	 *   | BYE        |          |           |              |
+	 *   |----------->|          |           |              |
+	 *   
+	 *   Ensure that derived sessions are invalidated.
+	 *   
+	 *   |            | BYE      |           |              |
+	 *   |            |------------------------------------>|
+	 *   |            |          |           |          200 |
+	 *   |            |<------------------------------------|
+	 *   |        200 |          |           |              |
+	 *   |<-----------|          |           |              |
+	 * </pre>
+	 */
+	@Test
+	@Category(NotCompliantV2.class)
+	public void testB2bFork() throws Throwable
+	{
+		testB2bFork(true);
+	}
+	
+	/**
+	 * Ensures that in case of forks, sessions for which no final response
+	 * has been received are invalidated when initial transaction is terminated.
+	 * 
+	 * Alice         B2B       Proxy       Bob           Carol
+	 *   | INVITE     |          |           |              |
+	 *   |----------->|          |           |              |
+	 *   |            | INVITE   |           |              |
+	 *   |            |--------->|           |              |
+	 *   |            |          | INVITE    |              |
+	 *   |            |          |---------->|              |
+	 *   |            |          | INVITE    |              |
+	 *   |            |          |------------------------->|
+	 *   |            |          |       180 |              |
+	 *   |            |          |<-------------------------|
+	 *   |            |      180 |           |              |
+	 *   |            |<---------|           |              |
+	 *   |        180 |          |           |              |
+	 *   |<-----------|          |           |              |
+	 *   |            |          |       180 |              |
+	 *   |            |          |<----------|              |
+	 *   |            |      180 |           |              |
+	 *   |            |<---------|           |              |
+	 *   |        180 |          |           |              |
+	 *   |<-----------|          |           |              |
+	 *   |            |          |       404 |              |
+	 *   |            |          |<----------|              |
+	 *   |            |          | ACK       |              |
+	 *   |            |          |---------->|              |
+	 *   |            |          |           |          200 |
+	 *   |            |          |<-------------------------|
+	 *   |            |      200 |           |              |
+	 *   |            |<---------|           |              |
+	 *   |        200 |          |           |              |
+	 *   |<-----------|          |           |              |
+	 *   | ACK        |          |           |              |
+	 *   |----------->|          |           |              |
+	 *   |            | ACK      |           |              |
+	 *   |            |------------------------------------>|
+	 *   
+	 *   waits 32 seconds to ensures that initial tx is terminated
+	 *   
+	 *   | BYE        |          |           |              |
+	 *   |----------->|          |           |              |
+	 *   
+	 *   Ensure that derived sessions are invalidated.
+	 *   
+	 *   |            | BYE      |           |              |
+	 *   |            |------------------------------------>|
+	 *   |            |          |           |          200 |
+	 *   |            |<------------------------------------|
+	 *   |        200 |          |           |              |
+	 *   |<-----------|          |           |              |
+	 * </pre>
+	 */
+	@Test
+	@Category(NotCompliantV2.class)
+	public void testB2bFork2() throws Throwable
+	{
+		testB2bFork(true);
+	}
+	
+	public void testB2bFork(final boolean bobReplyFirst) throws Throwable
+	{
+		Call callA;
+		
+		Endpoint bob = createEndpoint("bob");
+		UaRunnable callB = new UaRunnable(bob.getUserAgent())
+		{
+			
+			@Override
+			public void doTest() throws Throwable
+			{
+				SipServletRequest request = waitForInitialRequest();
+				if (!bobReplyFirst)
+					Thread.sleep(100);
+				_ua.createResponse(request, SipServletResponse.SC_RINGING).send();
+				Thread.sleep(250);
+				_ua.createResponse(request, SipServletResponse.SC_NOT_FOUND).send();
+				
+			}
+		};
+		Endpoint carol = createEndpoint("bob");
+		UaRunnable callC = new UaRunnable(carol.getUserAgent())
+		{
+			
+			@Override
+			public void doTest() throws Throwable
+			{
+				SipServletRequest request = waitForInitialRequest();
+				if (bobReplyFirst)
+					Thread.sleep(100);
+				_ua.createResponse(request, SipServletResponse.SC_RINGING).send();
+				Thread.sleep(250);
+				_ua.createResponse(request, SipServletResponse.SC_OK).send();
+				request = _dialog.waitForRequest();
+				assert request.getMethod().equals(SipMethods.ACK);
+				Thread.sleep(31000);
+				request = _dialog.waitForRequest();
+				assert request.getMethod().equals(SipMethods.BYE);
+				_ua.createResponse(request, SipServletResponse.SC_OK).send();
+				
+			}
+		};
+
+		callB.start();
+		callC.start();
+		
+		SipServletRequest request = _ua.createRequest(SipMethods.INVITE, bob.getUri());
+		request.setRequestURI(bob.getContact().getURI());
+		request.addHeader("proxy", carol.getContact().toString());
+		callA = _ua.createCall(request);
+		        
+		assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
+		assertThat(callA.waitForResponse(), hasStatus(SipServletResponse.SC_RINGING));
+		assertThat(callA.waitForResponse(), isSuccess());
+
+		callA.createAck().send();
+		
+		LOG.info("Wait 32 seconds, to ensure INVITE transaction is terminated");
+		Thread.sleep(33050);
 		callA.createBye().send();
 		assertThat(callA.waitForResponse(), isSuccess());
 

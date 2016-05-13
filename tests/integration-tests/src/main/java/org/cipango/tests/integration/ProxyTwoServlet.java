@@ -13,11 +13,14 @@
 // ========================================================================
 package org.cipango.tests.integration;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.sip.Proxy;
+import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.SipServletRequest;
+import javax.servlet.sip.TooManyHopsException;
 import javax.servlet.sip.URI;
 import javax.servlet.sip.annotation.SipServlet;
 
@@ -28,7 +31,8 @@ import org.cipango.tests.AbstractServlet;
 public class ProxyTwoServlet extends AbstractServlet
 {
 
-	public void testTwoProxy(SipServletRequest request) throws Throwable
+	@Override
+	protected void doRequest(SipServletRequest request) throws IOException, TooManyHopsException, ServletParseException
 	{
 		Proxy proxy = request.getProxy();
 		proxy.setRecordRoute(false);

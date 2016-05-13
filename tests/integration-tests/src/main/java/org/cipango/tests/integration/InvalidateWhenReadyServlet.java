@@ -25,10 +25,12 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.servlet.sip.B2buaHelper;
 import javax.servlet.sip.Parameterable;
 import javax.servlet.sip.Proxy;
 import javax.servlet.sip.SipApplicationSessionEvent;
 import javax.servlet.sip.SipApplicationSessionListener;
+import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipSession;
@@ -38,12 +40,15 @@ import javax.servlet.sip.SipSession.State;
 import javax.servlet.sip.SipSessionEvent;
 import javax.servlet.sip.SipSessionListener;
 import javax.servlet.sip.TooManyHopsException;
+import javax.servlet.sip.UAMode;
 import javax.servlet.sip.URI;
 import javax.servlet.sip.annotation.SipListener;
 import javax.servlet.sip.annotation.SipServlet;
 
+import org.cipango.server.B2bHelper;
 import org.cipango.tests.AbstractServlet;
 import org.cipango.tests.MainServlet;
+import org.cipango.tests.integration.B2bHelperForkServlet.Role;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -629,6 +634,114 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 			assertTrue(session.isReadyToInvalidate());
 			assertThat(session, hasState(State.TERMINATED));
 		}
+	}
+	
+	public void testB2bFork(SipServletRequest request) throws Throwable
+	{
+		String method = request.getMethod();
+		SipSession session = request.getSession();
+		B2buaHelper helper = request.getB2buaHelper();
+		SipSession sessionUac = helper.getLinkedSession(session);
+		addSipSessionListenerTest(session);
+		assertTrue(session.isValid());
+		
+		assertFalse(session.isReadyToInvalidate());
+		assertFalse(session.getApplicationSession().isReadyToInvalidate());
+		SipServletRequest newRequest;
+		if (method.equals("INVITE"))
+		{
+			newRequest = helper.createRequest(request, true, null);
+			newRequest.getSession().setHandler(getServletName());
+			newRequest.pushRoute(getOwnUri(request));
+			newRequest.setHeader(MainServlet.SERVLET_HEADER, ProxyTwoServlet.class.getName());
+			assertThat(session, hasState(State.INITIAL));
+		}
+		else if (method.equals("ACK"))
+		{
+			List<SipServletMessage> l = helper.getPendingMessages(sessionUac, UAMode.UAC);
+			SipServletResponse response = (SipServletResponse) l.get(0);
+			newRequest = response.createAck();
+			assertThat(session, hasState(State.CONFIRMED));
+		}
+		else 
+		{
+			newRequest = helper.createRequest(sessionUac, request, null);
+			if (method.equals("BYE"))
+			{
+				assertThat(session, hasState(State.CONFIRMED));
+				List<Object> sessions = new ArrayList<Object>();
+				Iterator<?> it = session.getApplicationSession().getSessions();
+				while (it.hasNext())
+					sessions.add(it.next());
+				sessions.remove(session);
+				sessions.remove(sessionUac);
+				for (Object sipSession : sessions)
+				{
+					try
+					{
+						Object o = sipSession.getClass().getMethod("getSession").invoke(sipSession);
+						__logger.warn("Session {} ready {}:\n{}", sipSession, 
+								((SipSession) sipSession).isReadyToInvalidate());
+						__logger.warn("Session {}:\n{}", sipSession,  
+								o.getClass().getMethod("dump").invoke(o));
+						
+					}
+					catch (Throwable e)
+					{
+						__logger.warn("", e);
+					}
+				}
+				assertThat("Expect derived sessions to be invalidated", sessions, is(empty()));
+			}
+			
+		}
+		newRequest.send();
+		
+	}
+	
+	public void testB2bFork(SipServletResponse response) throws Exception
+	{
+		String method = response.getMethod();
+		SipSession session = response.getSession();
+		B2buaHelper helper = response.getRequest().getB2buaHelper();
+		SipSession sessionUas = helper.getLinkedSession(response.getSession());
+		SipServletResponse responseUas = null;
+	
+		if (method.equals("INVITE"))
+		{
+			assertFalse(session.isReadyToInvalidate());
+			assertFalse(session.getApplicationSession().isReadyToInvalidate());	
+			if (response.getStatus() == SipServletResponse.SC_RINGING)
+			{
+				assertThat(session, hasState(State.EARLY));
+			}
+			else if (response.getStatus() == SipServletResponse.SC_OK)
+			{
+				assertThat(session, hasState(State.CONFIRMED));
+			}
+			else
+				throw new IllegalAccessException("Unexpected " + response.getStatus() + "/INVITE");
+			responseUas = helper.createResponseToOriginalRequest(
+					sessionUas, response.getStatus(), response.getReasonPhrase() + " leg UAS");
+		}
+		else if (method.equals("BYE"))
+		{
+			assertTrue(session.isReadyToInvalidate());
+			assertThat(session, hasState(State.TERMINATED));
+			SipServletRequest linked = helper.getLinkedSipServletRequest(response.getRequest());
+			responseUas = linked.createResponse(response.getStatus(), response.getReasonPhrase() + " leg UAS");
+		}
+		responseUas.send();
+	}
+	
+	public void testB2bFork2(SipServletRequest request) throws Throwable
+	{
+		testB2bFork(request);
+	}
+	
+	public void testB2bFork2(SipServletResponse response) throws Throwable
+	{
+		testB2bFork(response);
 	}
 	
 	public void testSubscribe(SipServletRequest request) throws Throwable

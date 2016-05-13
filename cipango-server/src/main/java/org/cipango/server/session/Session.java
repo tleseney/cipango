@@ -44,8 +44,10 @@ import javax.servlet.sip.SipSessionListener;
 import javax.servlet.sip.TooManyHopsException;
 import javax.servlet.sip.UAMode;
 import javax.servlet.sip.URI;
+import javax.servlet.sip.SipSession.State;
 import javax.servlet.sip.ar.SipApplicationRoutingRegion;
 
+import org.cipango.server.B2bHelper;
 import org.cipango.server.RequestCustomizer;
 import org.cipango.server.SipConnection;
 import org.cipango.server.SipConnector;
@@ -1274,7 +1276,8 @@ public class Session implements SipSessionIf, Dumpable
 			if (tx.isCompleted() && !forked2xx)
 				throw new IllegalStateException("no valid transaction");
 			
-			tx.setListener(new ScopedServerTransactionListener(Session.this, this));
+			if (tx.getListener() == null) // Ensure that only original session is associated with transaction
+				tx.setListener(new ScopedServerTransactionListener(Session.this, this));
 						
 			updateState(response, false);
 			
@@ -1365,6 +1368,19 @@ public class Session implements SipSessionIf, Dumpable
 					removeServerInvite(cseq);
 				else
 					removeClientInvite(cseq);
+			}
+			if (transaction.getRequest().isInitial() && appSession().isValid())
+			{
+				List<Session> sessions = B2bHelper.findCloneSessions(Session.this, !transaction.isServer());
+				for (Session session : sessions)
+				{
+					if (session.getState() == State.EARLY)
+					{
+						LOG.warn("Update state from EARLY to TERMINATED as initial transaction {} is done for session {}",
+								transaction.getBranch(), session);
+						session.setState(State.TERMINATED);
+					}
+				}
 			}
 		}
 		

@@ -13,12 +13,12 @@
 // ========================================================================
 package org.cipango.tests.integration;
 
+import static org.cipango.client.test.matcher.SipMatchers.isSuccess;
 import static org.cipango.client.test.matcher.SipSessionMatchers.*;
-import static org.cipango.client.test.matcher.SipMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
-
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -34,9 +34,9 @@ import javax.servlet.sip.SipServletMessage;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import javax.servlet.sip.SipSession;
+import javax.servlet.sip.SipSession.State;
 import javax.servlet.sip.SipSessionBindingEvent;
 import javax.servlet.sip.SipSessionBindingListener;
-import javax.servlet.sip.SipSession.State;
 import javax.servlet.sip.SipSessionEvent;
 import javax.servlet.sip.SipSessionListener;
 import javax.servlet.sip.TooManyHopsException;
@@ -45,10 +45,8 @@ import javax.servlet.sip.URI;
 import javax.servlet.sip.annotation.SipListener;
 import javax.servlet.sip.annotation.SipServlet;
 
-import org.cipango.server.B2bHelper;
 import org.cipango.tests.AbstractServlet;
 import org.cipango.tests.MainServlet;
-import org.cipango.tests.integration.B2bHelperForkServlet.Role;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -675,22 +673,22 @@ public class InvalidateWhenReadyServlet extends AbstractServlet implements SipSe
 					sessions.add(it.next());
 				sessions.remove(session);
 				sessions.remove(sessionUac);
-				for (Object sipSession : sessions)
-				{
-					try
-					{
-						Object o = sipSession.getClass().getMethod("getSession").invoke(sipSession);
-						__logger.warn("Session {} ready {}:\n{}", sipSession, 
-								((SipSession) sipSession).isReadyToInvalidate());
-						__logger.warn("Session {}:\n{}", sipSession,  
-								o.getClass().getMethod("dump").invoke(o));
-						
-					}
-					catch (Throwable e)
-					{
-						__logger.warn("", e);
-					}
-				}
+//				for (Object sipSession : sessions)
+//				{
+//					try
+//					{
+//						Object o = sipSession.getClass().getMethod("getSession").invoke(sipSession);
+//						__logger.warn("Session {} ready {}:\n{}", sipSession, 
+//								((SipSession) sipSession).isReadyToInvalidate());
+//						__logger.warn("Session {}:\n{}", sipSession,  
+//								o.getClass().getMethod("dump").invoke(o));
+//						
+//					}
+//					catch (Throwable e)
+//					{
+//						__logger.warn("", e);
+//					}
+//				}
 				assertThat("Expect derived sessions to be invalidated", sessions, is(empty()));
 			}
 			

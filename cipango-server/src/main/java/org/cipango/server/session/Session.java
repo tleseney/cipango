@@ -1376,7 +1376,7 @@ public class Session implements SipSessionIf, Dumpable
 				{
 					if (session.getState() == State.EARLY)
 					{
-						LOG.warn("Update state from EARLY to TERMINATED as initial transaction {} is done for session {}",
+						LOG.debug("Update state from EARLY to TERMINATED as initial transaction {} is done for session {}",
 								transaction.getBranch(), session);
 						session.setState(State.TERMINATED);
 					}

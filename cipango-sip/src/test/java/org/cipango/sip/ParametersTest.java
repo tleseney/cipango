@@ -19,6 +19,7 @@ import static org.junit.Assert.assertTrue;
 import org.cipango.util.StringScanner;
 import org.eclipse.jetty.util.TreeTrie;
 import org.eclipse.jetty.util.Trie;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class ParametersTest 
@@ -60,7 +61,7 @@ public class ParametersTest
 		
 	}
 	
-	@Test
+	@Ignore("Performance test")
 	public void testPerf() throws Exception
 	{
 		long start = System.currentTimeMillis();

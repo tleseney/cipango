@@ -249,7 +249,7 @@ public class B2bHelperForkTest extends UaTestCase
 		Endpoint bob = createEndpoint("bob");
 		UaRunnable replyB = new NegativeReply(bob.getUserAgent(), 10, SipServletResponse.SC_NOT_FOUND);
 		Endpoint carol = createEndpoint("bob", "carol");
-		UaRunnable replyC = new NegativeReply(carol.getUserAgent(), 100, SipServletResponse.SC_DECLINE);
+		UaRunnable replyC = new NegativeReply(carol.getUserAgent(), 200, SipServletResponse.SC_DECLINE);
 		replyB.start();
 		replyC.start();
 		Thread.sleep(10);

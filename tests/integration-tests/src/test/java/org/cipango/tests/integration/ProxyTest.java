@@ -186,6 +186,8 @@ public class ProxyTest extends UaTestCase
 		Call callA = _ua.createCall(request);
 		assertThat(callA.waitForResponse(), isSuccess());
 		callA.createAck().send();
+		
+		Thread.sleep(100);
 		callA.createBye().send();
 
 		SipServletResponse response = callA.waitForResponse();

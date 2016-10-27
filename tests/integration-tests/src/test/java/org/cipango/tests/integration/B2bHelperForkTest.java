@@ -1,5 +1,5 @@
 // ========================================================================
-// Copyright 2007-2012 NEXCOM Systems
+// Copyright 2007-2016 NEXCOM Systems
 // ------------------------------------------------------------------------
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 // ========================================================================
 package org.cipango.tests.integration;
 
-import static org.cipango.client.test.matcher.SipMatchers.hasStatus;
 import static org.hamcrest.Matchers.is;
 
 import javax.servlet.sip.SipServletRequest;
@@ -616,8 +615,18 @@ public class B2bHelperForkTest extends UaTestCase
 		public void doTest() throws Throwable
 		{
 			SipServletRequest request = waitForInitialRequest();
-			assertThat(request.getMethod(), is(SipMethods.INVITE));
-			_ua.createResponse(request, SipServletResponse.SC_OK, "OK " + getUserName()).send();
+			
+			ApplicationSessionScope scope = openScope(request.getApplicationSession());
+			try
+			{
+				Thread.sleep(50);
+				assertThat(request.getMethod(), is(SipMethods.INVITE));
+				_ua.createResponse(request, SipServletResponse.SC_OK, "OK " + getUserName()).send();
+			}
+			finally
+			{
+				scope.close();
+			}
 			
 			request = _dialog.waitForRequest();
 			assertThat(request.getMethod(), is(SipMethods.ACK));
@@ -670,6 +679,7 @@ public class B2bHelperForkTest extends UaTestCase
 		public NegativeReply(TestAgent ua, long ringingWait, int status)
 		{
 			super(ua);
+			_ringingWait = ringingWait;
 			_status = status;
 		}
 		
@@ -682,7 +692,7 @@ public class B2bHelperForkTest extends UaTestCase
 			Thread.sleep(_ringingWait);
 			_ua.createResponse(request, SipServletResponse.SC_RINGING, "Ringing " + getUserName()).send();
 			Thread.sleep(500);
-			_ua.createResponse(request, _status, "Decline " + getUserName()).send();
+			_ua.createResponse(request, _status).send();
 		}	
 	}
 	

@@ -96,6 +96,11 @@ public class RequestHandler extends AbstractChallengedMessageHandler
 		return new ArrayList<SipServletResponse>(_responses);
 	}
 
+	public SipServletRequest getRequest()
+	{
+		return _request;
+	}
+
 	@Override
 	public void handleRequest(SipServletRequest request)
 			throws IOException, ServletException 

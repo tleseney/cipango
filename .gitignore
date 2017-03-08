@@ -1,0 +1,43 @@
+# eclipse
+.classpath
+.project
+.settings
+.metadata
+
+# maven
+target/
+*/src/main/java/META-INF/
+*.versionsBackup
+
+# common junk
+*.log
+*.swp
+*.diff
+*.patch
+
+# intellij
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Mac filesystem dust
+.DS_Store
+
+# pmd
+.pmdruleset
+.pmd
+
+# netbeans
+/nbproject
+
+# vim
+.*.sw[a-p]
+
+# merge tooling
+*.orig
+
+#maven
+*.versionsBackup
+mvn install.bat
+/tests/integration-tests/mvn run.bat

@@ -6,7 +6,7 @@ public class SipRules {
 
     public static final char SP = 0x20;
 
-    public static final byte ESCAPE_CHAR = '%';
+    public static final char ESCAPE_CHAR = '%';
 
     public static final String ALPHA_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     public static final String DIGIT_CHARS = "0123456789";

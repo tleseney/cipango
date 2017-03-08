@@ -268,4 +268,8 @@ public class SipURIImpl implements SipURI {
 
         return uri;
     }
+
+    public static void main(String[] args) throws Exception {
+        parseURI("sip:%61lice@atlanta.com");
+    }
 }

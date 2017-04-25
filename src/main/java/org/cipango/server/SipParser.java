@@ -84,6 +84,14 @@ public class SipParser {
         return line.startsWith(SipVersion.SIP_2_0.asString());
     }
 
+    class Handler {
+
+
+        public void requestLine() {
+
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         String s = "INVITE sip:service@192.168.1.26:5070 SIP/2.0\r\n"
         + "Via: SIP/2.0/UDP 192.168.1.26:5060;branch=z9hG4bK-90021-1-0\r\n"

@@ -1,7 +1,14 @@
 package org.cipango.server;
 
-/**
- * Created by thomas on 08/03/2017.
- */
-public class SipRequest {
+import javax.servlet.sip.SipServletRequest;
+import javax.servlet.sip.URI;
+
+public abstract class SipRequest extends SipMessage implements SipServletRequest {
+
+    private String method;
+    private URI requestURI;
+    private String version;
+
+
+
 }
